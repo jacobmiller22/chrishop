@@ -1,22 +1,24 @@
 # High Level Design - Monorepo & Architecture for Chris's Shop
 
-This document details the finalized technical, security, operational, and deployment architecture for Chris's product showcase and e-commerce platform. It reflects all user-approved design decisions.
+This document details the finalized technical, security, operational, and deployment architecture for Chris's product showcase and e-commerce platform. It establishes the Cloudflare-native and Shopify Headless architecture as the authoritative source of truth across the monorepo.
 
 ---
 
 ## 1. Executive Summary & Design Decisions
 
-- **Monorepo Architecture**: Clean `pnpm` + `Turborepo` monorepo containing storefront (`apps/web`), Directus CMS extensions & configurations (`apps/cms`), shared TypeScript types (`packages/types`), shared UI design system (`packages/ui` built with **Tailwind CSS v4 + Radix UI Primitives**), pluggable notifications engine (`packages/notifications`), and Infrastructure as Code (`infra/`).
-- **Data Query Strategy (Hybrid)**: Storefront content reads use `@directus/sdk` for cached REST API queries and Directus permission handling. High-concurrency checkout and Stripe webhook database transactions use a lightweight direct PostgreSQL client (**`Kysely` / `pg`**) for atomic SQL inventory operations.
-- **Object Storage**: **Cloudflare R2** (S3-compatible API, zero egress bandwidth costs) for product galleries, media, and asset transforms.
-- **Payment & Order Management**: Stripe Checkout with dynamic pricing (`price_data`), SAQ-A PCI compliance, atomic DB reservation, normalized `order_items` relational schema, and automated Stripe Tax calculation.
-- **Host VPS & Cost-Effective Provisioning**: Provisioned on **Hetzner Cloud** via Ansible & Cloud-Init (`infra/vps/`), starting on a lightweight **CX22 instance (2 vCPU / 4 GB RAM)** for development and early testing, and scaling seamlessly to **CPX21** prior to public production launch.
-- **Caching & Pre-Checkout Lock**: Zero-cost **containerized Redis OSS** container running on host VPS with Append-Only File (AOF) persistence for 10-minute checkout inventory reservations.
-- **Pluggable Event Notification Engine**: Modular `NotificationProvider` architecture supporting multiple alert sinks, starting with an interactive **Discord Bot** for development, drop launches, low-stock alerts, and order notifications.
-- **Shipping & Fulfillment (Phase 1 Focused)**: Streamlined manual tracking number entry in Directus Admin with carrier tracking link generation and automated **Resend** customer emails. Schema is pre-structured for Phase 2 Shippo API label generation when order volume scales.
-- **Security & Admin RBAC**: Strict Directus RBAC schema guardrails, **Mandatory TOTP Two-Factor Authentication (2FA)** for Admin users, raw-body cryptographic Stripe signature verification, and 300s replay attack defense.
-- **Dynamic Ephemeral PR Previews**: Automated spin-up of isolated preview environments (`pr-X.preview.chrishop.com`) using Caddy dynamic routing with Cloudflare DNS-01 ACME challenge for automatic wildcard TLS certificates.
-- **Observability**: **Sentry** (free tier JS error tracking) + **Better Stack** (uptime monitoring & `/api/health` checks) + **Discord Channel Alerts**.
+- **Monorepo Architecture**: Clean `pnpm` + `Turborepo` monorepo containing the unified storefront and administration platform (`apps/web`), shared TypeScript types (`packages/types`), shared UI design system (`packages/ui` built with **Tailwind CSS v4 + Radix UI Primitives**), pluggable event notifications engine (`packages/notifications`), shared environment configuration (`packages/config`), and platform infrastructure (`infra/`).
+- **Edge Application Runtime**: **Cloudflare Workers** utilizing `nodejs_compat` via the `@opennextjs/cloudflare` adapter. Next.js App Router and the content management engine run co-located within a single globally distributed edge deployment.
+- **Embedded Content Management Engine**: **Payload CMS v3** co-located inside `apps/web`. Administrative controls are served directly under `/admin/*` routes within the same edge application deployment, defined natively in TypeScript without separate server processes.
+- **Serverless Relational Database**: **Cloudflare D1** as the sole database for content models and editorial metadata. Built on SQLite with strong consistency, regional edge query replication, and automatic Point-in-Time Recovery (PITR).
+- **Edge Cache Layer**: **Workers KV** utilized strictly as a high-speed read cache for Incremental Static Regeneration (ISR) and D1 query memoization. Workers KV is never used as a primary relational database.
+- **Object Storage**: **Cloudflare R2** (S3-compatible API, zero egress fees) for high-resolution product photography, artwork galleries, and downloadable certificates.
+- **Headless Commerce Engine**: **Shopify Headless** via the **Storefront API**. Shopify natively manages cart creation, line additions, inventory levels, PCI-compliant checkout redirect URLs, payments, currency conversion, taxes, and shipping rates.
+- **Content-to-Commerce Synchronization**: Payload CMS lifecycle hooks (`afterChange`) synchronize product publishing events directly with the **Shopify Admin API**, creating and updating product variants, stock levels, and SKUs while maintaining Payload as the source of truth for rich storytelling.
+- **Order Notifications & Operational Pipeline**: Shopify order webhooks emit events to the storefront API, triggering notifications via the pluggable `packages/notifications` engine to an interactive **Discord Bot** (`#store-orders`) and customer transactional emails via **Resend**.
+- **Security & Access Controls**: Payload CMS role-based access control (RBAC) with **Mandatory TOTP Two-Factor Authentication (2FA)** for administrative accounts, Shopify HMAC-SHA256 webhook signature verification, Cloudflare Web Application Firewall (WAF), and Cloudflare Turnstile anti-bot protection.
+- **CI/CD & Operational Simplicity**: `wrangler deploy` automates continuous deployment on pushes to `staging` and `main` branches. Pull request branches receive automated Cloudflare preview deployments.
+- **Local Developer Ergonomics**: Local development is powered by `wrangler dev` with Miniflare emulating D1 and KV locally, paired with `@shopify/cli` for dev store connectivity—requiring zero virtual machines or background container engines.
+- **Observability**: **Sentry** for client and edge error tracking, **Better Stack** for edge `/api/health` heartbeat checks, and Discord webhook channels for real-time drop telemetry.
 
 ---
 
@@ -25,173 +27,156 @@ This document details the finalized technical, security, operational, and deploy
 ```
 chrishop/
 ├── apps/
-│   ├── web/                    # Next.js App Router storefront & API routes (/api/checkout, /api/webhooks/stripe, /api/health)
-│   └── cms/                    # Directus custom hooks, extensions, snapshots & seed scripts
-│       └── extensions/         # Custom Directus hooks & endpoints (built via @directus/extensions-sdk)
+│   └── web/                    # Next.js App Router storefront + Payload CMS v3 (/admin) & edge routes
+│       ├── src/
+│       │   ├── app/            # App Router pages, layout, and edge API route handlers
+│       │   ├── collections/    # Payload CMS collection schemas (Products, Categories, Variations)
+│       │   └── lib/            # Shopify client, D1 bindings, and utility functions
+│       ├── payload.config.ts   # Payload CMS configuration with D1 and R2 adapters
+│       └── open-next.config.ts # OpenNext Cloudflare adapter configuration
 ├── packages/
-│   ├── types/                  # Shared TypeScript interfaces generated from Directus schema & Stripe types
-│   ├── ui/                     # Accessible (WCAG 2.1 AA) design system (Tailwind CSS v4 + Radix UI primitives)
-│   ├── notifications/          # Pluggable Notification Engine (Discord Bot Provider, Email Provider, extensible interface)
-│   └── config/                 # Shared tsconfig, eslint, and prettier configurations
+│   ├── types/                  # Shared TypeScript models for storefront, Payload, and Shopify
+│   ├── ui/                     # Accessible (WCAG 2.1 AA) UI system (Tailwind CSS v4 + Radix UI)
+│   ├── notifications/          # Pluggable Notification Engine (Discord Webhook, Resend Email)
+│   └── config/                 # Shared environment schemas (Zod), tsconfig, and lint presets
 ├── infra/
-│   ├── vps/                    # Host OS Infrastructure as Code (Hetzner provisioning)
-│   │   ├── cloud-init.yaml     # Server initialization script
-│   │   ├── playbook.yml        # Ansible playbook (OS hardening, UFW, Docker, fail2ban)
-│   │   └── inventory.ini       # Server inventory configuration
-│   ├── docker/
-│   │   ├── docker-compose.prod.yml    # Production multi-container stack
-│   │   ├── docker-compose.staging.yml # Permanent Staging multi-container stack
-│   │   ├── docker-compose.preview.yml # Template for ephemeral PR preview environments
-│   │   └── docker-compose.dev.yml     # Local dev environment (Postgres, Directus, MinIO/R2 emulator, Redis OSS)
-│   ├── caddy/                  # Caddyfile (Auto-HTTPS via Cloudflare DNS-01 challenge, wildcard preview routing)
-│   ├── directus/
-│   │   └── snapshot.yaml       # Directus schema version-controlled snapshot
-│   └── scripts/                # Backup, restore, deployment, preview-teardown, security scripts
+│   ├── r2/                     # R2 CORS configuration and bucket definitions
+│   └── scripts/                # Database migration and developer utility scripts
+├── wrangler.toml               # Cloudflare Workers configuration (D1, KV, R2 bindings)
 ├── .github/
-│   └── workflows/              # CI/CD pipelines (Lint, Test, Schema Apply, Preview Deploy, Preview Teardown, Deploy)
+│   └── workflows/              # CI/CD pipelines (check, test, preview, wrangler deploy)
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
 
 ---
 
-## 3. Directus Data Model & Hybrid Data Access
+## 3. Data Architecture & Content-Commerce Split
 
-### 3.1 Data Schema (Normalized Relational Model)
+### 3.1 Division of Responsibilities
+
+To combine boutique creative presentation with robust, PCI-compliant transactional reliability, the platform maintains a strict separation of concerns:
+
+| Data Domain | Authority | Rationale |
+| :--- | :--- | :--- |
+| **Product Title & Story** | Payload CMS (synced to Shopify) | Rich editorial content originates in the CMS |
+| **Rich Description & Statements** | Payload CMS | Extended artist statements and provenance data |
+| **High-Res Artwork & Gallery** | Payload CMS (Cloudflare R2) | Uncompressed imagery stored with zero egress fees |
+| **Limited Edition Metadata** | Payload CMS | Edition run numbers, certificate info, drop countdowns |
+| **Price & SKU** | Shopify | Authoritative pricing for cart and payment execution |
+| **Real-time Inventory Levels** | Shopify | Native stock decrement and oversell prevention |
+| **Cart & Checkout Sessions** | Shopify | Managed, PCI-compliant checkout workflow |
+| **Orders & Fulfillment** | Shopify | Centralized merchant dashboard for shipping and labels |
+| **Tax & Shipping Rules** | Shopify | Configured once in Shopify Admin; calculated dynamically |
+
+### 3.2 Content Schema (Cloudflare D1 via Payload CMS)
 
 1. **`categories` (Collection)**
-   - `id` (UUID, Primary Key)
-   - `name` (String, Required: e.g. "Sculptures", "Prints")
-   - `slug` (String, Unique)
+   - `id` (Text / UUID, Primary Key)
+   - `name` (Text, Required: e.g., "Original Sculptures", "Fine Art Prints")
+   - `slug` (Text, Unique Index)
    - `description` (Text)
-   - `image` (Directus File link -> Cloudflare R2)
+   - `image` (Upload relationship -> Cloudflare R2)
 
 2. **`products` (Collection)**
-   - `id` (UUID, Primary Key)
-   - `title` (String, Required)
-   - `slug` (String, Unique)
-   - `description` (Rich Text / Markdown)
-   - `base_price` (Decimal, Required)
-   - `status` (Select: `draft`, `published`, `archived`)
-   - `featured_image` (Directus File link -> Cloudflare R2)
-   - `gallery` (M2M Directus Files -> Cloudflare R2)
-   - `category_id` (M2O -> `categories`)
+   - `id` (Text / UUID, Primary Key)
+   - `shopify_product_id` (Text, Unique Index: Linked Shopify Product GID)
+   - `title` (Text, Required)
+   - `slug` (Text, Unique Index)
+   - `description` (Rich Text / Lexical)
+   - `artist_statement` (Text: Extended provenance and inspiration)
+   - `category_id` (Relationship -> `categories`)
+   - `featured_image` (Upload relationship -> Cloudflare R2)
+   - `gallery` (Array of Upload relationships -> Cloudflare R2)
+   - `base_price` (Number: Synchronized to default Shopify variant)
+   - `status` (Select: `draft`, `scheduled`, `active`, `archived`)
 
 3. **`product_variations` (Collection)**
-   - `id` (UUID, Primary Key)
-   - `product_id` (M2O -> `products`)
-   - `variation_name` (String: e.g., "Midnight Gold Edition")
-   - `sku` (String, Unique)
-   - `price_override` (Decimal, Optional fallback to `base_price`)
+   - `id` (Text / UUID, Primary Key)
+   - `product_id` (Relationship -> `products`)
+   - `shopify_variant_id` (Text, Unique Index: Linked Shopify ProductVariant GID)
+   - `variation_name` (Text: e.g., "Obsidian Cast Edition")
+   - `sku` (Text, Unique Index)
+   - `price_override` (Number, Optional: Falls back to product base price)
    - `is_limited_edition` (Boolean, Default: true)
-   - `total_edition_count` (Integer)
-   - `stock_quantity` (Integer)
-   - `release_date` (DateTime, Optional for scheduled drops)
+   - `total_edition_count` (Number: Total serialized prints/casts created)
+   - `stock_quantity` (Number: Synced to Shopify inventory level)
+   - `release_date` (DateTime, Optional: Controls drop countdown timers)
    - `status` (Select: `coming_soon`, `active`, `sold_out`, `archived`)
 
-4. **`orders` (Collection)**
-   - `id` (UUID, Primary Key)
-   - `stripe_checkout_session_id` (String, Unique)
-   - `stripe_payment_intent_id` (String)
-   - `customer_email` (String)
-   - `shipping_name` (String)
-   - `shipping_address` (JSON: street, city, state, postal_code, country)
-   - `order_status` (Select: `paid`, `processing`, `shipped`, `delivered`, `cancelled`, `refunded`)
-   - `shipping_status` (Select: `unfulfilled`, `shipped`, `delivered`)
-   - `carrier` (String, Optional: e.g., "USPS", "UPS", "FedEx")
-   - `tracking_number` (String, Optional)
-   - `tracking_url` (String, Optional generated URL)
-   - `shippo_transaction_id` (String, Optional placeholder for Phase 2 Shippo integration)
-   - `label_url` (String, Optional placeholder for Phase 2 Shippo integration)
-   - `rate_id` (String, Optional placeholder for Phase 2 Shippo integration)
-   - `amount_subtotal` (Decimal)
-   - `amount_tax` (Decimal)
-   - `amount_shipping` (Decimal)
-   - `amount_total` (Decimal)
-   - `created_at` (DateTime)
+### 3.3 Price Resolution Formula
 
-5. **`order_items` (Junction Collection - Normalized)**
-   - `id` (UUID, Primary Key)
-   - `order_id` (M2O -> `orders`)
-   - `variation_id` (M2O -> `product_variations`)
-   - `unit_price` (Decimal - Captured at point of sale)
-   - `quantity` (Integer)
+The storefront computes effective display prices consistently:
+$$\text{Effective Price} = \text{COALESCE}(\text{product\_variations.price\_override}, \text{products.base\_price})$$
 
-6. **`processed_stripe_events` (Idempotency Collection)**
-   - `id` (String - Stripe Event ID `evt_...`, Primary Key)
-   - `event_type` (String)
-   - `processed_at` (DateTime)
+At checkout time, Shopify Storefront API acts as the authoritative price validator, ensuring zero client-side tampering.
 
-### 3.2 Hybrid Data Layer
+### 3.4 Synchronization Bridge (Payload to Shopify Admin API)
 
-- **Content & Catalog Reads**: Storefront pages (`apps/web`) call `@directus/sdk` REST endpoints.
-- **Stripe Webhooks & Checkout Transactions**: Direct PostgreSQL transactions executed via `Kysely` query builder inside Next.js API routes (`/api/webhooks/stripe`) to guarantee atomic stock decrements under raw SQL locks.
-- **Price Override Fallback Formula**:
-  $$\text{Effective Price} = \text{COALESCE}(\text{product\_variations.price\_override}, \text{products.base\_price})$$
-
-### 3.3 Chris's Content Management & Revision History
-
-- **Revision & Activity Logs**: Built-in Directus Revisions enabled for `products` and `product_variations`. Chris can view complete edit history and revert accidental edits with 1-click.
-- **Drop Launch & Scheduled Publishing Mechanics**:
-  - Chris sets `status = coming_soon` and populates `release_date`.
-  - Storefront displays interactive live countdown timer.
-  - Background Directus Cron hook automatically updates `status = active` when `release_date <= NOW()`, enabling Checkout button instantly.
-
-### 3.4 Directus Extension Development Workflow
-
-- Custom extensions (webhooks, automated cron triggers, fulfillment hooks) reside in `apps/cms/extensions/`.
-- Built using `@directus/extensions-sdk` (`pnpm --filter cms build`). Output JavaScript bundles copy to `/directus/extensions/` inside the CMS Docker image.
+When Chris creates or modifies a product in Payload CMS:
+1. **Hook Execution**: Payload's `afterChange` collection hook inspects the update payload.
+2. **Shopify Admin API Call**:
+   - If `shopify_product_id` is null, an automated GraphQL mutation (`productCreate`) provisions the product and variants in Shopify, storing returned GIDs into D1.
+   - If `shopify_product_id` exists, a `productUpdate` mutation syncs title, price, SKU, and initial inventory quantities.
+3. **Drop Mechanics**: When `status` transitions to `active`, the hook marks the Shopify product status as `ACTIVE` across the Headless sales channel.
 
 ---
 
-## 4. Payment SaaS, Inventory Reservation & Order Processing
+## 4. Headless Commerce & Checkout Architecture
 
-### 4.1 Stripe Dynamic Checkout (Zero-Sync Architecture)
+### 4.1 Shopify Storefront API Integration
 
-- Checkout sessions use **Stripe `line_items.price_data`** dynamically generated at checkout creation from validated Directus DB records.
-- Stripe Tax enabled via `automatic_tax: { enabled: true }`.
-- Shipping options (flat rate / free shipping threshold) configured directly in Checkout session options.
+The Next.js storefront communicates directly with Shopify via the official `@shopify/storefront-api-client`:
 
-### 4.2 Local Pre-Checkout Inventory Reservation (Redis OSS)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant Storefront as Next.js on Workers
+    participant CMS as Payload CMS (D1)
+    participant Shopify as Shopify Storefront API
 
-1. **Checkout Initiation**: User clicks "Checkout" → `/api/checkout` API executes a **Redis Stock Reservation**:
-   - System checks `available_stock = DB.stock_quantity - Active_Redis_Reservations`.
-   - If `available_stock >= requested_qty`, a Redis key is created: `reservation:{variation_id}:{session_id}` with a **10-minute TTL** matching Stripe Checkout session duration.
-   - If stock is insufficient, user receives immediate UI notice: _"Item is currently reserved in another checkout session."_
-2. **Payment Completion (Stripe Webhook)**:
-   - Upon receiving `checkout.session.completed`, atomic SQL (via Kysely) updates inventory:
-     ```sql
-     UPDATE product_variations
-     SET stock_quantity = stock_quantity - :qty,
-         status = CASE WHEN (stock_quantity - :qty) <= 0 THEN 'sold_out' ELSE status END
-     WHERE id = :variation_id AND stock_quantity >= :qty;
-     ```
-   - Deletes Redis reservation key `reservation:{variation_id}:{session_id}`.
-3. **Session Expiration**: If customer abandons checkout, Redis TTL key expires automatically, releasing reserved unit back to available pool.
+    Customer->>Storefront: Browse /catalog or /drops
+    Storefront->>CMS: Fetch rich content & media (cached via KV)
+    Storefront->>Shopify: Fetch live prices & stock availability
+    Storefront-->>Customer: Render page with live inventory badge
+    Customer->>Storefront: Click "Add to Cart"
+    Storefront->>Shopify: GraphQL mutation cartLinesAdd
+    Shopify-->>Storefront: Updated Cart Object & checkoutUrl
+    Customer->>Storefront: Click "Proceed to Checkout"
+    Storefront-->>Customer: Redirect to Shopify hosted checkoutUrl
+    Customer->>Shopify: Complete payment & enter shipping details
+    Shopify-->>Customer: Order confirmation & tracking link
+```
+
+### 4.2 Native Inventory Protection & Zero Overselling
+
+- Shopify's checkout engine natively reserves stock when buyers initiate payment.
+- If concurrent buyers attempt to purchase the final unit of a limited drop, Shopify automatically blocks checkout completion for the second buyer, completely preventing oversell conditions without requiring custom reservation code or transactional locking databases.
+- Sold out status is reflected instantly across the Storefront API.
 
 ---
 
 ## 5. Shipping & Order Fulfillment Workflow
 
-### Phase 1 Fulfillment Story (Current Focus):
+### Phase 1 Fulfillment Strategy:
 
-1. **Order Alert**: Directus webhook calls `packages/notifications` engine -> triggers **Discord Bot alert** in `#store-orders`: _"🛒 New Order #1042 - Midnight Gold Edition (Qty: 1) - $150.00"_.
-2. **Order Review**: Chris logs into Directus Admin (`admin.chrishop.com`) with TOTP 2FA, navigates to `orders` collection filtered by `shipping_status = 'unfulfilled'`.
-3. **Packing & Dispatch**: Chris prepares and packs the physical product drop item.
-4. **Fulfillment Update**: Chris selects Carrier (e.g., `USPS`), inputs `tracking_number`, updates `shipping_status` to `shipped`, and clicks **Save**.
-5. **Carrier Tracking URL Builder**: Directus action hook computes carrier-specific tracking link (e.g. `https://tools.usps.com/go/TrackConfirmAction?tLabels={tracking_number}`) and updates `tracking_url`.
-6. **Automated Customer Notification**: Directus hook dispatches branded HTML email via **Resend API** to `customer_email` with tracking link.
+1. **Order Creation Event**: When a customer completes checkout on Shopify, Shopify emits an `orders/create` webhook to `/api/webhooks/shopify`.
+2. **Signature Verification**: The edge route verifies the payload's HMAC-SHA256 header using `SHOPIFY_WEBHOOK_SECRET`.
+3. **Operational Notification**: The webhook invokes `packages/notifications`, transmitting a formatted embed to Discord `#store-orders`:
+   - _"🛒 New Order #1042 — Obsidian Cast Edition (Qty: 1) — $350.00"_
+   - Customer shipping destination and edition details.
+4. **Order Packaging & Dispatch**: Chris accesses the standard Shopify Admin portal (`admin.shopify.com`), marks the order fulfilled, and inputs carrier tracking details.
+5. **Customer Tracking Email**: Shopify automatically transmits branded shipment confirmation and tracking updates to the customer. When desired, supplementary transactional notifications are dispatched via the **Resend API**.
 
-### Phase 2 Architecture Readiness (Future Shippo Upgrade):
-
-- `orders` collection schema includes placeholder fields (`shippo_transaction_id`, `label_url`, `rate_id`).
-- When order volume scales past 50 orders/month, a custom Directus action extension can be enabled to fetch shipping rates and purchase 1-click labels directly within Directus Admin.
+### Phase 2 Scale Readiness:
+- Shopify seamlessly integrates with 1-click label generators (e.g., Shopify Shipping or Shippo apps), allowing Chris to print thermal shipping labels directly inside Shopify Admin without custom code maintenance.
 
 ---
 
-## 6. Notification System Architecture (`packages/notifications`)
+## 6. Event Notification Engine (`packages/notifications`)
 
-To ensure adaptability to multiple communication platforms:
+The platform utilizes a modular, provider-agnostic notification engine:
 
 ```typescript
 export interface NotificationPayload {
@@ -205,128 +190,107 @@ export interface NotificationProvider {
   send(payload: NotificationPayload): Promise<void>;
 }
 
-// Development & Operational Implementation
 export class DiscordNotificationProvider implements NotificationProvider {
   constructor(private webhookUrl: string) {}
   async send(payload: NotificationPayload): Promise<void> {
-    /* Rich Discord Embed formatting */
+    // Formatted Discord webhook payload with color-coded embeds
   }
 }
 ```
 
-- **Development & Operations Sink**: Discord Bot / Webhook posting to `#store-orders` (purchases & low stock alerts) and `#dev-alerts` (deployments, uptime alerts, errors).
-- **Extensibility**: Easy addition of Telegram, Slack, or SMS adapters in the future without refactoring core storefront or CMS code.
+- **Operations Alert Channel**: Discord channels `#store-orders` (purchases and inventory thresholds) and `#dev-alerts` (build status, edge anomalies, uptime reports).
+- **Extensible Providers**: Easily plug in SMS or additional notification sinks by implementing `NotificationProvider`.
 
 ---
 
-## 7. Security Architecture, VPS Hardening & Secrets Management
+## 7. Security Architecture & Secrets Management
 
-- **Admin Account Security**: **Mandatory TOTP Two-Factor Authentication (2FA)** for Chris's account and any admin roles in Directus.
-- **Secrets Management**:
-  - Dev: Local `.env` (git-ignored).
-  - CI/CD: GitHub Encrypted Secrets.
-  - Production at Rest: Production secrets stored in `infra/vps/.env.production` encrypted using `age`.
-  - Backup Key Isolation: Master backup decryption key (`AGE_BACKUP_KEY`) stored strictly in GitHub Secrets and off-site password manager. Never stored unencrypted on VPS host.
-- **Hetzner VPS OS Hardening**: Managed via Ansible (`infra/vps/playbook.yml`) and Cloud-Init (`infra/vps/cloud-init.yaml`): UFW firewall (80, 443, 22 permitted), private Docker network isolation for Postgres & Redis, SSH key authentication enforced, fail2ban active, Docker log rotation (`10m`, `3` files).
-- **Stripe Security**: Raw-body signature verification, 300s replay attack window check, `processed_stripe_events` idempotency table.
-
----
-
-## 8. Multi-Environment Architecture & Ephemeral PR Previews
-
-### 8.1 Environment Matrix
-
-1. **Local Dev**: `docker-compose.dev.yml` (Postgres, Directus, MinIO/R2 local emulator, Redis OSS).
-2. **Ephemeral PR Previews (`pr-X.preview.chrishop.com`)**: Automated spin-up for open PRs with Caddy Cloudflare DNS-01 ACME wildcard SSL certificates.
-3. **Permanent Staging (`staging.chrishop.com`)**: Staging stack (`docker-compose.staging.yml`) on **Hetzner CX22**.
-4. **Production (`chrishop.com`)**: Production stack (`docker-compose.prod.yml`) promoted to **Hetzner CPX21** prior to public launch.
+- **Administrative Authentication**: Mandatory TOTP Two-Factor Authentication (2FA) enforced on all Payload CMS admin users under `/admin`.
+- **Edge Secrets Management**:
+  - Local Development: Local `.dev.vars` (git-ignored, emulated by Wrangler).
+  - Continuous Integration: GitHub Actions encrypted repository secrets.
+  - Edge Environments: Managed via Cloudflare Workers Secrets (`wrangler secret put SHOPIFY_ADMIN_TOKEN --env production`).
+- **Webhook Security**: Raw-body HMAC-SHA256 signature verification on all incoming Shopify webhooks to prevent spoofing or tampering.
+- **PCI DSS Compliance**: Level 1 PCI DSS compliance fully offloaded to Shopify Checkout. The custom storefront application never touches, transmits, or stores cardholder data.
+- **Edge Protection**: Cloudflare global WAF rules, automated DDoS mitigation, Turnstile bot challenges, and TLS 1.3 termination at edge nodes worldwide.
 
 ---
 
-### 8.2 Ephemeral PR Preview Workflow (Per-PR Staging)
+## 8. Multi-Environment Architecture & Deployment Pipeline
 
-```
-[ Developer opens PR #42 (feature/new-drop-ui) ]
-                      │
-                      ▼
- [ GitHub Actions: .github/workflows/preview-deploy.yml ]
-                      │
-                      ├─▶ 1. Builds preview Docker images (web:pr-42, cms:pr-42)
-                      ├─▶ 2. Provisions Docker compose project `pr-42` on VPS via docker-compose.preview.yml
-                      ├─▶ 3. Provisions isolated Postgres DB `pr_42_db` & seeds sample products (`pnpm seed`)
-                      ├─▶ 4. Caddy + Cloudflare DNS-01 ACME configures wildcard TLS: `pr-42.preview.chrishop.com`
-                      └─▶ 5. GitHub Bot posts comment on PR: "🚀 Preview deployed: https://pr-42.preview.chrishop.com"
+### 8.1 Environments Matrix
+
+1. **Local Development**: `wrangler dev` running on Miniflare, locally binding emulated D1 databases, KV namespaces, and local R2 buckets. Connects to a Shopify Development Store via `@shopify/cli`.
+2. **Cloudflare Preview Deployments**: Automated preview environments generated on every pull request via Cloudflare deployment previews.
+3. **Staging (`staging.chrishop.com`)**: Staging Workers deployment linked to `chrishop-staging-db` D1 database and staging Shopify environment.
+4. **Production (`chrishop.com`)**: Production Workers deployment linked to `chrishop-prod-db` D1 database and live Shopify production store.
+
+### 8.2 CI/CD Deployment Flow (GitHub Actions)
+
+```mermaid
+flowchart LR
+    PushMain[Push to main] --> Build[pnpm build:check]
+    Build --> Test[pnpm test:unit]
+    Test --> DeployProd[wrangler deploy --env production]
+    
+    PushStaging[Push to staging] --> BuildStaging[pnpm build:check]
+    BuildStaging --> TestStaging[pnpm test:unit]
+    TestStaging --> DeployStaging[wrangler deploy --env staging]
 ```
 
-- **Resource Teardown**: When PR is closed/merged, `.github/workflows/preview-teardown.yml` destroys containers, database `pr_42_db`, and Caddy route.
+### 8.3 Database Migrations & Point-in-Time Recovery (PITR)
+
+- **D1 Migrations**: Schema alterations are expressed in standard SQL migration files (`migrations/xxxx_name.sql`) executed using `wrangler d1 migrations apply chrishop-prod-db`.
+- **Automated Disaster Recovery**: Cloudflare D1 provides continuous replication and Point-in-Time Recovery (PITR), allowing restoration to any minute within the preceding 30 days via the Cloudflare dashboard or CLI.
+- **Instant Rollbacks**: Edge worker code deployments support zero-downtime instant rollbacks via `wrangler rollback <deployment-id>`.
 
 ---
 
-### 8.3 Two-Phase Expand-and-Contract Schema Snapshot Workflow
+## 9. Observability & Monitoring Matrix
 
-- **Phase A (Additive)**: Schema migrations in release $N$ are strictly **additive** (adding new columns, tables, or non-null fields with default values). `directus schema apply` runs Phase A non-destructively while old containers run.
-- **Application Deployment**: New app containers deploy and pass health checks.
-- **Phase B (Contract - Cleanup)**: Destructive changes (dropping obsolete columns/tables) are deferred to a separate **Contract Release $N+1$** after old app containers have been fully drained.
-
----
-
-### 8.4 Container Health Check Specifications
-
-Health checks run every 5 seconds during rolling container deployments:
-
-1. **Storefront (`web`) Health Endpoint (`/api/health`)**: Checks HTTP 200, Postgres query (`SELECT 1`), Redis ping (`redis.ping()`), and Directus REST API (`GET /server/ping`).
-2. **CMS (`cms`) Health Endpoint (`/server/health`)**: Verifies Postgres DB pool status and Cloudflare R2 storage access.
-3. **Deployment Gate**: Traffic is swapped upstream only after **3 consecutive healthy HTTP 200 checks**.
+| Component | Metric / Health Probe | Frequency / Trigger | Target Channel | Corrective Action |
+| :--- | :--- | :--- | :--- | :--- |
+| **Edge Health** | HTTP GET `/api/health` | Every 60 seconds | Better Stack & Discord `#dev-alerts` | Automated edge retry & alert |
+| **Application Errors** | Unhandled JS Exceptions | Event-driven | Sentry & Discord `#dev-alerts` | Triage error stack trace |
+| **New Purchases** | Shopify `orders/create` | Event-driven | Discord `#store-orders` | Fulfillment review |
+| **Low Stock Telemetry** | Product stock $\le 2$ units | Event-driven | Discord `#store-orders` | Prepare post-drop announcement |
 
 ---
 
-### 8.5 Backup, Disaster Recovery & Off-Site Archiving
+## 10. Performance, Edge Caching, SEO & Accessibility
 
-Daily cron `infra/scripts/backup.sh` runs `pg_dump` compressed & AES-256 encrypted using `age`, uploading immediately to secondary off-site S3/R2 bucket (`chrishop-backups`). Retention: 7 daily, 4 weekly, 12 monthly. **RPO < 24 hrs; RTO < 15 mins**.
-
----
-
-## 9. Observability & Alerting Matrix
-
-| Component          | Metric / Condition       | Threshold                          | Alert Channel                        | Action Required             |
-| :----------------- | :----------------------- | :--------------------------------- | :----------------------------------- | :-------------------------- |
-| **Uptime**         | HTTP GET `/api/health`   | Status != 200 for 60s              | Better Stack & Discord `#dev-alerts` | Immediate container restart |
-| **App Errors**     | JS Exceptions            | > 5 errors/min                     | Sentry & Discord `#dev-alerts`       | Inspect Sentry trace        |
-| **New Purchases**  | Order Creation           | Event `checkout.session.completed` | Discord `#store-orders`              | Fulfillment review          |
-| **Drop Inventory** | Variation Stock Quantity | `stock_quantity <= 3`              | Discord `#store-orders`              | Prepare "Sold Out" banner   |
-
----
-
-## 10. Performance, Caching, SEO & Accessibility
-
-- **Cloudflare Edge CDN**: Caches static assets, global CSS/JS, and public media.
-- **Next.js ISR / SSG**: Product pages statically generated with Incremental Static Regeneration (`revalidate = 60`).
-- **Directus Asset Caching**: Redis asset transform caching (`STORAGE_CACHE_TTL=86400`).
-- **SEO & OpenGraph**: Dynamic metadata, OpenGraph images (`og:image`), Twitter Cards, canonical tags, `sitemap.xml`, and JSON-LD `Product` / `Offer` schemas.
-- **Accessibility**: **WCAG 2.1 AA Compliance** (Tailwind CSS v4 + Radix UI primitives, 4.5:1 contrast, visible focus outlines, keyboard navigation, screen reader ARIA labels).
+- **Cloudflare Edge CDN**: Instant global delivery of HTML and static chunks from 300+ edge data centers.
+- **Next.js Incremental Static Regeneration (ISR)**: Catalog pages statically rendered and cached at the edge via Workers KV (`revalidate = 60`).
+- **Cloudflare R2 Asset Optimization**: Media cached and served with zero egress bandwidth charges.
+- **Search Engine Optimization (SEO)**: Dynamic OpenGraph images, Twitter Card tags, canonical URLs, dynamic `sitemap.xml`, and JSON-LD `Product` / `Offer` structured data.
+- **Accessibility**: Full **WCAG 2.1 AA Compliance** with visible focus indicators, screen reader ARIA labels, semantic markup, and keyboard-navigable drawers.
 
 ---
 
 ## 11. Local Development Environment & Workflow
 
-- **Dev Stack**: `docker compose -f infra/docker/docker-compose.dev.yml up` (Postgres, Directus, MinIO/R2 local emulator, Redis OSS).
-- **Stripe Webhook Testing**: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
-- **Database Seeding**: `pnpm seed` populates local Directus with sample categories, products, variations, and Chris RBAC permissions.
+- **Local Stack**:
+  - Run `pnpm dev` which invokes `wrangler dev` with Miniflare.
+  - Miniflare transparently emulates Cloudflare D1 (local SQLite), Workers KV, and R2 without external daemon services.
+- **Commerce Emulation**:
+  - Use Shopify Development Store credentials in local `.dev.vars`.
+  - Webhook testing conducted via Shopify CLI: `shopify app webhook trigger --topic orders/create --address http://localhost:3000/api/webhooks/shopify`.
+- **Database Seeding**:
+  - `pnpm seed` applies initial collections and sample art catalog directly to the local D1 instance.
 
 ---
 
-## Verification & Test Plan
+## 12. Verification & Validation Protocol
 
 ### Automated Verification
 
-1. **Workspace Type & Lint Check**: `pnpm run check` across all monorepo packages (`web`, `cms`, `ui`, `notifications`).
-2. **Ephemeral PR Preview Deploy & Teardown**: Open test PR -> verify GitHub Actions provisions `pr-X.preview.chrishop.com` with Caddy Cloudflare DNS-01 wildcard TLS -> close PR -> verify automatic teardown.
-3. **Pre-Checkout Reservation Test**: Unit tests verifying Redis reservation keys expire after 10 minutes and prevent double-booking.
-4. **Stripe Webhook Security Suite**: Unit tests verifying valid signatures pass, invalid signatures fail (400), expired timestamps fail, duplicate `event.id` calls return 200 without re-processing logic.
-5. **Health Check Endpoint Integration Test**: Integration test verifying `/api/health` returns 200 when DB/Redis/CMS are healthy.
+1. **Monorepo Quality Gate**: `pnpm run check` (TypeScript typecheck and linting across all packages).
+2. **Unit Test Suite**: `pnpm run test:unit` (tests for UI components, catalog price fallbacks, Shopify client mutations, notification formatters).
+3. **Turnkey Local Verification Pipeline**: `pnpm run verify:local` executing full pre-PR validation without external virtual machine or container dependencies.
+4. **Cloudflare Deployment Verification**: Automated CI verification confirming valid `wrangler.toml` bindings and worker compilation.
 
 ### Manual Verification
 
-1. **Discord Bot Alert Verification**: Trigger test checkout -> verify rich Discord embed arrives in `#store-orders` channel.
-2. **Directus 2FA Verification**: Attempt login to Directus Admin -> verify TOTP prompt appears and blocks authentication without valid code.
-3. **Phase 1 Fulfillment User Story**: Create test order -> Chris inputs tracking number in Directus -> verify tracking URL is generated and Resend email is delivered.
+1. **Shopify Checkout Dry Run**: Navigate storefront, add limited edition art to cart, verify redirect to Shopify Checkout with exact price, and verify order confirmation.
+2. **Payload Admin Walkthrough**: Log into `/admin` with TOTP 2FA, publish a new art edition, and confirm automated sync to the Shopify Admin catalog.
+3. **Discord Notification Test**: Complete a simulated test purchase and verify rich embed arrival in `#store-orders`.

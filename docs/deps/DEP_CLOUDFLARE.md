@@ -1,180 +1,152 @@
-# Dependency Specification: Cloudflare DNS, Edge WAF & CDN (`DEP_CLOUDFLARE.md`)
+# Dependency Specification: Cloudflare Platform (`DEP_CLOUDFLARE.md`)
 
-This document specifies the authoritative DNS architecture, SSL/TLS encryption mode, edge Web Application Firewall (WAF) rules, scoped ACME API tokens, and CDN caching policies for **Cloudflare**, managing network edge security for ChrisShop.
-
----
-
-## 1. Service Overview & Architecture
-
-- **Provider**: Cloudflare, Inc.
-- **Managed Zones**:
-  - `jacobmiller22.com` (Active development & staging zone: `shop.jacobmiller22.com`)
-  - `chrishop.com` (Production launch target)
-- **Core Edge Services**:
-  - **Authoritative Anycast DNS**: Ultra-low-latency DNS resolution with instant propagation.
-  - **Edge CDN & DDoS Mitigation**: Automatic mitigation of Layer 3/4 and Layer 7 volumetric attacks.
-  - **SSL/TLS Full (Strict)**: End-to-end cryptographic encryption between browser, Cloudflare edge, and Hetzner VPS origin.
-  - **DNS-01 ACME Challenge API**: Scoped API token enabling Caddy to issue wildcard certificates (`*.preview...`).
+This document specifies the unified edge platform architecture, service bindings, environment topologies, and operational procedures for **Cloudflare**, the primary infrastructure provider for ChrisShop.
 
 ---
 
-## 2. DNS Configuration Specification
+## 1. Architectural Decision Record: Cloudflare-Native Infrastructure
 
-The following DNS records must be provisioned in the Cloudflare dashboard or via API:
+### Why We Are Migrating to Cloudflare
 
-| Record Type | Hostname / Subdomain                             | Target / Destination                                        | Proxy Status         | Purpose                                                     |
-| ----------- | ------------------------------------------------ | ----------------------------------------------------------- | -------------------- | ----------------------------------------------------------- |
-| `A`         | `shop.jacobmiller22.com` / `@`                   | `<HETZNER_VPS_IP>`                                          | **Proxied (Orange)** | Primary storefront public entrypoint                        |
-| `A`         | `admin.shop.jacobmiller22.com` / `admin`         | `<HETZNER_VPS_IP>`                                          | **Proxied (Orange)** | Directus CMS back-office admin UI                           |
-| `A`         | `staging.shop.jacobmiller22.com` / `staging`     | `<HETZNER_VPS_IP>`                                          | **Proxied (Orange)** | Permanent staging environment                               |
-| `A`         | `*.preview.shop.jacobmiller22.com` / `*.preview` | `<HETZNER_VPS_IP>`                                          | **DNS-Only (Grey)**  | Wildcard ephemeral PR previews (Caddy handles TLS directly) |
-| `CNAME`     | `resend._domainkey`                              | `dkim.resend.com`                                           | **DNS-Only (Grey)**  | Resend transactional email DKIM authentication              |
-| `TXT`       | `@`                                              | `v=spf1 include:amazonses.com ~all`                         | **DNS-Only (Grey)**  | Resend email SPF record                                     |
-| `TXT`       | `_dmarc`                                         | `v=DMARC1; p=none; rua=mailto:dmarc@shop.jacobmiller22.com` | **DNS-Only (Grey)**  | DMARC deliverability reporting                              |
-| `MX`        | `feedback`                                       | `feedback-smtp.us-east-1.amazonses.com` (Priority 10)       | **DNS-Only (Grey)**  | Inbound bounce feedback processing                          |
+This rationale is preserved verbatim from Issue #88 as the official architectural decision record.
 
----
+#### The Problem with the VPS Approach
+The two-VPS architecture (2× Hetzner CPX12 at ~$28/mo) solved environment isolation, but created ongoing **developer maintenance obligations** that are disproportionate to the scale of this project:
+- SSH access management, key rotation, and `known_hosts` hygiene
+- OS-level patching (Ubuntu kernel updates, `apt upgrade`, unattended-upgrades monitoring)
+- Docker Engine and Docker Compose plugin version management
+- Ansible playbook maintenance as OS and Docker APIs evolve
+- cloud-init boot script correctness across Ubuntu LTS versions
+- Manual Directus image version pinning and upgrade testing
+- VPS-level backup cron job correctness, monitoring, and restore testing
+- Two separate environments to keep in sync (staging config drift is a real risk)
 
-## 3. SSL/TLS Encryption Configuration
+None of this delivers product value. Every hour spent on VPS maintenance is an hour not spent on storefront features, product drops, or Chris's revenue.
 
-To enforce strict security and eliminate man-in-the-middle vulnerabilities:
+#### Why Cloudflare Solves This
+Cloudflare Workers eliminates the entire class of server maintenance. The deployment model is `git push` → automatic global edge deployment. There is no server to patch, no SSH key to rotate, no Docker image to upgrade, no backup cron to monitor. Cloudflare manages the runtime, global distribution, and availability SLA.
 
-- **SSL/TLS Mode**: **Full (Strict)**
-  - _Browser ➔ Cloudflare Edge_: Secured via Cloudflare Universal SSL certificate.
-  - _Cloudflare Edge ➔ Origin (Hetzner VPS)_: Cloudflare verifies valid Let's Encrypt / ZeroSSL TLS certificates presented by origin Caddy web server.
-- **Minimum TLS Version**: **TLS 1.2** (TLS 1.3 enabled by default).
-- **Opportunistic Encryption**: **Enabled**.
-- **Always Use HTTPS**: **Enabled** (Automatic 301 redirect from HTTP to HTTPS at edge).
-- **HTTP Strict Transport Security (HSTS)**:
-  - `max-age=31536000` (1 Year)
-  - `includeSubDomains: true`
-  - `preload: true`
+#### Why Directus Cannot Work on Cloudflare
+Directus is a persistent Node.js server that requires a long-lived process, a writable filesystem for extensions, and a server-side database connection pool. None of these are available in a Workers environment. Directus fundamentally cannot run on Cloudflare without a VPS — which defeats the entire purpose of the migration.
 
----
+#### Why Payload CMS v3 Is the Right Replacement
+Payload CMS v3 is architected to run *inside* a Next.js App Router application as standard route handlers. This means:
+- Payload admin UI is served at `/admin/*` routes within the same Workers deployment — no second server
+- Schema is defined in TypeScript code (`payload.config.ts`) — version controlled naturally, no `snapshot.yaml` sync ceremony
+- Official `@payloadcms/db-d1-sqlite` adapter (stable, v3.87+) connects directly to Cloudflare D1
+- Works with `@opennextjs/cloudflare` adapter on Workers Paid plan
 
-## 4. Edge WAF & Security Rules
+#### Cost Comparison (12-Month Horizon)
+| Architecture | Monthly | Annual |
+| :--- | :--- | :--- |
+| Two Hetzner CPX12 VPS + Vercel | ~$28/mo | ~$336/yr |
+| Cloudflare Workers Paid (includes D1 + KV) | ~$5/mo | ~$60/yr |
+| **Savings** | **~$23/mo** | **~$276/yr** |
 
-### 4.1 Bot Protection & Drop Scalper Mitigation
-
-Limited-edition drops are targets for automated scalper bots. Cloudflare Bot Fight Mode is enabled to challenge automated scrapers.
-
-### 4.2 Critical Webhook Bypass Rule
-
-Stripe webhooks originate from automated Stripe servers and must never be challenged by Bot Fight Mode or interactive CAPTCHAs.
-
-- **Rule Name**: `Bypass WAF for Stripe Webhooks`
-- **Expression**:
-  ```text
-  (http.request.uri.path eq "/api/webhooks/stripe")
-  ```
-- **Action**: **Skip**
-  - Skip all remaining WAF Managed Rules, Bot Management, and Interactive Challenges.
-
-### 4.3 Rate Limiting Rules
-
-1. **Checkout Burst Protection**:
-   - **Expression**: `(http.request.uri.path eq "/api/checkout")`
-   - **Characteristics**: IP address
-   - **Threshold**: 10 requests per 10 seconds
-   - **Action**: Managed Challenge
-   - **Rationale**: Prevents botnets from exhausting Redis reservation locks during high-traffic drops.
-
-2. **Directus Admin Brute Force Protection**:
-   - **Expression**: `(http.request.uri.path eq "/admin/auth/login")`
-   - **Characteristics**: IP address
-   - **Threshold**: 5 requests per 1 minute
-   - **Action**: Block for 15 minutes
-   - **Rationale**: Mitigates credential stuffing attacks on administrative accounts.
+#### Why Workers KV Is NOT a Database Replacement
+Workers KV is eventually consistent and has no relational model. It is correct only as a **read cache** on top of D1 — not as the primary database. Cloudflare D1 (SQLite-compatible, strongly consistent, relational) is the correct database tier.
 
 ---
 
-## 5. Scoped API Token Permissions (Caddy DNS-01)
+## 2. Cloudflare Service Topology & Capabilities
 
-For Caddy to autonomously solve ACME DNS-01 challenges for `*.preview.chrishop.com` and `*.preview.shop.jacobmiller22.com`, a least-privilege Cloudflare API token is required.
+ChrisShop uses Cloudflare as an all-in-one edge platform:
 
-### 5.1 Token Specification
+1. **Cloudflare Workers**:
+   - Runtime for Next.js App Router and Payload CMS v3 via `@opennextjs/cloudflare`.
+   - Node.js compatibility enabled (`nodejs_compat`).
+   - Deployment entrypoint: `.open-next/worker.js`.
+2. **Cloudflare D1 (Serverless Relational Database)**:
+   - Primary database for Payload CMS collections (`products`, `product_variations`, `categories`).
+   - SQLite-compatible engine with global read replication and zero connection-pool bottlenecks.
+3. **Workers KV (High-Speed Edge Read Cache)**:
+   - Cache store for Next.js Incremental Static Regeneration (ISR) and memoized query results.
+   - Sub-15ms edge read latencies globally.
+4. **Cloudflare R2 (S3-Compatible Object Storage)**:
+   - Media storage for product photography, edition artwork, and certificates.
+   - Zero egress bandwidth charges.
+5. **Edge Security & CDN**:
+   - Global CDN caching static assets and immutable media.
+   - Web Application Firewall (WAF), rate limiting, and Turnstile anti-bot challenges.
+   - Automatic TLS 1.3 certificate management with HSTS.
 
-- **Token Name**: `ChrisShop Caddy DNS-01 ACME Token`
-- **Permissions**:
-  - `Zone` — `DNS` — `Edit`
-  - `Zone` — `Zone` — `Read`
-- **Zone Resources**:
-  - `Include` — `Specific Zone` — `jacobmiller22.com`
-  - `Include` — `Specific Zone` — `chrishop.com`
-- **Client IP Address Filtering**: Restricted to Hetzner VPS Static IPv4/IPv6 address.
-- **TTL / Expiration**: Permanent (monitored with annual rotation).
+---
 
-### 5.2 Token Usage
+## 3. Configuration & Bindings (`wrangler.toml`)
 
-The token value is injected into the Caddy Docker container as an environment variable:
+All Cloudflare bindings are defined declaratively in `wrangler.toml`:
 
-```env
-CLOUDFLARE_API_TOKEN="<your-scoped-cloudflare-api-token>"
+```toml
+name = "chrishop"
+main = ".open-next/worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Relational Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "chrishop-prod-db"
+database_id = "d1-prod-id"
+
+# KV Cache Binding
+[[kv_namespaces]]
+binding = "NEXT_CACHE_WORKERS_KV"
+id = "kv-cache-prod-id"
+
+# R2 Object Storage Binding
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "chrishop-media-prod"
+
+[env.staging]
+name = "chrishop-staging"
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "chrishop-staging-db"
+database_id = "d1-staging-id"
+
+[[env.staging.kv_namespaces]]
+binding = "NEXT_CACHE_WORKERS_KV"
+id = "kv-cache-staging-id"
+
+[[env.staging.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "chrishop-media-staging"
 ```
 
 ---
 
-## 6. CDN Edge Caching & Cache Rules
+## 4. Local Development with Miniflare
 
-To minimize origin server load on Next.js and Directus while guaranteeing immediate freshness for checkout:
-
-### 6.1 Static Asset Cache Rule
-
-- **Name**: `Cache Next.js Static Assets & Media`
-- **Expression**:
-  ```text
-  (http.request.uri.path starts_with "/_next/static/") or
-  (http.request.uri.path starts_with "/images/") or
-  (http.request.uri.path eq "/favicon.ico")
-  ```
-- **Settings**:
-  - Cache Level: Cache Everything
-  - Edge TTL: 1 month (`2592000s`)
-  - Browser TTL: 1 month (`2592000s`)
-
-### 6.2 Dynamic Route Bypass Rule
-
-- **Name**: `Bypass Cache for Dynamic APIs & Admin`
-- **Expression**:
-  ```text
-  (http.request.uri.path starts_with "/api/") or
-  (http.request.uri.path starts_with "/admin/") or
-  (http.request.uri.path starts_with "/checkout/")
-  ```
-- **Settings**:
-  - Cache Level: Bypass Cache
+Local development requires zero external daemon processes. Running `pnpm dev` uses `wrangler dev`, which utilizes Miniflare to emulate:
+- **D1**: Local SQLite storage stored in `.wrangler/state/v3/d1`.
+- **KV**: Local key-value store in memory and filesystem.
+- **R2**: Local filesystem-backed object storage emulator.
 
 ---
 
-## 7. Reconciled Configuration Files & Monorepo Paths
+## 5. Security & Access Control
 
-| Path                                     | Status      | Scheduled Story       | Description                                                     |
-| ---------------------------------------- | ----------- | --------------------- | --------------------------------------------------------------- |
-| `infra/caddy/Caddyfile`                  | `[EXISTS]`  | Phase 1               | Uses Cloudflare DNS plugin for wildcard TLS                     |
-| `infra/scripts/deps/cloudflare_setup.sh` | `[PLANNED]` | Story 4.8 / Story 5.5 | Automated script configuring DNS, WAF rules, and tokens via API |
+- **Workers Secrets**: Sensitive keys (`SHOPIFY_ADMIN_TOKEN`, `PAYLOAD_SECRET`, `RESEND_API_KEY`) are stored as Cloudflare Workers Secrets using `wrangler secret put <NAME>`.
+- **API Tokens**: Cloudflare API Token for GitHub Actions CI/CD requires minimal scoped permissions:
+  - `Account.Workers Scripts: Edit`
+  - `Account.D1: Edit`
+  - `Account.Workers KV Storage: Edit`
+  - `Account.Workers R2 Storage: Edit`
+  - `Zone.DNS: Edit`
 
 ---
 
-## 8. Operational Commands & API Verification
+## 6. Verification & Operational Health
 
-```bash
-# Verify API Token validity
-curl -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-     -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-     -H "Content-Type: application/json"
-# Expected response: {"result":{"id":"...","status":"active"},"success":true,...}
-
-# Query Zone ID for jacobmiller22.com
-curl -X GET "https://api.cloudflare.com/client/v4/zones?name=jacobmiller22.com" \
-     -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
-
-# List active DNS records
-curl -X GET "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records" \
-     -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
-
-# Purge CDN edge cache for updated assets
-curl -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
-     -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-     -H "Content-Type: application/json" \
-     -d '{"purge_everything":true}'
-```
+- **Deployment Verification**:
+  ```bash
+  wrangler whoami
+  wrangler d1 list
+  wrangler kv:namespace list
+  wrangler r2 bucket list
+  ```
+- **Rollback Procedure**:
+  ```bash
+  wrangler rollback <deployment-id>
+  ```

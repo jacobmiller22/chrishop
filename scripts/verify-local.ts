@@ -6,25 +6,27 @@
  * to ensure that code changes satisfy architectural and runtime requirements
  * BEFORE opening a Pull Request.
  *
+ * Architecture: Cloudflare-Native (Payload CMS v3 + D1 + Workers + Shopify Headless)
+ *
  * Usage:
  *   pnpm run verify:local
  *   pnpm run verify:local --skip-build
- *   pnpm run verify:local --skip-containers
  */
 
-import { execSync, spawnSync } from 'node:child_process';
-import path from 'node:path';
+import { execSync, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 // ANSI Color Helpers
 const colors = {
-  reset: '\x1b[0m',
-  bold: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m',
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
 };
 
 interface StepResult {
@@ -37,15 +39,14 @@ interface StepResult {
 
 const results: StepResult[] = [];
 const args = process.argv.slice(2);
-const skipBuild = args.includes('--skip-build');
-const skipContainers = args.includes('--skip-containers');
+const skipBuild = args.includes("--skip-build");
 
 function printBanner() {
   console.log(
     `\n${colors.bold}${colors.cyan}================================================================${colors.reset}`
   );
   console.log(
-    `${colors.bold}${colors.cyan}      🚀 ChrisShop Turnkey Local Pre-PR Verification Pipeline     ${colors.reset}`
+    `${colors.bold}${colors.cyan}   🚀 ChrisShop Cloudflare-Native Pre-PR Verification Pipeline  ${colors.reset}`
   );
   console.log(
     `${colors.bold}${colors.cyan}================================================================${colors.reset}\n`
@@ -59,7 +60,7 @@ async function runStep(
 ): Promise<boolean> {
   if (options.skip) {
     console.log(
-      `${colors.yellow}⊘ [SKIP]${colors.reset} ${name} ${colors.dim}(${options.skipReason || 'flag passed'})${colors.reset}`
+      `${colors.yellow}⊘ [SKIP]${colors.reset} ${name} ${colors.dim}(${options.skipReason || "flag passed"})${colors.reset}`
     );
     results.push({ name, durationMs: 0, passed: true, skipped: true });
     return true;
@@ -87,118 +88,87 @@ async function runStep(
   }
 }
 
-// Stage 1: Docker Container Pre-Flight
-async function verifyContainers() {
-  // Check if Docker daemon is running
-  const dockerCheck = spawnSync('docker', ['info'], { stdio: 'pipe' });
-  if (dockerCheck.status !== 0) {
-    throw new Error(
-      'Docker daemon is not running. Please start Docker Desktop, OrbStack, or Colima.\n' +
-        'To bypass container checks, pass --skip-containers'
-    );
+// Stage 1: Cloudflare & Architecture Integrity Gate
+function verifyArchitectureIntegrity() {
+  // 1. wrangler.toml existence and bindings
+  if (!fs.existsSync("wrangler.toml")) {
+    throw new Error("wrangler.toml missing at root");
+  }
+  const wranglerContent = fs.readFileSync("wrangler.toml", "utf-8");
+  if (!wranglerContent.includes("[[d1_databases]]") || !wranglerContent.includes("binding = \"DB\"")) {
+    throw new Error("wrangler.toml must configure D1 database binding DB");
+  }
+  if (!wranglerContent.includes("[[kv_namespaces]]") || !wranglerContent.includes("NEXT_CACHE_WORKERS_KV")) {
+    throw new Error("wrangler.toml must configure KV cache namespace binding NEXT_CACHE_WORKERS_KV");
+  }
+  if (!wranglerContent.includes("[[r2_buckets]]") || !wranglerContent.includes("binding = \"BUCKET\"")) {
+    throw new Error("wrangler.toml must configure R2 bucket binding BUCKET");
   }
 
-  // Check docker compose status
-  const composePath = 'infra/docker/docker-compose.dev.yml';
-  const psOutput = execSync(`docker compose -f ${composePath} ps`, { encoding: 'utf-8' });
-
-  const requiredContainers = ['postgres', 'redis', 'minio', 'cms'];
-  const missingContainers: string[] = [];
-
-  for (const container of requiredContainers) {
-    if (
-      !psOutput.toLowerCase().includes(container) ||
-      (!psOutput.includes('healthy') && !psOutput.includes('Up'))
-    ) {
-      missingContainers.push(container);
-    }
+  // 2. HLD zero-legacy references check
+  const hld = fs.readFileSync("docs/HIGH_LEVEL_DESIGN.md", "utf-8");
+  const legacyRegex = /\b(hetzner|vps|docker|caddy|directus|redis|postgres|stripe)\b/i;
+  const legacyMatch = hld.match(legacyRegex);
+  if (legacyMatch) {
+    throw new Error(`docs/HIGH_LEVEL_DESIGN.md contains prohibited legacy reference: "${legacyMatch[0]}"`);
   }
 
-  if (missingContainers.length > 0) {
-    throw new Error(
-      `Required local container service(s) missing or unhealthy: [${missingContainers.join(', ')}].\n` +
-        `Remediation:\n` +
-        `  1. Run: docker compose -f ${composePath} up -d\n` +
-        `  2. Apply schema: pnpm --filter cms schema:apply\n` +
-        `  3. Seed catalog: pnpm seed`
-    );
+  // 3. Verbatim rationale check
+  const depCf = fs.readFileSync("docs/deps/DEP_CLOUDFLARE.md", "utf-8");
+  if (!depCf.includes("The Problem with the VPS Approach")) {
+    throw new Error("docs/deps/DEP_CLOUDFLARE.md missing Decision 1 verbatim rationale");
+  }
+
+  const depShopify = fs.readFileSync("docs/deps/DEP_SHOPIFY.md", "utf-8");
+  if (!depShopify.includes("The Problem with the Custom Stripe Implementation")) {
+    throw new Error("docs/deps/DEP_SHOPIFY.md missing Decision 2 verbatim rationale");
   }
 }
 
 // Stage 2: Monorepo Typecheck & Lint
 function verifyCheck() {
-  execSync('pnpm run check', { stdio: 'pipe' });
+  execSync("pnpm run check", { stdio: "pipe" });
 }
 
 // Stage 3: Monorepo Unit Test Suite
 function verifyUnitTests() {
-  execSync('pnpm run test:unit', { stdio: 'pipe' });
+  execSync("pnpm run test:unit", { stdio: "pipe" });
 }
 
-// Stage 4: Live Dependency & Route Health Probes
-async function verifyLiveProbes() {
-  const probes: { name: string; url: string; expectedStatus?: number }[] = [
-    {
-      name: 'Directus CMS Health',
-      url: 'http://localhost:8055/server/health',
-      expectedStatus: 200,
-    },
-    {
-      name: 'Directus Products API',
-      url: 'http://localhost:8055/items/products?limit=1',
-      expectedStatus: 200,
-    },
-    {
-      name: 'MinIO S3 Health',
-      url: 'http://localhost:9000/minio/health/live',
-      expectedStatus: 200,
-    },
-  ];
-
-  for (const probe of probes) {
-    try {
-      const res = await fetch(probe.url);
-      if (probe.expectedStatus && res.status !== probe.expectedStatus) {
-        throw new Error(
-          `${probe.name} returned status ${res.status}, expected ${probe.expectedStatus}`
-        );
-      }
-    } catch (err: any) {
-      throw new Error(`Probe failed for ${probe.name} (${probe.url}): ${err.message}`);
-    }
+// Stage 4: CI/CD & Workflow Integrity
+function verifyWorkflows() {
+  if (!fs.existsSync(".github/workflows/deploy.yml")) {
+    throw new Error(".github/workflows/deploy.yml missing");
+  }
+  const deployYml = fs.readFileSync(".github/workflows/deploy.yml", "utf-8");
+  if (!deployYml.includes("wrangler-action") && !deployYml.includes("wrangler deploy")) {
+    throw new Error(".github/workflows/deploy.yml must configure wrangler deploy");
   }
 
-  // Probe Redis via Docker Compose
-  try {
-    const redisPing = execSync(
-      'docker compose -f infra/docker/docker-compose.dev.yml exec -T redis redis-cli ping',
-      { encoding: 'utf-8', stdio: 'pipe' }
-    );
-    if (!redisPing.includes('PONG')) {
-      throw new Error(`Redis ping returned unexpected response: ${redisPing.trim()}`);
-    }
-  } catch (err: any) {
-    throw new Error(`Redis health check failed: ${err.message}`);
+  if (!fs.existsSync(".github/workflows/rollback.yml")) {
+    throw new Error(".github/workflows/rollback.yml missing");
+  }
+  const rollbackYml = fs.readFileSync(".github/workflows/rollback.yml", "utf-8");
+  if (!rollbackYml.includes("rollback")) {
+    throw new Error(".github/workflows/rollback.yml must configure wrangler rollback");
   }
 }
 
 // Stage 5: Production Build Validation
 function verifyBuild() {
-  execSync('pnpm run build', { stdio: 'pipe' });
+  execSync("pnpm run build", { stdio: "pipe" });
 }
 
 // Stage 6: Git Hygiene & Worktree Cleanliness
 function verifyGitHygiene() {
-  const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
-  // We allow modified files if the developer/agent is currently working on them,
-  // but warn if untracked temporary files or build artifacts are leaked
+  const status = execSync("git status --porcelain", { encoding: "utf-8" }).trim();
   const leakedArtifacts = status
-    .split('\n')
+    .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.includes('.log') || l.includes('.DS_Store') || l.includes('.tmp'));
+    .filter((l) => l.includes(".log") || l.includes(".DS_Store") || l.includes(".tmp"));
 
   if (leakedArtifacts.length > 0) {
-    throw new Error(`Untracked temporary or log files detected:\n${leakedArtifacts.join('\n')}`);
+    throw new Error(`Untracked temporary or log files detected:\n${leakedArtifacts.join("\n")}`);
   }
 }
 
@@ -220,7 +190,7 @@ function printSummary() {
         ? `${colors.green}PASSED ${colors.reset}`
         : `${colors.red}FAILED ${colors.reset}`;
 
-    const duration = res.skipped ? '-' : `${(res.durationMs / 1000).toFixed(2)}s`;
+    const duration = res.skipped ? "-" : `${(res.durationMs / 1000).toFixed(2)}s`;
     console.log(`  ${statusIcon} | ${res.name.padEnd(38)} | ${duration.padStart(8)}`);
     if (res.error) {
       console.log(`\n${colors.red}${colors.bold}  Error Details:${colors.reset}\n${res.error}\n`);
@@ -248,31 +218,25 @@ function printSummary() {
 async function main() {
   printBanner();
 
-  await runStep('1. Docker Container Stack Health', verifyContainers, {
-    skip: skipContainers,
-    skipReason: '--skip-containers flag provided',
-  });
+  await runStep("1. Cloudflare & Architecture Integrity", verifyArchitectureIntegrity);
 
-  await runStep('2. Monorepo Typecheck & Lint (check)', verifyCheck);
+  await runStep("2. Monorepo Typecheck & Lint (check)", verifyCheck);
 
-  await runStep('3. Monorepo Unit Test Suites (test:unit)', verifyUnitTests);
+  await runStep("3. Monorepo Unit Test Suites (test:unit)", verifyUnitTests);
 
-  await runStep('4. Live Dependency & Service Probes', verifyLiveProbes, {
-    skip: skipContainers,
-    skipReason: 'Containers skipped',
-  });
+  await runStep("4. CI/CD & Workflow Integrity", verifyWorkflows);
 
-  await runStep('5. Production Build Validation (build)', verifyBuild, {
+  await runStep("5. Production Build Validation (build)", verifyBuild, {
     skip: skipBuild,
-    skipReason: '--skip-build flag provided',
+    skipReason: "--skip-build flag provided",
   });
 
-  await runStep('6. Git Worktree & Artifact Hygiene', verifyGitHygiene);
+  await runStep("6. Git Worktree & Artifact Hygiene", verifyGitHygiene);
 
   printSummary();
 }
 
 main().catch((err) => {
-  console.error(`Fatal error in verification script:`, err);
+  console.error("Fatal error in verification script:", err);
   process.exit(1);
 });

@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 
 describe('Production Docker Compose (docker-compose.prod.yml)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
-  const prodComposePath = path.join(repoRoot, 'infra/docker/docker-compose.prod.yml');
+  const prodComposePath = path.join(repoRoot, 'infra/archive/docker/docker-compose.prod.yml');
 
   it('should exist and parse as valid YAML', () => {
     assert.ok(fs.existsSync(prodComposePath), 'docker-compose.prod.yml must exist');

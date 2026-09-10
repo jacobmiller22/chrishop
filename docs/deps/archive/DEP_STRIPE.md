@@ -1,3 +1,6 @@
+> [!WARNING]
+> **DEPRECATED & SUPERSEDED**: This specification is archived. Stripe Checkout has been replaced by **Shopify Headless** via the Storefront API. See [DEP_SHOPIFY.md](../DEP_SHOPIFY.md) for the active commerce specification and architectural rationale.
+
 # Dependency Specification: Stripe Payments (`DEP_STRIPE.md`)
 
 This document specifies the integration architecture, dynamic checkout specifications, raw webhook cryptographic verification, idempotency controls, and security procedures for **Stripe**, the payment SaaS provider for ChrisShop.
