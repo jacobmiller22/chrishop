@@ -22,7 +22,7 @@
     "@directus/extensions-sdk": "^18.0.4",
     "@types/node": "^22.10.0",
     "tsx": "^4.23.13",
-    "typescript": "^5.7.2",
+    "typescript": "^7.0.2",
     "ws": "^8.21.3",
     "yaml": "^2.9.0"
   }
