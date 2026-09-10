@@ -11,7 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}"
 
 # 2. Configure Execution Environment & Paths
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${HOME}/.config/nvm/versions/node/$(ls ${HOME}/.config/nvm/versions/node 2>/dev/null | tail -n 1)/bin:${PATH:-}"
+export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${HOME}/.config/nvm/versions/node/$(ls ${HOME}/.config/nvm/versions/node 2>/dev/null | tail -n 1)/bin:${PATH:-}"
 
 LOG_DIR="${HOME}/.chrishop/logs"
 mkdir -p "${LOG_DIR}"

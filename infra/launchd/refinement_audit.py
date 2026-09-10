@@ -11,6 +11,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -160,10 +161,61 @@ def analyze_unblocked_and_gaps(issues):
     return shovel_ready, blocked_issues, needs_refinement
 
 
+def call_agy_adversary(summary_prompt):
+    """
+    Invoke Antigravity CLI ('agy') non-interactively using the user's active plan/subscription.
+    Zero-config: No ANTHROPIC_API_KEY or GEMINI_API_KEY required.
+    """
+    candidates = [
+        shutil.which("agy"),
+        str(Path.home() / ".local" / "bin" / "agy"),
+        "/opt/homebrew/bin/agy",
+        "/usr/local/bin/agy",
+    ]
+    agy_bin = next((p for p in candidates if p and Path(p).is_file() and os.access(p, os.X_OK)), None)
+
+    if not agy_bin:
+        return None
+
+    print(f"🤖 Invoking Antigravity CLI ('agy') via active plan for adversarial backlog review...")
+    system_instruction = (
+        "You are an adversarial Technical Project Auditor and Principal Architect on ChrisShop. "
+        "Challenge existing plans, identify failure modes (race conditions, drop spikes, webhook idempotency, "
+        "data migrations, missing glue code), propose concrete new stories, and escalate low-confidence decisions."
+    )
+    full_prompt = f"{system_instruction}\n\n{summary_prompt}"
+
+    try:
+        res = subprocess.run(
+            [agy_bin, "--dangerously-skip-permissions", "-p", full_prompt],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=180,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+        elif res.stderr.strip():
+            print(f"⚠️ Warning: agy CLI reported: {res.stderr.strip()}", file=sys.stderr)
+    except subprocess.TimeoutExpired:
+        print("⚠️ Warning: agy CLI execution timed out after 180s", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠️ Warning: Failed to execute agy CLI: {e}", file=sys.stderr)
+
+    return None
+
+
 def call_llm_adversary(summary_prompt, model="claude-3-opus-20240229"):
     """
-    Optional adversarial reasoning query using Claude Opus or Gemini API if environment variables exist.
+    Adversarial reasoning query prioritizing Antigravity CLI ('agy') for zero-config execution,
+    falling back to Anthropic API or Gemini API if explicit keys are provided.
     """
+    # 1. Prioritize Antigravity CLI ('agy') using user's active plan
+    agy_critique = call_agy_adversary(summary_prompt)
+    if agy_critique:
+        return agy_critique
+
+    # 2. Fall back to Anthropic API if key is present
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     gemini_key = os.environ.get("GEMINI_API_KEY")
 
@@ -287,12 +339,11 @@ def generate_refinement_report(repo_root, issues, missing_deliverables, shovel_r
         lines.append(llm_critique)
         lines.append("")
     else:
-        lines.append("## 5. AI Reasoning Key Notice")
+        lines.append("## 5. AI Reasoning Notice")
         lines.append(
             "> [!NOTE]\n"
-            "> To enable Claude Opus or Gemini adversarial critique during automated runs, export\n"
-            "> `ANTHROPIC_API_KEY` (preferred model: `claude-3-opus-20240229`) or `GEMINI_API_KEY`\n"
-            "> in `~/.chrishop/refinement.env`."
+            "> Automated AI critique via Antigravity CLI (`agy`) or API keys was skipped or not detected.\n"
+            "> Ensure `agy` is installed in `~/.local/bin/agy` (zero config) or set `ANTHROPIC_API_KEY` in `~/.chrishop/refinement.env`."
         )
         lines.append("")
 
