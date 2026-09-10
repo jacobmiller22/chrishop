@@ -1,0 +1,51 @@
+---
+# ==============================================================================
+# ChrisShop Ansible Role: Caddy (Tasks)
+# ==============================================================================
+
+- name: Create Caddy configuration and state directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ caddy_config_dir }}"
+    - "{{ caddy_log_dir }}"
+    - "{{ caddy_data_dir }}"
+
+- name: Deploy Caddy environment file with Cloudflare credentials
+  ansible.builtin.copy:
+    dest: "{{ caddy_env_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      # Managed by Ansible - Caddy Edge Environment
+      CLOUDFLARE_API_TOKEN={{ caddy_cloudflare_api_token }}
+  notify: Restart caddy
+
+- name: Deploy Caddyfile configuration
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_config_dir }}/Caddyfile"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload caddy
+
+- name: Deploy Caddy container runner systemd service unit
+  ansible.builtin.template:
+    src: caddy-runner.service.j2
+    dest: "/etc/systemd/system/{{ caddy_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart caddy
+
+- name: Ensure Caddy runner systemd service is enabled
+  ansible.builtin.systemd:
+    name: "{{ caddy_service_name }}"
+    enabled: true
+    daemon_reload: true

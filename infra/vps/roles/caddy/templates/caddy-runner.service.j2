@@ -1,0 +1,27 @@
+[Unit]
+Description=ChrisShop Caddy Reverse Proxy & Edge TLS Runner
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+EnvironmentFile=-{{ caddy_env_file }}
+ExecStartPre=-/usr/bin/docker stop {{ caddy_container_name }}
+ExecStartPre=-/usr/bin/docker rm {{ caddy_container_name }}
+ExecStart=/usr/bin/docker run --name {{ caddy_container_name }} \
+  --net {{ caddy_network }} \
+  -p 80:80 \
+  -p 443:443 \
+  -p 443:443/udp \
+  --env-file {{ caddy_env_file }} \
+  -v {{ caddy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:ro \
+  -v {{ caddy_data_dir }}:/data \
+  -v {{ caddy_log_dir }}:/var/log/caddy \
+  {{ caddy_image }} caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecReload=/usr/bin/docker exec {{ caddy_container_name }} caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecStop=/usr/bin/docker stop -t 10 {{ caddy_container_name }}
+
+[Install]
+WantedBy=multi-user.target
