@@ -170,7 +170,12 @@ function verifyIntegrationTests() {
   execSync('pnpm run test:integration', { stdio: 'pipe' });
 }
 
-// Stage 5: Production Build Validation
+// Stage 5: Dependency Security Audit Gate
+function verifySecurityAudit() {
+  execSync('pnpm audit --audit-level=high', { stdio: 'pipe' });
+}
+
+// Stage 6: Production Build Validation
 function verifyBuild() {
   execSync('pnpm run build', { stdio: 'pipe' });
 }
@@ -242,12 +247,14 @@ async function main() {
 
   await runStep('4. Ephemeral Miniflare Integration (test:integration)', verifyIntegrationTests);
 
-  await runStep('5. Production Build Validation (build)', verifyBuild, {
+  await runStep('5. Dependency Security Audit Gate (audit:security)', verifySecurityAudit);
+
+  await runStep('6. Production Build Validation (build)', verifyBuild, {
     skip: skipBuild,
     skipReason: '--skip-build flag provided',
   });
 
-  await runStep('6. Git Worktree & Artifact Hygiene', verifyGitHygiene);
+  await runStep('7. Git Worktree & Artifact Hygiene', verifyGitHygiene);
 
   printSummary();
 }
