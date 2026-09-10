@@ -161,6 +161,7 @@ Ensure `.github/workflows/board-sync.yml` is active in the repository. The workf
 To preserve codebase stability and enforce CI quality gates as the repository moves beyond Phase 1, `main` branch protection is programmatically configured via `infra/scripts/setup-branch-protection.sh`.
 
 ### 7.1 Enforced Guardrails
+
 - **Required Status Checks**: Strict checking for the CI workflow check (`Lint, Typecheck, Test & Build`). Branches must be up-to-date with `main` before merging.
 - **Linear History**: Merge commits are disallowed (`required_linear_history: true`). Merges must use squash or rebase workflows.
 - **Administrator Enforcement**: Protection rules apply to repository administrators (`enforce_admins: true`).
@@ -169,6 +170,7 @@ To preserve codebase stability and enforce CI quality gates as the repository mo
 - **PR Review Approvals**: Review approvals can be enabled with `--require-reviews true` and `--min-approvals <count>` when multiple maintainers are active. Defaults to `false` for solo development velocity.
 
 ### 7.2 Running Branch Protection Setup
+
 Run the setup script using the GitHub CLI:
 
 ```bash
@@ -183,9 +185,9 @@ Run the setup script using the GitHub CLI:
 ```
 
 ### 7.3 Verification
+
 Verify the protection rules via GitHub CLI:
 
 ```bash
 gh api repos/:owner/:repo/branches/main/protection
 ```
-

@@ -44,9 +44,15 @@ describe('VPS Infrastructure-as-Code Integrity (Story 2.10)', () => {
     const content = fs.readFileSync(inventoryPath, 'utf-8');
     assert.ok(content.includes('[staging]'), 'Inventory must define [staging] group');
     assert.ok(content.includes('[production]'), 'Inventory must define [production] group');
-    assert.ok(content.includes('[chrishop_servers:children]'), 'Inventory must define [chrishop_servers:children]');
+    assert.ok(
+      content.includes('[chrishop_servers:children]'),
+      'Inventory must define [chrishop_servers:children]'
+    );
     assert.ok(content.includes('server_tier=cx22'), 'Staging must reference Hetzner CX22 tier');
-    assert.ok(content.includes('server_tier=cpx21'), 'Production must reference Hetzner CPX21 tier');
+    assert.ok(
+      content.includes('server_tier=cpx21'),
+      'Production must reference Hetzner CPX21 tier'
+    );
   });
 
   it('should have infra/vps/playbook.yml orchestrating modular roles', () => {
@@ -87,8 +93,14 @@ describe('VPS Infrastructure-as-Code Integrity (Story 2.10)', () => {
     assert.ok(fs.existsSync(readmePath), 'README.md must exist in infra/vps/');
 
     const content = fs.readFileSync(readmePath, 'utf-8');
-    assert.ok(content.includes('hcloud server create'), 'README must provide hcloud server create command');
-    assert.ok(content.includes('ansible-playbook'), 'README must document ansible-playbook execution');
+    assert.ok(
+      content.includes('hcloud server create'),
+      'README must provide hcloud server create command'
+    );
+    assert.ok(
+      content.includes('ansible-playbook'),
+      'README must document ansible-playbook execution'
+    );
     assert.ok(content.includes('ufw status verbose'), 'README must document firewall verification');
     assert.ok(content.includes('backup.sh'), 'README must document backup verification');
   });

@@ -78,7 +78,11 @@ describe('Production Docker Compose (docker-compose.prod.yml)', () => {
 
     for (const [name, service] of Object.entries<any>(compose.services)) {
       assert.ok(service.logging, `Service '${name}' must define logging block`);
-      assert.equal(service.logging.driver, 'json-file', `Service '${name}' must use json-file driver`);
+      assert.equal(
+        service.logging.driver,
+        'json-file',
+        `Service '${name}' must use json-file driver`
+      );
       assert.equal(
         service.logging.options['max-size'],
         '10m',
@@ -114,10 +118,7 @@ describe('Production Docker Compose (docker-compose.prod.yml)', () => {
 
     assert.ok(caddy.build, 'Caddy must configure build context');
     const buildPath = typeof caddy.build === 'string' ? caddy.build : caddy.build.context;
-    assert.ok(
-      buildPath.includes('../caddy'),
-      'Caddy build path must reference ../caddy'
-    );
+    assert.ok(buildPath.includes('../caddy'), 'Caddy build path must reference ../caddy');
   });
 
   it('should configure network isolation with internal backend network', () => {
@@ -141,10 +142,7 @@ describe('Production Docker Compose (docker-compose.prod.yml)', () => {
     );
 
     // Caddy must be on edge network
-    assert.ok(
-      compose.services.caddy.networks.includes('edge'),
-      'Caddy must be on edge network'
-    );
+    assert.ok(compose.services.caddy.networks.includes('edge'), 'Caddy must be on edge network');
     assert.ok(
       !compose.services.caddy.networks.includes('internal'),
       'Caddy must not be directly on internal database network'
@@ -168,7 +166,11 @@ describe('Production Docker Compose (docker-compose.prod.yml)', () => {
     assert.equal(stripeSecret, '${STRIPE_SECRET_KEY}', 'STRIPE_SECRET_KEY must be parameterized');
 
     const caddyToken = compose.services.caddy.environment.CLOUDFLARE_API_TOKEN;
-    assert.equal(caddyToken, '${CLOUDFLARE_API_TOKEN}', 'CLOUDFLARE_API_TOKEN must be parameterized');
+    assert.equal(
+      caddyToken,
+      '${CLOUDFLARE_API_TOKEN}',
+      'CLOUDFLARE_API_TOKEN must be parameterized'
+    );
 
     // Assert that default dev secret strings are nowhere in production compose
     assert.ok(!content.includes('chrishop_dev_secret'), 'Must not contain chrishop_dev_secret');

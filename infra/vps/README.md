@@ -49,6 +49,7 @@ infra/vps/
 Ensure the following tools are installed on your workstation or CI/CD runner:
 
 1. **Hetzner Cloud CLI (`hcloud`)**:
+
    ```bash
    # macOS
    brew install hcloud
@@ -58,11 +59,13 @@ Ensure the following tools are installed on your workstation or CI/CD runner:
    ```
 
 2. **Ansible & Python Dependencies**:
+
    ```bash
    python3 -m pip install "ansible-core>=2.15.0" pyyaml
    ```
 
 3. **Install Required Ansible Galaxy Collections**:
+
    ```bash
    ansible-galaxy collection install -r infra/vps/requirements.yml
    ```
@@ -184,35 +187,44 @@ ansible-playbook -i infra/vps/inventory.ini infra/vps/playbook.yml --tags backup
 Execute the following commands on the remote VPS as `deploy` user to confirm proper operation:
 
 ### 1. Verify UFW Firewall
+
 ```bash
 sudo ufw status verbose
 ```
+
 Expected output:
+
 - Status: `active`
 - Allowed ports: `22/tcp` (SSH), `80/tcp` (HTTP), `443/tcp` (HTTPS), `443/udp` (QUIC)
 - Default incoming: `deny`, default outgoing: `allow`
 
 ### 2. Verify Docker Engine & Daemon Presets
+
 ```bash
 docker info
 cat /etc/docker/daemon.json
 docker network inspect chrishop-internal
 ```
+
 Confirm:
+
 - `log-driver: json-file` with `max-size: 10m` and `max-file: 3`
 - `live-restore: true`
 - Bridge network `chrishop-internal` exists
 
 ### 3. Verify Caddy Systemd Runner
+
 ```bash
 systemctl status caddy-runner
 docker ps | grep chrishop-caddy
 ```
 
 ### 4. Verify Automated Offsite Backup Cron
+
 ```bash
 sudo crontab -l | grep chrishop
 ```
+
 Confirm the daily 03:00 UTC schedule invoking `/opt/chrishop/scripts/backup.sh`.
 
 ---
@@ -220,11 +232,13 @@ Confirm the daily 03:00 UTC schedule invoking `/opt/chrishop/scripts/backup.sh`.
 ## 6. Disaster Recovery & Manual Restores
 
 To trigger an emergency backup immediately:
+
 ```bash
 sudo /opt/chrishop/scripts/backup.sh
 ```
 
 To restore a specific database archive:
+
 ```bash
 sudo /opt/chrishop/scripts/restore.sh db_chrishop_prod_20260910_030000.sql.gz.age
 ```

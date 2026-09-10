@@ -19,13 +19,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const variations: StorefrontVariation[] = product.variations || [];
-  const [selectedVariationId, setSelectedVariationId] = useState<string>(
-    variations[0]?.id || ''
-  );
+  const [selectedVariationId, setSelectedVariationId] = useState<string>(variations[0]?.id || '');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
 
-  const selectedVariation =
-    variations.find((v) => v.id === selectedVariationId) || variations[0];
+  const selectedVariation = variations.find((v) => v.id === selectedVariationId) || variations[0];
 
   // Collect all media assets (featured, hero, and gallery)
   const mediaList: Array<{ id: string; url: string; label: string }> = [];
@@ -44,9 +41,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '✨';
 
   // Price resolution
-  const currentPrice = selectedVariation
-    ? selectedVariation.effective_price
-    : product.base_price;
+  const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
   const isOverride = selectedVariation?.price_override != null;
 
   // Stock status
@@ -302,8 +297,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               {isSoldOut
                 ? 'Edition Sold Out'
                 : isComingSoon
-                ? 'Releases Soon'
-                : `Reserve Edition • $${Number(currentPrice).toFixed(2)}`}
+                  ? 'Releases Soon'
+                  : `Reserve Edition • $${Number(currentPrice).toFixed(2)}`}
             </Button>
 
             <Link href="/products" className="block">

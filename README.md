@@ -11,16 +11,16 @@ graph TD
     Client["Browser / Mobile Client"] --> Caddy["Caddy Reverse Proxy (Auto-TLS & Cloudflare DNS-01)"]
     Caddy -->|"shop.jacobmiller22.com"| Web["Next.js 15 App Router (Storefront & API Routes)"]
     Caddy -->|"admin.shop.jacobmiller22.com"| CMS["Directus 11 Headless CMS"]
-    
+
     Web -->|"Cached REST API"| CMS
     Web -->|"10-Min Pre-Checkout Lock"| Redis[("Redis OSS Cache")]
     Web -->|"Atomic SQL Inventory (Kysely)"| Postgres[("PostgreSQL 16")]
     CMS --> Postgres
-    
+
     CMS -->|"Asset Uploads / Transforms"| Storage[("MinIO / Cloudflare R2")]
     Web -->|"Dynamic Checkout"| Stripe["Stripe Checkout API"]
     Stripe -->|"/api/webhooks/stripe"| Web
-    
+
     Web -->|"Order & Low Stock Alerts"| Discord["Discord Webhook Engine"]
     CMS -->|"Tracking Emails"| Resend["Resend API"]
 ```
@@ -29,18 +29,18 @@ graph TD
 
 ## Tech Stack
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Monorepo** | `pnpm` + `Turborepo` | Ultra-fast cached builds, isolated workspace packages |
-| **Storefront** | Next.js 15 (App Router, React 19) | Server components, ISR caching (`revalidate=60`), dynamic metadata |
-| **Styling & UI** | Tailwind CSS v4 + Radix UI Primitives | Accessible (WCAG 2.1 AA compliant), unstyled primitives with high aesthetic finish |
-| **CMS** | Directus 11 (Headless Node.js CMS) | Flexible relational content modeling, revision history, granular RBAC & TOTP 2FA |
-| **Database** | PostgreSQL 16 + Kysely | ACID transactions for atomic stock decrement, strict foreign keys |
-| **Caching & Locks** | Redis 7 OSS (AOF persistence) | 10-minute pre-checkout stock reservations to prevent overselling |
-| **Payments** | Stripe Checkout (dynamic `price_data`) | Zero-catalog sync, SAQ-A PCI compliance, automatic tax calculation |
-| **Object Storage** | MinIO (Dev) / Cloudflare R2 (Prod) | S3-compatible API, zero egress bandwidth costs |
-| **Notifications** | Pluggable Provider (`Discord`, `Resend`) | Extensible alert engine for orders, low-stock, and tracking notifications |
-| **Hosting & Proxy** | Hetzner Cloud VPS + Caddy 2 | Wildcard TLS certificates via Cloudflare DNS-01 challenge, Docker Compose deployment |
+| Layer               | Technology                               | Rationale                                                                            |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Monorepo**        | `pnpm` + `Turborepo`                     | Ultra-fast cached builds, isolated workspace packages                                |
+| **Storefront**      | Next.js 15 (App Router, React 19)        | Server components, ISR caching (`revalidate=60`), dynamic metadata                   |
+| **Styling & UI**    | Tailwind CSS v4 + Radix UI Primitives    | Accessible (WCAG 2.1 AA compliant), unstyled primitives with high aesthetic finish   |
+| **CMS**             | Directus 11 (Headless Node.js CMS)       | Flexible relational content modeling, revision history, granular RBAC & TOTP 2FA     |
+| **Database**        | PostgreSQL 16 + Kysely                   | ACID transactions for atomic stock decrement, strict foreign keys                    |
+| **Caching & Locks** | Redis 7 OSS (AOF persistence)            | 10-minute pre-checkout stock reservations to prevent overselling                     |
+| **Payments**        | Stripe Checkout (dynamic `price_data`)   | Zero-catalog sync, SAQ-A PCI compliance, automatic tax calculation                   |
+| **Object Storage**  | MinIO (Dev) / Cloudflare R2 (Prod)       | S3-compatible API, zero egress bandwidth costs                                       |
+| **Notifications**   | Pluggable Provider (`Discord`, `Resend`) | Extensible alert engine for orders, low-stock, and tracking notifications            |
+| **Hosting & Proxy** | Hetzner Cloud VPS + Caddy 2              | Wildcard TLS certificates via Cloudflare DNS-01 challenge, Docker Compose deployment |
 
 ---
 
@@ -77,11 +77,13 @@ chrishop/
 ## Quick Start (Local Development)
 
 ### 1. Prerequisites
+
 - Node.js 20+ and `pnpm` 9+
 - Docker Engine 24+ and Docker Compose v2+
 - Git 2.43+
 
 ### 2. Environment Setup
+
 ```bash
 # Clone the repository
 git clone git@github.com:jacobmiller22/chrishop.git
@@ -95,6 +97,7 @@ cp .env.example .env
 ```
 
 ### 3. Start Local Infrastructure
+
 ```bash
 # Boot Postgres, Redis, MinIO, and Directus
 docker compose -f infra/docker/docker-compose.dev.yml up -d
@@ -104,6 +107,7 @@ pnpm seed
 ```
 
 ### 4. Start Next.js Development Server
+
 ```bash
 # Launch Next.js storefront on http://localhost:3000
 pnpm dev
@@ -127,4 +131,5 @@ For full local development, testing, and troubleshooting instructions, see [LOCA
 ---
 
 ## License & Team
+
 Private repository. All rights reserved.

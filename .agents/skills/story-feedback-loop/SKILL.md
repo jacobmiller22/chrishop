@@ -38,7 +38,7 @@ flowchart TD
     B --> C[2. Provision Worktree: wt switch --create feature/story-X-Y]
     C --> D[3. Implementor: Develop Core Architecture & Modules]
     D --> E[Post Progress Comment: Architectural Milestone Reached]
-    E --> F[4. Implementor: Local Verification: check, build, test]
+    E --> F[4. Implementor: Local Verification: pnpm run verify:local]
     F --> G[Post Progress Comment: Local Verification Passed]
     G --> H[5. Handoff to SME Reviewing Judge]
     H --> I{Judge: True to Intent?}
@@ -113,14 +113,18 @@ gh issue comment <IssueNumber> --body "🔨 **Progress Update**: Core Implementa
 
 ### 3.3 Milestone 3: Local Verification & Test Suite Execution
 
-When local monorepo validation (typecheck, linting, build, and unit/integration tests) passes:
+When local monorepo validation via the turnkey pipeline (`pnpm run verify:local`) passes:
 
 ```bash
 gh issue comment <IssueNumber> --body "🔄 **Progress Update**: Local Verification Succeeded
 
-- **Typecheck & Lint**: Passed (\`pnpm run check\`)
-- **Build**: Passed (\`pnpm run build\`)
-- **Automated Tests**: Passed (\`pnpm run test\`) — <X tests passed, 0 failures>
+- **Pre-PR Verification Pipeline**: Passed (\`pnpm run verify:local\`)
+  - **Docker Container Stack**: Healthy (PostgreSQL, Redis, MinIO, Directus CMS)
+  - **Typecheck & Lint**: Passed (\`pnpm run check\`)
+  - **Unit Tests**: Passed (\`pnpm run test:unit\`) — <X tests passed, 0 failures across all packages>
+  - **Live Service Probes**: Directus API, Redis PING, MinIO S3, and \`/api/health\` verified
+  - **Build Validation**: Passed (\`pnpm run build\`)
+  - **Git Hygiene**: Clean worktree state
 - **Next Step**: Handoff to SME Reviewing Judge for architectural intent evaluation"
 ```
 
@@ -198,14 +202,20 @@ Each story requires two distinct operational roles: **Implementor** and **SME Re
 2. **Periodic Updates**:
    - Post progress comments at major component milestones (Milestone 2).
 3. **Local Monorepo Verification**:
-   - Run typecheck and linting: `pnpm run check`
-   - Run build validation: `pnpm run build`
-   - Run automated tests: `pnpm run test`
+   - Run the turnkey verification pipeline: `pnpm run verify:local`
+   - Ensure all 6 verification stages pass:
+     1. Local Docker container health (PostgreSQL, Redis, MinIO, Directus CMS).
+     2. Typecheck & linting (`pnpm run check`).
+     3. Monorepo unit test suites (`pnpm run test:unit`).
+     4. Live dependency probes (Directus API, Redis PING, MinIO S3, `/api/health`).
+     5. Production build validation (`pnpm run build`).
+     6. Git worktree hygiene (clean state, zero leaked logs or temp files).
+   - **Never rely solely on compilation (`tsc` or `build`)**: Runtime behavior and service connectivity must be proven locally against the active container stack before opening a PR.
    - Post local verification comment (Milestone 3).
 4. **Handoff to SME Judge**:
    - Present completed code and verification outputs to the SME Judge for review.
 5. **Iteration / Follow-Up Creation**:
-   - If immediate fixes are requested, implement them and re-verify.
+   - If immediate fixes are requested, implement them and re-verify via `pnpm run verify:local`.
    - If deferred scope is approved, create new GitHub issues via `gh issue create` with appropriate `epic:*` labels and cross-references, then post Milestone 5 comment.
 6. **PR Creation & Linking**:
    - Push branch: `git push -u origin feature/story-<X>-<Y>-<shortname>`
@@ -218,8 +228,10 @@ Each story requires two distinct operational roles: **Implementor** and **SME Re
 
 The SME Judge is an architectural authority who ensures stories do not merely check off surface-level criteria, but genuinely advance the platform's stability, security, and developer ergonomics.
 
-1. **Intent Evaluation**:
+1. **Intent & Verification Evaluation**:
    - Review code against `docs/HIGH_LEVEL_DESIGN.md` and related architecture specs.
+   - Verify that the Implementor ran and passed `pnpm run verify:local` (including live container probes).
+   - Guard against "compilation-only" solutions: ensure database queries, Redis interactions, and API calls are backed by concrete tests, not just type signatures.
    - Check error resilience, edge-case coverage, security practices, and code hygiene.
 2. **Scope Adjudication**:
    - **Immediate Scope**: Reject changes if missing elements compromise the story's core purpose or introduce technical debt.
@@ -404,7 +416,8 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Created and switched to isolated worktree: `wt switch --create feature/story-<X>-<Y>-<shortname>`.
 - [ ] **Periodic Progress Updates**:
   - [ ] Posted Milestone 2 comment upon reaching core component/scaffolding milestone.
-  - [ ] Ran `pnpm run check`, `pnpm run build`, and `pnpm run test` locally and posted Milestone 3 comment.
+  - [ ] Ran `pnpm run verify:local` (container health, check, test:unit, live probes, build, hygiene) and posted Milestone 3 comment with verification outputs.
+  - [ ] Verified live service integration against local Docker containers (not just compilation).
   - [ ] Conducted SME Reviewing Judge intent evaluation and posted Milestone 4 comment.
   - [ ] Created GitHub issues for any deferred scope and posted Milestone 5 comment with issue links.
 - [ ] **Pull Request & Bidirectional Linking**:

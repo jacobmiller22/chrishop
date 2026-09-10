@@ -195,14 +195,14 @@ runcmd:
 
 The following table clarifies the canonical path and implementation status for all Hetzner infrastructure assets:
 
-| Path                                      | Status      | Scheduled Story | Description                                                   |
-| `infra/vps/cloud-init.yaml`               | `[EXISTS]`  | Story 2.10      | Base OS bootstrap and hardening specification                 |
-| `infra/vps/playbook.yml`                  | `[EXISTS]`  | Story 2.10      | Ansible automation for system packages and docker maintenance |
-| `infra/vps/inventory.ini`                 | `[EXISTS]`  | Story 2.10      | Server IP inventory for Staging & Production VPS hosts        |
-| `infra/scripts/deps/hetzner_provision.sh` | `[EXISTS]`  | Story 2.2       | CLI wrapper script for automated VPS creation                 |
-| `infra/docker/docker-compose.prod.yml`    | `[EXISTS]`  | Story 2.8       | Production multi-container composition                        |
-| `infra/docker/docker-compose.staging.yml` | `[PLANNED]` | Story 2.9       | Staging multi-container composition                           |
-| `infra/docker/docker-compose.dev.yml`     | `[EXISTS]`  | Phase 1         | Local development container stack                             |
+| Path | Status | Scheduled Story | Description |
+| `infra/vps/cloud-init.yaml` | `[EXISTS]` | Story 2.10 | Base OS bootstrap and hardening specification |
+| `infra/vps/playbook.yml` | `[EXISTS]` | Story 2.10 | Ansible automation for system packages and docker maintenance |
+| `infra/vps/inventory.ini` | `[EXISTS]` | Story 2.10 | Server IP inventory for Staging & Production VPS hosts |
+| `infra/scripts/deps/hetzner_provision.sh` | `[EXISTS]` | Story 2.2 | CLI wrapper script for automated VPS creation |
+| `infra/docker/docker-compose.prod.yml` | `[EXISTS]` | Story 2.8 | Production multi-container composition |
+| `infra/docker/docker-compose.staging.yml` | `[PLANNED]` | Story 2.9 | Staging multi-container composition |
+| `infra/docker/docker-compose.dev.yml` | `[EXISTS]` | Phase 1 | Local development container stack |
 
 ---
 

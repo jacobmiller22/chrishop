@@ -14,7 +14,7 @@ timezone: Etc/UTC
 # Allocate 2GB swap partition for memory stability on CX22 (4GB RAM)
 swap:
   filename: /swapfile
-  size: 2147483648  # 2 GB in bytes
+  size: 2147483648 # 2 GB in bytes
   maxsize: 2147483648
 
 # ------------------------------------------------------------------------------
