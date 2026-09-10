@@ -27,6 +27,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@img/sharp-darwin-arm64": "^0.35.4",
     "@next/env": "^15.5.25",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.10.0",
