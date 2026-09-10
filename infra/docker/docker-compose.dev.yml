@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: chrishop-postgres
     restart: always
     environment:
-      POSTGRES_DB: chrishop_dev
-      POSTGRES_USER: chrishop
-      POSTGRES_PASSWORD: chrishop_dev_secret
+      POSTGRES_DB: ${POSTGRES_DB:-chrishop_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-chrishop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chrishop_dev_secret}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chrishop -d chrishop_dev"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chrishop} -d ${POSTGRES_DB:-chrishop_dev}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,8 +37,8 @@ services:
     container_name: chrishop-minio
     restart: always
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${STORAGE_S3_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_S3_SECRET:-minioadmin}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -55,24 +53,24 @@ services:
     ports:
       - "8055:8055"
     environment:
-      KEY: chrishop-secret-key
-      SECRET: chrishop-secret-jwt
-      ADMIN_EMAIL: admin@chrishop.com
-      ADMIN_PASSWORD: AdminPassword123!
+      KEY: ${KEY:-chrishop-secret-key}
+      SECRET: ${SECRET:-chrishop-secret-jwt}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@chrishop.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-AdminPassword123!}
       DB_CLIENT: pg
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_DATABASE: chrishop_dev
-      DB_USER: chrishop
-      DB_PASSWORD: chrishop_dev_secret
+      DB_DATABASE: ${POSTGRES_DB:-chrishop_dev}
+      DB_USER: ${POSTGRES_USER:-chrishop}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-chrishop_dev_secret}
       CACHE_ENABLED: 'true'
       CACHE_STORE: redis
       CACHE_REDIS: redis://redis:6379
-      STORAGE_LOCATIONS: s3
-      STORAGE_S3_DRIVER: s3
-      STORAGE_S3_KEY: minioadmin
-      STORAGE_S3_SECRET: minioadmin
-      STORAGE_S3_BUCKET: chrishop-media
+      STORAGE_LOCATIONS: ${STORAGE_LOCATIONS:-s3}
+      STORAGE_S3_DRIVER: ${STORAGE_S3_DRIVER:-s3}
+      STORAGE_S3_KEY: ${STORAGE_S3_KEY:-minioadmin}
+      STORAGE_S3_SECRET: ${STORAGE_S3_SECRET:-minioadmin}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-chrishop-media}
       STORAGE_S3_ENDPOINT: http://minio:9000
       STORAGE_S3_S3_FORCE_PATH_STYLE: 'true'
     depends_on:
@@ -85,3 +83,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+
