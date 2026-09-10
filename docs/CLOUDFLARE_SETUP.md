@@ -1,115 +1,318 @@
 # Cloudflare Operational Setup Guide (`docs/CLOUDFLARE_SETUP.md`)
 
-This runbook guides operators through provisioning and configuring the complete Cloudflare platform suite (Workers, D1, KV, R2, Secrets, and Custom Domains) for **ChrisShop**.
+This runbook guides operators, platform engineers, and automated agents through provisioning, configuring, deploying, and maintaining the complete Cloudflare platform suite (Workers, D1, Workers KV, R2, Secrets, and Custom Domains) for **ChrisShop**.
 
 ---
 
-## 1. Prerequisites
+## 1. Architecture Overview & Environments
 
-- Cloudflare account with a Workers Paid subscription ($5/mo).
-- Cloudflare API Token with permissions for Workers, D1, KV, R2, and DNS.
-- Installed Wrangler CLI (`pnpm exec wrangler`).
+The ChrisShop platform runs on a serverless, zero-container edge deployment model using Cloudflare Workers and `@opennextjs/cloudflare` to co-locate the Next.js storefront and Payload CMS v3 under a single edge worker deployment.
 
-Authenticate locally:
+The platform provides three distinct environments:
+
+| Environment | Branch | Custom Domain / Route | D1 Database | KV Namespace | R2 Bucket |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Production** | `main` | `chrishop.com/*`, `www.chrishop.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
+| **Staging** | `staging` | `staging.chrishop.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
+| **Preview** | PR branches | `pr-<PR_NUMBER>.preview.chrishop.com` | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
+
+---
+
+## 2. Prerequisites & Authentication
+
+1. **Cloudflare Account**: Workers Paid plan ($5/mo) enabled for custom domains, D1 databases, KV namespaces, and R2 buckets.
+2. **Cloudflare API Token**: Created with the following permissions:
+   - `Account` > `Workers Scripts` > `Edit`
+   - `Account` > `Workers KV Storage` > `Edit`
+   - `Account` > `D1` > `Edit`
+   - `Account` > `Workers R2 Storage` > `Edit`
+   - `Zone` > `Workers Routes` > `Edit`
+   - `Zone` > `DNS` > `Edit`
+3. **Local Tooling**:
+   - Node.js 22+ (Active LTS)
+   - pnpm 9+
+   - Wrangler CLI v3+ (`pnpm exec wrangler`)
+
+### Authenticate Locally
 
 ```bash
 pnpm exec wrangler login
 ```
 
----
-
-## 2. D1 Database Provisioning
-
-Provision isolated D1 relational databases for staging and production:
+Verify your authenticated account ID:
 
 ```bash
-# Create Staging D1 Database
+pnpm exec wrangler whoami
+```
+
+---
+
+## 3. D1 Relational Database Setup
+
+Provision isolated SQLite-compatible D1 databases for each tier:
+
+```bash
+# 1. Create Staging D1 Database
 pnpm exec wrangler d1 create chrishop-staging-db
 
-# Create Production D1 Database
+# 2. Create Production D1 Database
 pnpm exec wrangler d1 create chrishop-prod-db
+
+# 3. Create Ephemeral Preview D1 Database
+pnpm exec wrangler d1 create chrishop-preview-db
 ```
 
-Copy the output `database_id` values into `wrangler.toml` under `[[d1_databases]]` and `[[env.staging.d1_databases]]`.
+Record the output `database_id` UUIDs into `wrangler.toml`:
+- Production: `[[d1_databases]]` and `[[env.production.d1_databases]]`
+- Staging: `[[env.staging.d1_databases]]`
+- Preview: `[[env.preview.d1_databases]]`
+
+### Applying Migrations
+
+```bash
+# Apply migrations to Staging
+pnpm exec wrangler d1 migrations apply chrishop-staging-db --remote
+
+# Apply migrations to Production
+pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote
+
+# Apply migrations locally in Miniflare
+pnpm exec wrangler d1 migrations apply chrishop-dev-db --local
+```
 
 ---
 
-## 3. Workers KV Namespace Creation
+## 4. Workers KV Namespace Setup (ISR Edge Cache)
 
-Provision KV namespaces for ISR edge caching:
+Workers KV accelerates storefront performance by caching Next.js App Router Incremental Static Regeneration (ISR) pages and Payload API queries.
 
 ```bash
-# Create Staging KV Namespace
+# 1. Create Staging KV Namespace
 pnpm exec wrangler kv:namespace create NEXT_CACHE_WORKERS_KV --env staging
 
-# Create Production KV Namespace
+# 2. Create Production KV Namespace
 pnpm exec wrangler kv:namespace create NEXT_CACHE_WORKERS_KV
+
+# 3. Create Preview KV Namespace
+pnpm exec wrangler kv:namespace create NEXT_CACHE_WORKERS_KV --env preview
 ```
 
-Copy the resulting `id` strings into the corresponding sections of `wrangler.toml`.
+Copy the resulting `id` strings into `wrangler.toml` under the respective `kv_namespaces` tables.
 
 ---
 
-## 4. Cloudflare R2 Bucket Creation
+## 5. Cloudflare R2 Media Bucket Provisioning
 
-Provision R2 buckets for product galleries and limited edition artwork:
+Cloudflare R2 provides S3-compatible, zero-egress object storage for product galleries and limited edition artwork drops.
 
 ```bash
-# Create Staging Bucket
+# 1. Create Staging R2 Bucket
 pnpm exec wrangler r2 bucket create chrishop-media-staging
 
-# Create Production Bucket
+# 2. Create Production R2 Bucket
 pnpm exec wrangler r2 bucket create chrishop-media-prod
+
+# 3. Create Preview R2 Bucket
+pnpm exec wrangler r2 bucket create chrishop-media-preview
 ```
 
-Apply CORS configuration to permit image requests from the storefront:
+### Apply CORS Configuration
+
+Allow image requests from storefront custom domains:
 
 ```bash
+# Apply CORS to Staging Bucket
+pnpm exec wrangler r2 bucket cors set chrishop-media-staging --file infra/r2/cors-media.json
+
+# Apply CORS to Production Bucket
 pnpm exec wrangler r2 bucket cors set chrishop-media-prod --file infra/r2/cors-media.json
 ```
 
 ---
 
-## 5. Secret Management
+## 6. Secret Management & Isolation
 
-Populate encrypted edge secrets using `wrangler secret put`:
+All sensitive runtime credentials must be securely injected via encrypted Cloudflare Workers Secrets. **Never commit secrets to git repository or configuration files.**
+
+### Required Secret Matrix
+
+| Secret Key | Description | Target Environments |
+| :--- | :--- | :--- |
+| `PAYLOAD_SECRET` | 32+ character encryption secret for Payload CMS sessions | Production, Staging, Preview |
+| `SHOPIFY_ADMIN_TOKEN` | Shopify Private App Admin API access token | Production, Staging |
+| `SHOPIFY_STOREFRONT_TOKEN` | Shopify Headless Storefront API access token | Production, Staging |
+| `SHOPIFY_WEBHOOK_SECRET` | Shopify webhook HMAC SHA-256 verification secret | Production, Staging |
+| `RESEND_API_KEY` | Resend transactional email API key | Production, Staging |
+| `DISCORD_WEBHOOK_URL` | Discord webhook URL for order drop notifications | Production, Staging |
+
+### Setting Secrets for Staging
 
 ```bash
-# Staging Secrets
 pnpm exec wrangler secret put PAYLOAD_SECRET --env staging
 pnpm exec wrangler secret put SHOPIFY_ADMIN_TOKEN --env staging
+pnpm exec wrangler secret put SHOPIFY_STOREFRONT_TOKEN --env staging
 pnpm exec wrangler secret put SHOPIFY_WEBHOOK_SECRET --env staging
 pnpm exec wrangler secret put RESEND_API_KEY --env staging
-
-# Production Secrets
-pnpm exec wrangler secret put PAYLOAD_SECRET
-pnpm exec wrangler secret put SHOPIFY_ADMIN_TOKEN
-pnpm exec wrangler secret put SHOPIFY_WEBHOOK_SECRET
-pnpm exec wrangler secret put RESEND_API_KEY
+pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env staging
 ```
 
----
-
-## 6. Custom Domain & DNS Mapping
-
-Attach the Workers project to Chris's custom domains in Cloudflare Dashboard (or via `wrangler.toml` routes):
-
-- Production: `chrishop.com` and `www.chrishop.com`
-- Staging: `staging.chrishop.com`
-
----
-
-## 7. Deployment & Verification
-
-Deploy and test health endpoints:
+### Setting Secrets for Production
 
 ```bash
-# Deploy to Staging
-pnpm exec wrangler deploy --env staging
-
-# Deploy to Production
-pnpm exec wrangler deploy --env production
-
-# Verify Health
-curl -s -f https://chrishop.com/api/health | jq .
+pnpm exec wrangler secret put PAYLOAD_SECRET --env production
+pnpm exec wrangler secret put SHOPIFY_ADMIN_TOKEN --env production
+pnpm exec wrangler secret put SHOPIFY_STOREFRONT_TOKEN --env production
+pnpm exec wrangler secret put SHOPIFY_WEBHOOK_SECRET --env production
+pnpm exec wrangler secret put RESEND_API_KEY --env production
+pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env production
 ```
+
+### Verifying Active Secrets
+
+List active secret names (values remain encrypted and hidden):
+
+```bash
+pnpm exec wrangler secret list --env staging
+pnpm exec wrangler secret list --env production
+```
+
+---
+
+## 7. Custom Domain Routes & DNS Configuration
+
+Cloudflare Workers routing connects custom domains directly to worker execution at Cloudflare's global edge without intermediate reverse proxies.
+
+### DNS Records in Cloudflare Zone (`chrishop.com`)
+
+Ensure the following proxied (orange-clouded) DNS records exist in the Cloudflare Dashboard:
+
+| Type | Name | Content / Target | Proxy Status | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `A` / `AAAA` | `@` (`chrishop.com`) | `192.0.2.1` (or Cloudflare dummy target) | Proxied | Apex production domain |
+| `CNAME` | `www` | `chrishop.com` | Proxied | Production www alias |
+| `CNAME` | `staging` | `chrishop.com` | Proxied | Staging environment |
+| `CNAME` | `*.preview` | `chrishop.com` | Proxied | Wildcard for PR previews |
+
+### Route Definitions in `wrangler.toml`
+
+The routes are explicitly managed in `wrangler.toml`:
+
+```toml
+# Production Routes (top-level and [env.production])
+routes = [
+  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
+  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
+]
+
+# Staging Routes ([env.staging])
+[env.staging]
+routes = [
+  { pattern = "staging.chrishop.com/*", zone_name = "chrishop.com" }
+]
+```
+
+### SSL/TLS Encryption Configuration
+
+In Cloudflare Dashboard:
+1. Navigate to **SSL/TLS** > **Overview**.
+2. Set Encryption Mode to **Full (Strict)**.
+3. Under **Edge Certificates**, confirm **Always Use HTTPS** and **Automatic HTTPS Rewrites** are enabled.
+
+---
+
+## 8. Local Emulation via Miniflare (`wrangler dev`)
+
+Developers can run the complete Cloudflare Workers runtime locally without connecting to live Cloudflare services.
+
+```bash
+# 1. Ensure local environment variables are populated
+cp .env.example .env
+cp .env.example apps/web/.dev.vars
+
+# 2. Run local development server (spawns Miniflare)
+pnpm run dev
+```
+
+Miniflare automatically:
+- Emulates SQLite D1 databases locally under `.wrangler/state/v3/d1`.
+- Emulates Workers KV storage under `.wrangler/state/v3/kv`.
+- Emulates R2 object storage in memory.
+- Exposes Next.js storefront and Payload CMS at `http://localhost:3000`.
+
+To run Wrangler's native local emulation:
+
+```bash
+pnpm exec wrangler dev --port 3000
+```
+
+---
+
+## 9. Automated Pull Request Preview Deployments
+
+Every pull request triggers an automated preview deployment via `.github/workflows/preview-deploy.yml`:
+
+1. **Trigger**: Pull requests targeting `main` or `staging` (`opened`, `synchronize`, `reopened`).
+2. **Quality Gates**: Runs `pnpm run check` (typecheck & lint) and `pnpm run test:all` (unit and ephemeral integration tests).
+3. **Build**: Builds production bundle using `@opennextjs/cloudflare`.
+4. **Deploy**: Deploys to Cloudflare Workers preview environment:
+   ```bash
+   pnpm exec wrangler deploy --env preview
+   ```
+5. **PR Notification**: Posts a sticky comment with the preview URL (`https://pr-<PR_NUMBER>.preview.chrishop.com`).
+6. **Teardown**: When the PR is closed or merged, `.github/workflows/preview-teardown.yml` executes automated resource cleanup.
+
+---
+
+## 10. CI/CD Deployment Pipeline (Staging & Production)
+
+Deployments are automated through `.github/workflows/deploy.yml`:
+
+- **Push to `staging` branch**:
+  - Triggers automated quality validation (`check`, `test:unit`, `build`).
+  - Deploys to staging environment via `pnpm exec wrangler deploy --env staging`.
+  - Routes traffic to `https://staging.chrishop.com`.
+
+- **Push to `main` branch**:
+  - Triggers automated quality validation.
+  - Deploys to production environment via `pnpm exec wrangler deploy --env production`.
+  - Routes traffic to `https://chrishop.com` and `https://www.chrishop.com`.
+
+- **Health Verification**:
+  ```bash
+  # Check Staging Health
+  curl -s -f https://staging.chrishop.com/api/health | jq .
+
+  # Check Production Health
+  curl -s -f https://chrishop.com/api/health | jq .
+  ```
+
+---
+
+## 11. Rollback & Disaster Recovery
+
+If an issue is detected post-deployment:
+
+### Instant Edge Worker Rollback
+
+Roll back immediately to the previous stable deployment using Cloudflare's instant version rollback:
+
+```bash
+# Roll back staging
+pnpm exec wrangler rollback --env staging
+
+# Roll back production
+pnpm exec wrangler rollback --env production
+```
+
+Or trigger the automated GitHub Actions rollback workflow `.github/workflows/rollback.yml` via workflow dispatch.
+
+### Live Tail & Diagnostics
+
+Stream real-time edge execution logs:
+
+```bash
+pnpm exec wrangler tail --env staging
+pnpm exec wrangler tail --env production
+```
+
+For complete disaster recovery and Point-in-Time Recovery (PITR) procedures, refer to [`docs/runbooks/DISASTER_RECOVERY.md`](runbooks/DISASTER_RECOVERY.md).
