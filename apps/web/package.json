@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "check": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test"
   },
   "dependencies": {
     "@chrishop/config": "workspace:*",
