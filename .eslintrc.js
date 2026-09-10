@@ -10,13 +10,7 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
-  ignorePatterns: [
-    'node_modules/',
-    'dist/',
-    '.next/',
-    'coverage/',
-    '*.config.js',
-  ],
+  ignorePatterns: ['node_modules/', 'dist/', '.next/', 'coverage/', '*.config.js'],
   rules: {
     'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],

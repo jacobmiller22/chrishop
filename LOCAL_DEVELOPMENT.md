@@ -7,6 +7,7 @@ Welcome to the **ChrisShop** monorepo local development environment. This guide 
 ## 1. Prerequisites
 
 Ensure you have the following installed on your machine:
+
 - **Node.js**: `v20.x` or higher
 - **pnpm**: `v9.x` or higher (`npm install -g pnpm`)
 - **Docker & Docker Compose**: `v2.20+` (Docker Desktop or Colima/OrbStack)
@@ -18,6 +19,7 @@ Ensure you have the following installed on your machine:
 ## 2. Quickstart Environment Setup
 
 ### 2.1 Workspace Installation
+
 Install monorepo dependencies across all applications (`apps/web`, `apps/cms`) and packages (`packages/ui`, `packages/types`, `packages/notifications`):
 
 ```bash
@@ -25,6 +27,7 @@ pnpm install
 ```
 
 ### 2.2 Environment Variables
+
 Copy the local environment template to `.env`:
 
 ```bash
@@ -32,6 +35,7 @@ cp .env.example .env
 ```
 
 Ensure `.env` contains standard development defaults:
+
 ```env
 NODE_ENV=development
 PORT=3000
@@ -81,12 +85,14 @@ docker compose -f infra/docker/docker-compose.dev.yml up -d
 ```
 
 ### Container Endpoints:
+
 - **Directus Admin UI**: `http://localhost:8055` (Login: `admin@chrishop.com` / `AdminPassword123!`)
 - **MinIO Console**: `http://localhost:9001` (Login: `minioadmin` / `minioadmin`)
 - **PostgreSQL**: `localhost:5432` (DB: `chrishop_dev`)
 - **Redis OSS**: `localhost:6379`
 
 To view container logs:
+
 ```bash
 docker compose -f infra/docker/docker-compose.dev.yml logs -f
 ```
@@ -116,6 +122,7 @@ pnpm run dev
 ```
 
 ### Running Individual Apps:
+
 - **Storefront (`apps/web`)**: `pnpm --filter web dev` ➔ `http://localhost:3000`
 - **CMS Extensions (`apps/cms`)**: `pnpm --filter cms dev`
 

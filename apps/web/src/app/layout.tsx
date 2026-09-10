@@ -7,11 +7,7 @@ export const metadata: Metadata = {
   description: 'Handcrafted sculptures, prints, and exclusive art drops by Chris.',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased">

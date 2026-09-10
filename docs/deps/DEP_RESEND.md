@@ -26,6 +26,7 @@ This document specifies the integration, tooling, management scripts, and operat
 ## 3. Email Template Specs
 
 ### Shipping Tracking Notification Template:
+
 - **Subject**: `Your ChrisShop order #{order_number} has shipped! 📦`
 - **Body HTML**: Includes customer name, items ordered, carrier name (USPS, UPS, FedEx), clickable carrier tracking URL (`tracking_url`), and customer support contact details.
 

@@ -55,12 +55,15 @@ gh label create "creator-review" --color "f9d0c4" --description "Creator (Chris)
 ## 4. GitHub Project (v2) Creation & Custom Fields
 
 ### 4.1 Create Project Board
+
 ```bash
 gh project create --owner jacobmiller22 --title "ChrisShop Delivery Roadmap"
 ```
 
 ### 4.2 Add Custom `Phase` Field
+
 Add a Single Select field named `Phase` with options:
+
 - `Phase 1: Prototyping`
 - `Phase 2: Infrastructure`
 - `Phase 3: Integration`
@@ -75,6 +78,7 @@ Add a Single Select field named `Phase` with options:
 An agent can execute the following `gh issue create` commands to populate all stories across all 6 phases:
 
 ### Phase 1 Stories
+
 ```bash
 gh issue create --title "Story 1.1: Workspace & Monorepo Foundation Setup" --body "Initialize pnpm workspace, turbo.json, root package.json, tsconfig.json, eslint, and prettier." --label "epic:phase-1,type:infra" --milestone "Phase 1: Prototyping & Local Dev"
 gh issue create --title "Story 1.2: Local Development Docker Stack" --body "Create infra/docker/docker-compose.dev.yml containing Postgres 16, Directus 11, Redis OSS, and MinIO." --label "epic:phase-1,type:infra" --milestone "Phase 1: Prototyping & Local Dev"
@@ -90,6 +94,7 @@ gh issue create --title "Story 1.11: MinIO Bucket Initialization Service" --body
 ```
 
 ### Phase 2 Stories
+
 ```bash
 gh issue create --title "Story 2.1: External Dependency Specifications (DEP_*.md)" --body "Create DEP_HETZNER.md, DEP_DIRECTUS.md, DEP_STRIPE.md, DEP_CLOUDFLARE_R2.md, DEP_REDIS.md, DEP_RESEND.md, DEP_DISCORD.md, DEP_CADDY.md." --label "epic:phase-2,type:docs" --milestone "Phase 2: Infrastructure & Dependencies"
 gh issue create --title "Story 2.2: Dependency Control Automation Scripts" --body "Build management scripts in infra/scripts/deps/ for bucket creation, schema applying, and server init." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
@@ -105,6 +110,7 @@ gh issue create --title "Story 2.11: Custom Caddy Docker Image (xcaddy + Cloudfl
 ```
 
 ### Phase 3 Stories
+
 ```bash
 gh issue create --title "Story 3.1: Hybrid Storefront Data Fetching & UI Components" --body "Build storefront pages fetching live catalog data via @directus/sdk REST client." --label "epic:phase-3,type:feature" --milestone "Phase 3: End-to-End Integration"
 gh issue create --title "Story 3.2: Pre-Checkout Lock & Dynamic Stripe Checkout" --body "Implement /api/checkout with 10-minute Redis reservation key and dynamic price_data Stripe session generation." --label "epic:phase-3,type:feature" --milestone "Phase 3: End-to-End Integration"
@@ -116,6 +122,7 @@ gh issue create --title "Story 3.7: Phase 3 Creator Review - Full End-to-End Dro
 ```
 
 ### Phase 4 Stories
+
 ```bash
 gh issue create --title "Story 4.1: Production CD Deployment Pipeline" --body "Create .github/workflows/deploy.yml for automated SSH deployment to Hetzner VPS." --label "epic:phase-4,type:infra" --milestone "Phase 4: DevOps & Failover Automation"
 gh issue create --title "Story 4.2: Health Check Gate & Rolling Deployment Strategy" --body "Implement Next.js /api/health endpoint and Caddy rolling traffic swap gate after 3 healthy checks." --label "epic:phase-4,type:infra" --milestone "Phase 4: DevOps & Failover Automation"
@@ -125,6 +132,7 @@ gh issue create --title "Story 4.5: Emergency Rollback Workflow & Disaster Recov
 ```
 
 ### Phase 5 & Phase 6+ Stories
+
 ```bash
 gh issue create --title "Story 5.1: Hetzner VPS Server OS Hardening" --body "Complete Ansible playbook infra/vps/playbook.yml enforcing UFW firewall, SSH pubkeys, fail2ban, and Docker log rotation." --label "epic:phase-5,type:security" --milestone "Phase 5: Security Hardening"
 gh issue create --title "Story 5.2: Directus RBAC & Mandatory TOTP 2FA Enforcement" --body "Configure Directus permission policies and enforce mandatory TOTP 2FA for Admin users." --label "epic:phase-5,type:security" --milestone "Phase 5: Security Hardening"
@@ -141,6 +149,7 @@ gh issue create --title "Story 6.3: E-Commerce Analytics & Sales Reporting Dashb
 ## 6. Board Synchronization (`board-sync.yml`)
 
 Ensure `.github/workflows/board-sync.yml` is active in the repository. The workflow handles automatic card transitions:
+
 - Move to **`In Progress`** when a branch or PR referencing an issue (`Fixes #X`) is pushed.
 - Move to **`In Review`** when a PR is marked ready for review.
 - Move to **`Done`** when a PR is merged to `main`.

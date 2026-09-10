@@ -2,7 +2,7 @@ name: Branch Protection Guardrails
 
 on:
   push:
-    branches: [ main, production ]
+    branches: [main, production]
 
 jobs:
   verify-branch-safety:
