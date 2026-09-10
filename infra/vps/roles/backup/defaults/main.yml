@@ -4,25 +4,25 @@
 # Daily automated encrypted database backups & offsite Cloudflare R2 archiving
 # ==============================================================================
 
-backup_scripts_dir: "/opt/chrishop/scripts"
-backup_env_file: "/opt/chrishop/scripts/backup.env"
-backup_log_file: "/var/log/chrishop-backup.log"
+backup_scripts_dir: '/opt/chrishop/scripts'
+backup_env_file: '/opt/chrishop/scripts/backup.env'
+backup_log_file: '/var/log/chrishop-backup.log'
 
 # Backup cron schedule (daily at 03:00 UTC)
-backup_cron_hour: "3"
-backup_cron_minute: "0"
+backup_cron_hour: '3'
+backup_cron_minute: '0'
 
 # Target database parameters
 backup_db_name: "{{ 'chrishop_prod' if (env | default('production') == 'production') else 'chrishop_staging' }}"
-backup_db_user: "chrishop"
-backup_bucket_name: "chrishop-backups"
+backup_db_user: 'chrishop'
+backup_bucket_name: 'chrishop-backups'
 
 # Secrets and credentials (injected via Ansible vault or CI/CD secrets)
-backup_age_public_key: ""
-backup_r2_endpoint_url: ""
-backup_aws_access_key_id: ""
-backup_aws_secret_access_key: ""
-backup_aws_region: "auto"
+backup_age_public_key: ''
+backup_r2_endpoint_url: ''
+backup_aws_access_key_id: ''
+backup_aws_secret_access_key: ''
+backup_aws_region: 'auto'
 
 # Local log retention
 backup_log_retention_days: 14

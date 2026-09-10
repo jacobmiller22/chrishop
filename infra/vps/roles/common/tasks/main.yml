@@ -5,11 +5,11 @@
 
 - name: Set system timezone
   community.general.timezone:
-    name: "{{ common_timezone }}"
+    name: '{{ common_timezone }}'
 
 - name: Update apt cache and install base OS packages
   ansible.builtin.apt:
-    name: "{{ common_packages }}"
+    name: '{{ common_packages }}'
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -19,38 +19,38 @@
 # ------------------------------------------------------------------------------
 - name: Check if swap file exists
   ansible.builtin.stat:
-    path: "{{ common_swap_path }}"
+    path: '{{ common_swap_path }}'
   register: swap_stat
   when: common_swap_enabled
 
 - name: Allocate swap file if absent
   ansible.builtin.command:
-    cmd: "fallocate -l {{ common_swap_size_mb }}M {{ common_swap_path }}"
+    cmd: 'fallocate -l {{ common_swap_size_mb }}M {{ common_swap_path }}'
   when: common_swap_enabled and not swap_stat.stat.exists
 
 - name: Set swap file permissions to 0600
   ansible.builtin.file:
-    path: "{{ common_swap_path }}"
+    path: '{{ common_swap_path }}'
     owner: root
     group: root
-    mode: "0600"
+    mode: '0600'
   when: common_swap_enabled
 
 - name: Format swap file
   ansible.builtin.command:
-    cmd: "mkswap {{ common_swap_path }}"
+    cmd: 'mkswap {{ common_swap_path }}'
   when: common_swap_enabled and not swap_stat.stat.exists
 
 - name: Enable swap file
   ansible.builtin.command:
-    cmd: "swapon {{ common_swap_path }}"
+    cmd: 'swapon {{ common_swap_path }}'
   when: common_swap_enabled and not swap_stat.stat.exists
   failed_when: false
 
 - name: Ensure swap entry in /etc/fstab
   ansible.posix.mount:
     path: none
-    src: "{{ common_swap_path }}"
+    src: '{{ common_swap_path }}'
     fstype: swap
     opts: sw
     state: present
@@ -61,7 +61,7 @@
     dest: /etc/sysctl.d/99-swappiness.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: '0644'
     content: |
       vm.swappiness = {{ common_swappiness }}
   notify: Apply sysctl
@@ -75,14 +75,14 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: '0755'
 
 - name: Deploy SSH daemon hardening configuration
   ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/99-hardening.conf
     owner: root
     group: root
-    mode: "0600"
+    mode: '0600'
     content: |
       # Managed by Ansible - ChrisShop VPS Hardening
       Port {{ common_ssh_port }}
@@ -103,14 +103,14 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: '0755'
 
 - name: Deploy Fail2ban SSH jail configuration
   ansible.builtin.copy:
     dest: /etc/fail2ban/jail.d/sshd.local
     owner: root
     group: root
-    mode: "0644"
+    mode: '0644'
     content: |
       # Managed by Ansible - ChrisShop Fail2ban SSH Defense
       [sshd]
@@ -137,7 +137,7 @@
     dest: /etc/apt/apt.conf.d/20auto-upgrades
     owner: root
     group: root
-    mode: "0644"
+    mode: '0644'
     content: |
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
@@ -164,10 +164,10 @@
 - name: Configure UFW firewall rules
   community.general.ufw:
     rule: allow
-    port: "{{ item.port }}"
-    proto: "{{ item.proto }}"
-    comment: "{{ item.comment }}"
-  loop: "{{ common_ufw_rules }}"
+    port: '{{ item.port }}'
+    proto: '{{ item.proto }}'
+    comment: '{{ item.comment }}'
+  loop: '{{ common_ufw_rules }}'
 
 - name: Enable UFW firewall service
   community.general.ufw:

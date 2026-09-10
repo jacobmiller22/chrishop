@@ -4,19 +4,19 @@
 # Base OS configuration, system hardening, and core tooling
 # ==============================================================================
 
-common_deploy_user: "deploy"
-common_timezone: "Etc/UTC"
+common_deploy_user: 'deploy'
+common_timezone: 'Etc/UTC'
 
 # Swap configuration (2GB recommended for Hetzner CX22 4GB RAM)
 common_swap_enabled: true
-common_swap_path: "/swapfile"
+common_swap_path: '/swapfile'
 common_swap_size_mb: 2048
 common_swappiness: 10
 
 # SSH daemon hardening parameters
 common_ssh_port: 22
 common_ssh_max_auth_tries: 3
-common_ssh_allow_users: "deploy"
+common_ssh_allow_users: 'deploy'
 
 # Fail2ban configuration parameters
 common_fail2ban_bantime: 3600
@@ -43,15 +43,15 @@ common_packages:
 
 # Firewall port matrix per DEP_HETZNER.md Section 4.2
 common_ufw_rules:
-  - port: "22"
-    proto: "tcp"
-    comment: "SSH"
-  - port: "80"
-    proto: "tcp"
-    comment: "HTTP / ACME"
-  - port: "443"
-    proto: "tcp"
-    comment: "HTTPS"
-  - port: "443"
-    proto: "udp"
-    comment: "HTTP/3 QUIC"
+  - port: '22'
+    proto: 'tcp'
+    comment: 'SSH'
+  - port: '80'
+    proto: 'tcp'
+    comment: 'HTTP / ACME'
+  - port: '443'
+    proto: 'tcp'
+    comment: 'HTTPS'
+  - port: '443'
+    proto: 'udp'
+    comment: 'HTTP/3 QUIC'

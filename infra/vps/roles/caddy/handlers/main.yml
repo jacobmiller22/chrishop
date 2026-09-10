@@ -5,11 +5,11 @@
 
 - name: Reload caddy
   ansible.builtin.systemd:
-    name: "{{ caddy_service_name }}"
+    name: '{{ caddy_service_name }}'
     state: reloaded
 
 - name: Restart caddy
   ansible.builtin.systemd:
-    name: "{{ caddy_service_name }}"
+    name: '{{ caddy_service_name }}'
     state: restarted
     daemon_reload: true

@@ -129,15 +129,15 @@ Directus functionality is extended via `@directus/extensions-sdk`:
 
 ## 6. Reconciled Configuration Files & Monorepo Paths
 
-| Path                                  | Status      | Scheduled Story | Description                                              |
-| ------------------------------------- | ----------- | --------------- | -------------------------------------------------------- |
-| `apps/cms/snapshot.yaml`              | `[EXISTS]`  | Phase 1         | Canonical Directus schema snapshot                       |
-| `infra/directus/snapshot.yaml`        | `[EXISTS]`  | Phase 1         | Infrastructure mirror of Directus schema snapshot        |
-| `apps/cms/scripts/schema-apply.ts`    | `[EXISTS]`  | Phase 1         | TypeScript script executing schema apply                 |
-| `apps/cms/scripts/schema-export.ts`   | `[EXISTS]`  | Phase 1         | TypeScript script exporting schema snapshot              |
-| `apps/cms/scripts/seed.ts`            | `[EXISTS]`  | Phase 1         | Database seeding script with demo catalog                |
-| `apps/cms/extensions/`                | `[EXISTS]`  | Phase 1         | Custom extensions directory for hooks and endpoints      |
-| `infra/scripts/deps/directus_sync.sh` | `[EXISTS]`  | Story 2.2       | Shell automation script for CI/CD schema synchronization |
+| Path                                  | Status     | Scheduled Story | Description                                              |
+| ------------------------------------- | ---------- | --------------- | -------------------------------------------------------- |
+| `apps/cms/snapshot.yaml`              | `[EXISTS]` | Phase 1         | Canonical Directus schema snapshot                       |
+| `infra/directus/snapshot.yaml`        | `[EXISTS]` | Phase 1         | Infrastructure mirror of Directus schema snapshot        |
+| `apps/cms/scripts/schema-apply.ts`    | `[EXISTS]` | Phase 1         | TypeScript script executing schema apply                 |
+| `apps/cms/scripts/schema-export.ts`   | `[EXISTS]` | Phase 1         | TypeScript script exporting schema snapshot              |
+| `apps/cms/scripts/seed.ts`            | `[EXISTS]` | Phase 1         | Database seeding script with demo catalog                |
+| `apps/cms/extensions/`                | `[EXISTS]` | Phase 1         | Custom extensions directory for hooks and endpoints      |
+| `infra/scripts/deps/directus_sync.sh` | `[EXISTS]` | Story 2.2       | Shell automation script for CI/CD schema synchronization |
 
 ---
 

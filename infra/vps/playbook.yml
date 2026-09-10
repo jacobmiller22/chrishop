@@ -20,8 +20,8 @@
         that:
           - ansible_distribution == "Ubuntu"
           - ansible_distribution_version is version("22.04", ">=")
-        fail_msg: "ChrisShop VPS automation requires Ubuntu 22.04+ (Target: Ubuntu 24.04 LTS)."
-        success_msg: "Operating system verified: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        fail_msg: 'ChrisShop VPS automation requires Ubuntu 22.04+ (Target: Ubuntu 24.04 LTS).'
+        success_msg: 'Operating system verified: {{ ansible_distribution }} {{ ansible_distribution_version }}'
       tags: [always]
 
   roles:

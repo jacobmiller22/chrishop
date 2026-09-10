@@ -8,6 +8,7 @@ description: Autonomous fleet orchestrator and Chief Judge skill that identifies
 This skill defines the end-to-end orchestration protocol for autonomously selecting, dispatching, supervising, and verifying parallel user stories across the **ChrisShop** monorepo.
 
 It elevates the agent to a **Chief Judge & Fleet Orchestrator** who:
+
 1. Identifies the top 3–5 shovel-ready, unblocked user stories across delivery phases.
 2. Performs parallel conflict analysis to guarantee non-overlapping workspace changes.
 3. Spawns dedicated worker subagents, each assigned to execute a story in an isolated `wt` worktree following [story-feedback-loop](../story-feedback-loop/SKILL.md).
@@ -43,11 +44,13 @@ flowchart TD
 ## 2. Stage 1: Candidate Identification & Conflict Analysis
 
 When invoked, the Orchestrator MUST identify the top 3–5 shovel-ready stories that:
+
 - Are **OPEN** and do **NOT** have `status:in-progress`, `blocked`, `needs-refinement`, or `creator-review` labels.
 - Have zero unresolved blockers in their `Dependencies` section (all prerequisites must be `CLOSED` on GitHub).
 - Have no active assignees.
 
 ### 2.1 Execution via Helper Script
+
 Run the automated discovery script:
 
 ```bash
@@ -55,12 +58,15 @@ python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4
 ```
 
 To output raw JSON for programmatic subagent prompt generation:
+
 ```bash
 python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4 --json
 ```
 
 ### 2.2 Parallel Conflict Validation
+
 Before spawning subagents, the Orchestrator MUST verify that the selected batch of stories touches **disjoint packages or directories** to avoid merge conflicts:
+
 - **Valid Concurrent Batch Example**:
   - Worker A: `Story 1.12` (`apps/web`)
   - Worker B: `Story 2.1` (`docs/deps/`)
@@ -75,13 +81,16 @@ Before spawning subagents, the Orchestrator MUST verify that the selected batch 
 The Orchestrator dispatches worker subagents concurrently using a single `invoke_subagent` tool call.
 
 ### 3.1 Worker Configuration Standard
+
 For each selected story, define an entry in `Subagents`:
+
 - **Role**: `Worker: Story <X.Y> <Short Title>`
 - **TypeName**: `self` (inherits tool capabilities to create files, run git, and manage issues)
 - **Model**: `inherit` (or `flash` for pure documentation stories like Story 2.1)
 - **Workspace**: `inherit` (the worker creates its own isolated worktree using `wt`)
 
 ### 3.2 Standard Worker System Prompt Template
+
 Every subagent prompt MUST explicitly mandate execution of [story-feedback-loop](../story-feedback-loop/SKILL.md):
 
 ```text
@@ -94,7 +103,7 @@ You MUST strictly follow the protocol defined in `.agents/skills/story-feedback-
 1. Transition Issue Status: Apply label "status:in-progress" and post an initial start-of-work comment on GitHub.
 2. Provision Worktree: Create an isolated worktree using `wt switch --create feature/story-<X>-<Y>-<slug>`.
 3. Implementation: Develop all deliverables matching the sub-tasks checklist.
-4. Local Verification: Run `pnpm run check`, `pnpm run build`, and automated tests. Post local verification comment on the issue.
+4. Local Verification: Run `pnpm run verify:local` (validating container health, check, test:unit, live dependency probes, and build). Post local verification comment on the issue.
 5. Dual-Role Adversarial Review: Evaluate your implementation against high-level architectural intent. Fix gaps immediately.
 6. Pull Request & Linking: Push branch, create PR targeting `main` with `Fixes #<ISSUE_NUMBER>` in the PR body. Post PR link comment on the issue.
 7. CI Verification: Verify automated checks pass via `gh pr checks <PR_NUMBER>`.
@@ -105,7 +114,7 @@ You MUST strictly follow the protocol defined in `.agents/skills/story-feedback-
 When complete, message the Orchestrator with:
 - PR URL and Commit SHA
 - Issue closure confirmation
-- Monorepo verification evidence
+- Monorepo verification evidence (including `pnpm run verify:local` summary)
 - Any unblocked next steps or deferred scope
 - Any blockers encountered that prevent completion
 ```
@@ -115,6 +124,7 @@ When complete, message the Orchestrator with:
 ## 4. Stage 3: Reactive Fleet Supervision Protocol
 
 After launching worker subagents:
+
 1. **DO NOT POLL**: Do not run loops or query task statuses repeatedly.
 2. **Stop Calling Tools**: End your turn. The messaging system will automatically wake you up when a subagent sends a status update or completes.
 3. **Handling Intermediate Messages**:
@@ -125,20 +135,24 @@ After launching worker subagents:
 
 ## 5. Stage 4: Chief Judge Adversarial Audit Protocol
 
-When a worker reports completion, the Orchestrator MUST NOT take its word at face value. The Orchestrator conducts an **Adversarial Audit** across 5 criteria before accepting the deliverable:
+When a worker reports completion, the Orchestrator MUST NOT take its word at face value. The Orchestrator conducts an **Adversarial Audit** across 6 criteria before accepting the deliverable:
 
 ```markdown
 ### Chief Judge Audit Checklist
+
 - [ ] 1. **Issue State**: Is Issue #<N> closed on GitHub (`gh issue view <N> --json state`)? Does it have `status:completed`?
 - [ ] 2. **Audit Trail**: Were progress comments posted on the issue? Does the final comment include a full breakdown of deliverables, modified files, verification evidence, and the PR URL?
 - [ ] 3. **PR & Linking**: Is the PR open/merged on GitHub? Does the PR description include `Fixes #<N>`? Did CI checks pass (`gh pr checks <PR_NUMBER>`)?
 - [ ] 4. **Worktree Hygiene**: Did the worker clean up after itself? Run `wt list` — verify that `feature/story-X-Y` is NOT lingering in the active worktree list.
-- [ ] 5. **Monorepo Integrity**: Run `pnpm run check` at repository root to ensure zero cross-workspace TypeScript errors.
+- [ ] 5. **Monorepo Integrity**: Run `pnpm run check && pnpm run test:unit` at repository root to ensure zero cross-workspace TypeScript errors or test regressions.
+- [ ] 6. **Local Runtime Verification**: Did the worker provide evidence of passing `pnpm run verify:local` (container health, live service probes, and tests)? Reject any deliverables that only rely on compilation without runtime validation.
 ```
 
 ### Remediation Protocol
+
 If an audit item fails:
-1. Send a message to the worker subagent specifying the exact deficiency (e.g. *"Worktree was not reaped; please run `wt switch main && wt remove --reap ...`"* or *"Completion comment missing file breakdown"*).
+
+1. Send a message to the worker subagent specifying the exact deficiency (e.g. _"Worktree was not reaped; please run `wt switch main && wt remove --reap ...`"_ or _"Completion comment missing file breakdown"_).
 2. Allow the worker to remedy the deficiency and report back.
 
 ---
@@ -158,21 +172,26 @@ Once all workers have completed and passed audit (or reported insurmountable blo
 # 🚀 Story Fleet Execution Report
 
 ### 📦 Completed Stories
-| Story | PR | Commit | Issue | Status |
-|---|---|---|---|---|
+
+| Story                | PR                             | Commit    | Issue                         | Status               |
+| -------------------- | ------------------------------ | --------- | ----------------------------- | -------------------- |
 | **Story X.Y: Title** | [#100](https://github.com/...) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
 
 ### 🔍 Chief Judge Audit Findings
+
 - **PR & Issue Linking**: All PRs explicitly linked via `Fixes #...` and validated.
 - **CI Status**: All PR checks green.
 - **Worktree Hygiene**: All feature worktrees cleanly reaped and removed (`wt list` clean).
 - **Monorepo Integrity**: `pnpm run check` passing cleanly across all workspaces.
 
 ### ⚠️ Blocked Items & Impairments (if any)
+
 - **Story A.B (#N)**: Blocked by <Reason / Missing Credentials>. Recommended next action: <Action>.
 
 ### 🔮 Unblocked Next Stories
+
 The completion of this fleet unblocks the following candidates for the next fleet run:
+
 1. **Story C.D (#M)**: Title
 2. **Story E.F (#K)**: Title
 ```
@@ -182,6 +201,7 @@ The completion of this fleet unblocks the following candidates for the next flee
 ## 7. Invoking This Skill
 
 To trigger an autonomous run, the user can simply say:
-- *"Orchestrate the next batch of stories"*
-- *"Run story-orchestrator"*
-- *"Find and execute the top shovel-ready stories"*
+
+- _"Orchestrate the next batch of stories"_
+- _"Run story-orchestrator"_
+- _"Find and execute the top shovel-ready stories"_

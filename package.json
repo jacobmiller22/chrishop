@@ -7,6 +7,9 @@
     "dev": "turbo run dev",
     "check": "turbo run check",
     "test": "turbo run test",
+    "test:unit": "turbo run test",
+    "test:all": "pnpm run test:unit && pnpm run verify:local",
+    "verify:local": "tsx scripts/verify-local.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -17,6 +20,7 @@
     "@types/node": "^20.11.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
+    "tsx": "^4.23.13",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0"
   },

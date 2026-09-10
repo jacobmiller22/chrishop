@@ -30,7 +30,9 @@ This skill defines the operational protocol for periodic, adversarial backlog re
 ## 2. Refinement Workflow
 
 ### Step 1: Inventory Current State
+
 Inspect GitHub issues and pull requests:
+
 ```bash
 # List open issues by epic
 gh issue list --state open --limit 100
@@ -43,7 +45,9 @@ gh pr list
 ```
 
 ### Step 2: Codebase Ground-Truth Check
+
 Compare the repository state against `docs/HIGH_LEVEL_DESIGN.md` and `docs/deps/`:
+
 - **Storefront**: `apps/web` (Next.js App Router, routes, components)
 - **CMS**: `apps/cms` (Directus schema, extensions, hooks)
 - **Packages**: `packages/types`, `packages/ui`, `packages/notifications`
@@ -52,7 +56,9 @@ Compare the repository state against `docs/HIGH_LEVEL_DESIGN.md` and `docs/deps/
 Confirm whether implemented code matches the design specifications.
 
 ### Step 3: Adversarial Challenge Checklist
+
 Review each phase against the following failure modes:
+
 - **Drop Concurrency**: Are Redis stock reservations atomic and bounded? Is there an automated unlock mechanism if checkout is abandoned?
 - **Stripe Edge Cases**: Is webhook verification raw-body? Are replay attacks (>300s) rejected? Are idempotency keys used?
 - **Schema & Migrations**: Are Directus migrations version-controlled and applied idempotently in CI/CD?
@@ -60,18 +66,23 @@ Review each phase against the following failure modes:
 - **Worktree Cleanliness**: Are all previous worktrees reaped and pruned (`wt list`)?
 
 ### Step 4: Refine & File Stories
+
 When updating or creating issues:
+
 - Use standard labels: `epic:phase-X`, `type:feature` / `type:infra` / `type:bug`, `priority:high` / `priority:medium` / `priority:low`, `size:small` / `size:medium` / `size:large`.
 - Clearly document dependencies in the issue body:
   ```markdown
   ### Dependencies
+
   - Prerequisites: #<IssueNumber>
   - Unblocks: #<IssueNumber>
   ```
 - Detail acceptance criteria with explicit file paths and verification commands (`pnpm run check`, `pnpm run build`).
 
 ### Step 5: Report Findings & Escalate Decisions
+
 Compile a structured Grooming & Refinement Report containing:
+
 1. **Audit Summary**: State of completed vs open work.
 2. **Gaps & Discrepancies**: Hidden risks or inconsistencies found.
 3. **Refined & Created Stories**: Links to updated or newly opened issues.
@@ -84,6 +95,7 @@ Compile a structured Grooming & Refinement Report containing:
 ChrisShop provides an automated host-level background daemon using macOS `launchd` to execute this refinement protocol every 12 hours (at 02:00 and 14:00 EDT/EST).
 
 ### Management Commands
+
 ```bash
 # Install and register the LaunchAgent with macOS launchd
 ./infra/launchd/install.sh install
@@ -102,8 +114,8 @@ ChrisShop provides an automated host-level background daemon using macOS `launch
 ```
 
 ### Components
+
 - `infra/launchd/com.chrishop.backlog-refinement.plist`: LaunchAgent definition configured with `StartCalendarInterval` for 02:00 and 14:00 daily.
 - `infra/launchd/refinement-runner.sh`: Executable bash runner that loads environment, runs health checks, and invokes the Python auditor.
 - `infra/launchd/refinement_audit.py`: Zero-dependency Python auditor cross-referencing issues, code on disk, and automated AI critique routed through the Antigravity CLI (`agy`) with zero API key configuration.
 - `infra/launchd/install.sh`: Turnkey management script for operator installation and monitoring.
-

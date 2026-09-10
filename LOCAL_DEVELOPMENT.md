@@ -296,9 +296,57 @@ To run specific applications in isolation:
 
 ## 8. Code Quality, Testing, and Verification
 
-The monorepo enforces strict TypeScript, linting, and formatting rules across all packages.
+The monorepo enforces strict TypeScript, linting, unit testing, dependency probes, and formatting rules across all packages.
 
-### 8.1 Typechecking & Linting
+### 8.1 Turnkey Local Pre-PR Verification Pipeline (`verify:local`)
+
+Before opening a Pull Request or handing off a story for SME Judge review, run the automated verification pipeline:
+
+```bash
+pnpm run verify:local
+```
+
+This turnkey script (`scripts/verify-local.ts`) executes all 6 pre-PR quality gates:
+
+1. **Docker Container Stack Health**: Verifies `postgres`, `redis`, `minio`, and `cms` are running and healthy (`docker compose ps`).
+2. **Typecheck & Linting**: Runs `pnpm run check` (TypeScript `tsc --noEmit`).
+3. **Unit Test Suites**: Runs `pnpm run test:unit` (`turbo run test`) across `@chrishop/types`, `@chrishop/notifications`, `@chrishop/ui`, `@chrishop/web`, and `@chrishop/cms`.
+4. **Live Dependency & Service Probes**: Probes Directus `/server/health` & `/items/products`, MinIO `/minio/health/live`, and Redis `PING`.
+5. **Production Build Validation**: Compiles all Next.js applications and CMS extensions (`pnpm run build`).
+6. **Worktree & Git Hygiene**: Verifies clean git working directory with zero leaked temporary files or logs.
+
+#### CLI Flags
+
+- `pnpm run verify:local --skip-build`: Skips Next.js production compilation for faster iteration during active coding.
+- `pnpm run verify:local --skip-containers`: Skips live Docker container probes when running in environments without Docker.
+
+### 8.2 Monorepo Automated Test Suites
+
+The codebase separates test tiers:
+
+- **Unit Tests across Workspaces (`pnpm run test` or `pnpm run test:unit`)**:
+
+  ```bash
+  pnpm run test:unit
+  ```
+
+  Runs `node:test` suites across all workspaces concurrently via Turborepo:
+  - `@chrishop/types`: Price fallback resolution rules.
+  - `@chrishop/notifications`: Discord webhook formatting, severity color mapping, composite notification fanout.
+  - `@chrishop/ui`: Button, Badge, Card, and Header component rendering.
+  - `@chrishop/web`: Directus client config, domain mappers, catalog queries, and `/api/health` route handler.
+  - `@chrishop/cms`: Snapshot synchronization, relations, Ansible VPS IaC, and bash script sanity checks.
+
+- **Targeted Workspace Test Execution**:
+  ```bash
+  pnpm --filter web test
+  pnpm --filter cms test
+  pnpm --filter notifications test
+  pnpm --filter ui test
+  pnpm --filter types test
+  ```
+
+### 8.3 Typechecking & Linting
 
 Run TypeScript typecheck across all applications and shared packages:
 
@@ -308,15 +356,7 @@ pnpm run check
 pnpm run lint
 ```
 
-### 8.2 Automated Test Suites
-
-Run unit and integration tests across the monorepo:
-
-```bash
-pnpm run test
-```
-
-### 8.3 Production Build Validation
+### 8.4 Production Build Validation
 
 Validate production compilation for all applications and packages:
 
@@ -324,7 +364,7 @@ Validate production compilation for all applications and packages:
 pnpm run build
 ```
 
-### 8.4 Code Formatting
+### 8.5 Code Formatting
 
 Verify and apply Prettier formatting across the codebase:
 
@@ -451,6 +491,7 @@ The service is managed using the turnkey script in `infra/launchd/install.sh`:
 The refinement daemon automatically detects and pipes prompts through the **Antigravity CLI (`agy`)** at `~/.local/bin/agy`. This routes queries directly through your active Gemini / Antigravity subscription—**requiring zero external API keys or configuration**.
 
 To customize or fallback to direct API keys (optional):
+
 - The daemon falls back to `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in `~/.chrishop/refinement.env` if `agy` is not detected.
 
 Generated reports are persisted to `~/.chrishop/logs/refinement-report-latest.md`.
