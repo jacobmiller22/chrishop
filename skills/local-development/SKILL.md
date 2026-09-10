@@ -8,7 +8,9 @@ description: Detailed instructions and workflows for running, debugging, seeding
 This skill provides step-by-step instructions for AI agents and developers working with the **ChrisShop** monorepo local development environment.
 
 ## When to Use This Skill
+
 Use this skill whenever you need to:
+
 - Boot up or stop local containerized infrastructure (PostgreSQL, Directus CMS, Redis OSS, MinIO).
 - Apply Directus schema migrations or export schema snapshots.
 - Seed local database catalog data with test categories, products, variations, and admin RBAC rules.
@@ -31,6 +33,7 @@ Use this skill whenever you need to:
 ## Step-by-Step Operations
 
 ### 1. Boot Local Container Infrastructure
+
 Run the following command to start PostgreSQL, Directus, Redis, and MinIO:
 
 ```bash
@@ -38,11 +41,13 @@ docker compose -f infra/docker/docker-compose.dev.yml up -d
 ```
 
 To verify container health:
+
 ```bash
 docker compose -f infra/docker/docker-compose.dev.yml ps
 ```
 
 ### 2. Apply Directus Schema & Seed Catalog Data
+
 Apply the version-controlled Directus snapshot and populate initial seed data:
 
 ```bash
@@ -54,6 +59,7 @@ pnpm seed
 ```
 
 ### 3. Run Monorepo Development Servers
+
 Start all applications concurrently via Turborepo:
 
 ```bash
@@ -61,10 +67,12 @@ pnpm run dev
 ```
 
 Or target specific packages:
+
 - Storefront (`apps/web`): `pnpm --filter web dev`
 - Directus Extensions (`apps/cms`): `pnpm --filter cms dev`
 
 ### 4. Test Stripe Webhooks Locally
+
 1. Start Stripe CLI listener forwarding to the local Next.js API route:
    ```bash
    stripe listen --forward-to localhost:3000/api/webhooks/stripe
@@ -75,7 +83,9 @@ Or target specific packages:
    ```
 
 ### 5. Cleaning Up Local Environment
+
 To stop containers and wipe volume data for a clean test state:
+
 ```bash
 docker compose -f infra/docker/docker-compose.dev.yml down -v
 ```

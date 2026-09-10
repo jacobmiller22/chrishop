@@ -18,7 +18,7 @@ jobs:
           script: |
             const eventName = context.eventName;
             const action = context.payload.action;
-            
+
             if (eventName === 'pull_request') {
               const pr = context.payload.pull_request;
               if (action === 'opened' || action === 'ready_for_review') {

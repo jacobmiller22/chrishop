@@ -26,10 +26,15 @@ This document specifies the integration, tooling, management scripts, and operat
 ## 3. Storage Configuration & CORS Rules
 
 CORS configuration for direct media uploads and CDN asset delivery:
+
 ```json
 [
   {
-    "AllowedOrigins": ["https://chrishop.com", "https://admin.chrishop.com", "http://localhost:3000"],
+    "AllowedOrigins": [
+      "https://chrishop.com",
+      "https://admin.chrishop.com",
+      "http://localhost:3000"
+    ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["*"],
     "MaxAgeSeconds": 3600

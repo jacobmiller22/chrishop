@@ -50,7 +50,8 @@ export interface ShippingAddress {
   country: string;
 }
 
-export type OrderStatus = 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+export type OrderStatus =
+  'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
 export type ShippingStatus = 'unfulfilled' | 'shipped' | 'delivered';
 
 export interface Order {

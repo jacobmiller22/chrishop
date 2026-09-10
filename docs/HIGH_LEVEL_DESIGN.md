@@ -123,12 +123,14 @@ chrishop/
    - `processed_at` (DateTime)
 
 ### 3.2 Hybrid Data Layer
+
 - **Content & Catalog Reads**: Storefront pages (`apps/web`) call `@directus/sdk` REST endpoints.
 - **Stripe Webhooks & Checkout Transactions**: Direct PostgreSQL transactions executed via `Kysely` query builder inside Next.js API routes (`/api/webhooks/stripe`) to guarantee atomic stock decrements under raw SQL locks.
 - **Price Override Fallback Formula**:
   $$\text{Effective Price} = \text{COALESCE}(\text{product\_variations.price\_override}, \text{products.base\_price})$$
 
 ### 3.3 Chris's Content Management & Revision History
+
 - **Revision & Activity Logs**: Built-in Directus Revisions enabled for `products` and `product_variations`. Chris can view complete edit history and revert accidental edits with 1-click.
 - **Drop Launch & Scheduled Publishing Mechanics**:
   - Chris sets `status = coming_soon` and populates `release_date`.
@@ -136,6 +138,7 @@ chrishop/
   - Background Directus Cron hook automatically updates `status = active` when `release_date <= NOW()`, enabling Checkout button instantly.
 
 ### 3.4 Directus Extension Development Workflow
+
 - Custom extensions (webhooks, automated cron triggers, fulfillment hooks) reside in `apps/cms/extensions/`.
 - Built using `@directus/extensions-sdk` (`pnpm --filter cms build`). Output JavaScript bundles copy to `/directus/extensions/` inside the CMS Docker image.
 
@@ -144,15 +147,17 @@ chrishop/
 ## 4. Payment SaaS, Inventory Reservation & Order Processing
 
 ### 4.1 Stripe Dynamic Checkout (Zero-Sync Architecture)
+
 - Checkout sessions use **Stripe `line_items.price_data`** dynamically generated at checkout creation from validated Directus DB records.
 - Stripe Tax enabled via `automatic_tax: { enabled: true }`.
 - Shipping options (flat rate / free shipping threshold) configured directly in Checkout session options.
 
 ### 4.2 Local Pre-Checkout Inventory Reservation (Redis OSS)
+
 1. **Checkout Initiation**: User clicks "Checkout" → `/api/checkout` API executes a **Redis Stock Reservation**:
    - System checks `available_stock = DB.stock_quantity - Active_Redis_Reservations`.
    - If `available_stock >= requested_qty`, a Redis key is created: `reservation:{variation_id}:{session_id}` with a **10-minute TTL** matching Stripe Checkout session duration.
-   - If stock is insufficient, user receives immediate UI notice: *"Item is currently reserved in another checkout session."*
+   - If stock is insufficient, user receives immediate UI notice: _"Item is currently reserved in another checkout session."_
 2. **Payment Completion (Stripe Webhook)**:
    - Upon receiving `checkout.session.completed`, atomic SQL (via Kysely) updates inventory:
      ```sql
@@ -169,7 +174,8 @@ chrishop/
 ## 5. Shipping & Order Fulfillment Workflow
 
 ### Phase 1 Fulfillment Story (Current Focus):
-1. **Order Alert**: Directus webhook calls `packages/notifications` engine -> triggers **Discord Bot alert** in `#store-orders`: *"🛒 New Order #1042 - Midnight Gold Edition (Qty: 1) - $150.00"*.
+
+1. **Order Alert**: Directus webhook calls `packages/notifications` engine -> triggers **Discord Bot alert** in `#store-orders`: _"🛒 New Order #1042 - Midnight Gold Edition (Qty: 1) - $150.00"_.
 2. **Order Review**: Chris logs into Directus Admin (`admin.chrishop.com`) with TOTP 2FA, navigates to `orders` collection filtered by `shipping_status = 'unfulfilled'`.
 3. **Packing & Dispatch**: Chris prepares and packs the physical product drop item.
 4. **Fulfillment Update**: Chris selects Carrier (e.g., `USPS`), inputs `tracking_number`, updates `shipping_status` to `shipped`, and clicks **Save**.
@@ -177,6 +183,7 @@ chrishop/
 6. **Automated Customer Notification**: Directus hook dispatches branded HTML email via **Resend API** to `customer_email` with tracking link.
 
 ### Phase 2 Architecture Readiness (Future Shippo Upgrade):
+
 - `orders` collection schema includes placeholder fields (`shippo_transaction_id`, `label_url`, `rate_id`).
 - When order volume scales past 50 orders/month, a custom Directus action extension can be enabled to fetch shipping rates and purchase 1-click labels directly within Directus Admin.
 
@@ -201,7 +208,9 @@ export interface NotificationProvider {
 // Development & Operational Implementation
 export class DiscordNotificationProvider implements NotificationProvider {
   constructor(private webhookUrl: string) {}
-  async send(payload: NotificationPayload): Promise<void> { /* Rich Discord Embed formatting */ }
+  async send(payload: NotificationPayload): Promise<void> {
+    /* Rich Discord Embed formatting */
+  }
 }
 ```
 
@@ -226,6 +235,7 @@ export class DiscordNotificationProvider implements NotificationProvider {
 ## 8. Multi-Environment Architecture & Ephemeral PR Previews
 
 ### 8.1 Environment Matrix
+
 1. **Local Dev**: `docker-compose.dev.yml` (Postgres, Directus, MinIO/R2 local emulator, Redis OSS).
 2. **Ephemeral PR Previews (`pr-X.preview.chrishop.com`)**: Automated spin-up for open PRs with Caddy Cloudflare DNS-01 ACME wildcard SSL certificates.
 3. **Permanent Staging (`staging.chrishop.com`)**: Staging stack (`docker-compose.staging.yml`) on **Hetzner CX22**.
@@ -253,6 +263,7 @@ export class DiscordNotificationProvider implements NotificationProvider {
 ---
 
 ### 8.3 Two-Phase Expand-and-Contract Schema Snapshot Workflow
+
 - **Phase A (Additive)**: Schema migrations in release $N$ are strictly **additive** (adding new columns, tables, or non-null fields with default values). `directus schema apply` runs Phase A non-destructively while old containers run.
 - **Application Deployment**: New app containers deploy and pass health checks.
 - **Phase B (Contract - Cleanup)**: Destructive changes (dropping obsolete columns/tables) are deferred to a separate **Contract Release $N+1$** after old app containers have been fully drained.
@@ -260,7 +271,9 @@ export class DiscordNotificationProvider implements NotificationProvider {
 ---
 
 ### 8.4 Container Health Check Specifications
+
 Health checks run every 5 seconds during rolling container deployments:
+
 1. **Storefront (`web`) Health Endpoint (`/api/health`)**: Checks HTTP 200, Postgres query (`SELECT 1`), Redis ping (`redis.ping()`), and Directus REST API (`GET /server/ping`).
 2. **CMS (`cms`) Health Endpoint (`/server/health`)**: Verifies Postgres DB pool status and Cloudflare R2 storage access.
 3. **Deployment Gate**: Traffic is swapped upstream only after **3 consecutive healthy HTTP 200 checks**.
@@ -268,18 +281,19 @@ Health checks run every 5 seconds during rolling container deployments:
 ---
 
 ### 8.5 Backup, Disaster Recovery & Off-Site Archiving
+
 Daily cron `infra/scripts/backup.sh` runs `pg_dump` compressed & AES-256 encrypted using `age`, uploading immediately to secondary off-site S3/R2 bucket (`chrishop-backups`). Retention: 7 daily, 4 weekly, 12 monthly. **RPO < 24 hrs; RTO < 15 mins**.
 
 ---
 
 ## 9. Observability & Alerting Matrix
 
-| Component | Metric / Condition | Threshold | Alert Channel | Action Required |
-| :--- | :--- | :--- | :--- | :--- |
-| **Uptime** | HTTP GET `/api/health` | Status != 200 for 60s | Better Stack & Discord `#dev-alerts` | Immediate container restart |
-| **App Errors** | JS Exceptions | > 5 errors/min | Sentry & Discord `#dev-alerts` | Inspect Sentry trace |
-| **New Purchases** | Order Creation | Event `checkout.session.completed` | Discord `#store-orders` | Fulfillment review |
-| **Drop Inventory** | Variation Stock Quantity | `stock_quantity <= 3` | Discord `#store-orders` | Prepare "Sold Out" banner |
+| Component          | Metric / Condition       | Threshold                          | Alert Channel                        | Action Required             |
+| :----------------- | :----------------------- | :--------------------------------- | :----------------------------------- | :-------------------------- |
+| **Uptime**         | HTTP GET `/api/health`   | Status != 200 for 60s              | Better Stack & Discord `#dev-alerts` | Immediate container restart |
+| **App Errors**     | JS Exceptions            | > 5 errors/min                     | Sentry & Discord `#dev-alerts`       | Inspect Sentry trace        |
+| **New Purchases**  | Order Creation           | Event `checkout.session.completed` | Discord `#store-orders`              | Fulfillment review          |
+| **Drop Inventory** | Variation Stock Quantity | `stock_quantity <= 3`              | Discord `#store-orders`              | Prepare "Sold Out" banner   |
 
 ---
 
@@ -304,6 +318,7 @@ Daily cron `infra/scripts/backup.sh` runs `pg_dump` compressed & AES-256 encrypt
 ## Verification & Test Plan
 
 ### Automated Verification
+
 1. **Workspace Type & Lint Check**: `pnpm run check` across all monorepo packages (`web`, `cms`, `ui`, `notifications`).
 2. **Ephemeral PR Preview Deploy & Teardown**: Open test PR -> verify GitHub Actions provisions `pr-X.preview.chrishop.com` with Caddy Cloudflare DNS-01 wildcard TLS -> close PR -> verify automatic teardown.
 3. **Pre-Checkout Reservation Test**: Unit tests verifying Redis reservation keys expire after 10 minutes and prevent double-booking.
@@ -311,7 +326,7 @@ Daily cron `infra/scripts/backup.sh` runs `pg_dump` compressed & AES-256 encrypt
 5. **Health Check Endpoint Integration Test**: Integration test verifying `/api/health` returns 200 when DB/Redis/CMS are healthy.
 
 ### Manual Verification
+
 1. **Discord Bot Alert Verification**: Trigger test checkout -> verify rich Discord embed arrives in `#store-orders` channel.
 2. **Directus 2FA Verification**: Attempt login to Directus Admin -> verify TOTP prompt appears and blocks authentication without valid code.
 3. **Phase 1 Fulfillment User Story**: Create test order -> Chris inputs tracking number in Directus -> verify tracking URL is generated and Resend email is delivered.
-

@@ -1,5 +1,5 @@
 {
-  "extends": "@chrishop/config/tsconfig.node.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "declaration": true
   },

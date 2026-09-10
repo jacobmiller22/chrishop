@@ -8,7 +8,9 @@ description: Guidance and instructions for AI agents acting as Technical Project
 This skill informs AI agents how to manage project delivery, update GitHub Project v2 boards, track story dependencies, and execute TPM responsibilities for the **ChrisShop** monorepo.
 
 ## When to Use This Skill
+
 Use this skill whenever you need to:
+
 - Set up or verify GitHub Milestones, Labels, Project v2 boards, and custom fields.
 - Create, update, or close issues corresponding to delivery stories across Phase 1 to Phase 6+.
 - Move cards through board columns (`Backlog` ➔ `In Progress` ➔ `In Review` ➔ `Done`).
@@ -20,6 +22,7 @@ Use this skill whenever you need to:
 ## 1. Project Delivery Phases (Epics)
 
 The project is structured into 6 delivery phases:
+
 - **Phase 1: Prototyping & Local Dev** (`epic:phase-1`) - Monorepo skeleton, `docker-compose.dev.yml`, `LOCAL_DEVELOPMENT.md`, baseline CI, branch protection, local Creator review.
 - **Phase 2: Infrastructure & Dependencies** (`epic:phase-2`) - `DEP_*.md` manifests, dependency control scripts, integration tests, ephemeral preview environments (`pr-X.preview.chrishop.com`), Creator preview review.
 - **Phase 3: End-to-End Integration** (`epic:phase-3`) - Storefront + CMS integration, Redis stock lock engine, Stripe dynamic checkout, Discord alerts, Resend tracking email, full drop dry run with Chris.
@@ -32,16 +35,21 @@ The project is structured into 6 delivery phases:
 ## 2. Issue Lifecycle & Board Management
 
 ### 2.1 Issue Start Protocol (`In Progress`)
+
 Before commencing work on any story:
+
 1. Label the issue: `gh issue edit <IssueNumber> --add-label "status:in-progress"`
 2. Post an initial comment on the issue (`gh issue comment <IssueNumber> --body "🚀 **Status**: In Progress..."`).
 3. Move card on GitHub Project v2 board to `In Progress`.
 
 ### 2.2 Periodic Progress Audit Comments
+
 During execution, post comments at key milestones (local check passed, SME Judge intent review, deferred scope creation, PR opened).
 
 ### 2.3 Creating Pull Requests & Linking Issues
+
 When work on a story is ready for review/merge:
+
 1. Ensure changes are committed on a feature branch (`feature/story-X-Y-<short-name>`) or isolated worktree branch (`subagent-Story-X-Y-...`).
 2. Create a GitHub Pull Request using `gh pr create`:
    ```bash
@@ -61,6 +69,7 @@ When work on a story is ready for review/merge:
 ## 3. Dependency Verification Rules
 
 Before marking a story `In Progress`:
+
 1. Check `task.md` or `implementation_plan.md` to identify prerequisite dependencies.
 2. Verify that all dependent stories are marked `[x]` complete or `Closed` on GitHub.
 3. If a dependency is blocked, report the blocker to the team/user before proceeding.
@@ -70,6 +79,7 @@ Before marking a story `In Progress`:
 ## 4. Creator Review Touchpoint Protocol
 
 For stories marked with `creator-review` (Story 1.8, Story 2.7, Story 3.7):
+
 1. Ensure the demo artifact or preview environment URL is active.
 2. Document walkthrough instructions and test accounts.
 3. Obtain explicit sign-off or feedback from Chris before closing the review story.
@@ -79,6 +89,7 @@ For stories marked with `creator-review` (Story 1.8, Story 2.7, Story 3.7):
 ## 5. Task Completion Protocol (Mandatory Workflow)
 
 Upon finishing implementation for any task or story (refer to [story-feedback-loop](file:///Users/jacobmiller22/projects/chrishop/skills/story-feedback-loop/SKILL.md) for full execution details):
+
 1. **Execute Monorepo Verification**:
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
    - Run build validation (`npx pnpm run build`) where applicable.
@@ -96,4 +107,3 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
 5. **Update Progress & Unblocked Dependencies**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a concise report to the user with completed work, PR/commit references, and unblocked next steps.
-
