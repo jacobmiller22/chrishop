@@ -446,15 +446,12 @@ The service is managed using the turnkey script in `infra/launchd/install.sh`:
 ./infra/launchd/install.sh uninstall
 ```
 
-### 11.2 Enabling AI Reasoning (Claude Opus / Gemini)
+### 11.2 Zero-Config AI Reasoning via Antigravity CLI (`agy`)
 
-The daemon automatically runs deterministic backlog integrity audits. To enable deep adversarial LLM analysis (identifying missing failure modes, suggesting new stories, spotting race conditions), configure your API key in `~/.chrishop/refinement.env`:
+The refinement daemon automatically detects and pipes prompts through the **Antigravity CLI (`agy`)** at `~/.local/bin/agy`. This routes queries directly through your active Gemini / Antigravity subscription—**requiring zero external API keys or configuration**.
 
-```bash
-# Example ~/.chrishop/refinement.env
-ANTHROPIC_API_KEY=sk-ant-api03-...
-REFINEMENT_MODEL=claude-3-opus-20240229
-```
+To customize or fallback to direct API keys (optional):
+- The daemon falls back to `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in `~/.chrishop/refinement.env` if `agy` is not detected.
 
 Generated reports are persisted to `~/.chrishop/logs/refinement-report-latest.md`.
 

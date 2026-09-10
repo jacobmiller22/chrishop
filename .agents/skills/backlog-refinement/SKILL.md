@@ -104,6 +104,6 @@ ChrisShop provides an automated host-level background daemon using macOS `launch
 ### Components
 - `infra/launchd/com.chrishop.backlog-refinement.plist`: LaunchAgent definition configured with `StartCalendarInterval` for 02:00 and 14:00 daily.
 - `infra/launchd/refinement-runner.sh`: Executable bash runner that loads environment, runs health checks, and invokes the Python auditor.
-- `infra/launchd/refinement_audit.py`: Zero-dependency Python auditor cross-referencing issues, code on disk, and optional LLM critique (Claude Opus / Gemini).
+- `infra/launchd/refinement_audit.py`: Zero-dependency Python auditor cross-referencing issues, code on disk, and automated AI critique routed through the Antigravity CLI (`agy`) with zero API key configuration.
 - `infra/launchd/install.sh`: Turnkey management script for operator installation and monitoring.
 
