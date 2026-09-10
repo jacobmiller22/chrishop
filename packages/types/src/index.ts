@@ -19,6 +19,7 @@ export interface Product {
   description?: string;
   base_price: number;
   status: ProductStatus;
+  hero_image?: string;
   featured_image?: string;
   gallery?: string[];
   category_id?: string;
@@ -29,13 +30,14 @@ export type VariationStatus = 'coming_soon' | 'active' | 'sold_out' | 'archived'
 export interface ProductVariation {
   id: string;
   product_id: string;
+  name?: string;
   variation_name: string;
   sku: string;
-  price_override?: number;
+  price_override?: number | null;
   is_limited_edition: boolean;
-  total_edition_count?: number;
+  total_edition_count?: number | null;
   stock_quantity: number;
-  release_date?: string;
+  release_date?: string | null;
   status: VariationStatus;
 }
 
@@ -59,8 +61,10 @@ export interface Order {
   stripe_checkout_session_id?: string;
   stripe_payment_intent_id?: string;
   customer_email: string;
+  customer_name?: string;
   shipping_name: string;
   shipping_address: ShippingAddress;
+  status?: string;
   order_status: OrderStatus;
   shipping_status: ShippingStatus;
   carrier?: string;
@@ -69,17 +73,19 @@ export interface Order {
   shippo_transaction_id?: string;
   label_url?: string;
   rate_id?: string;
-  amount_subtotal: number;
-  amount_tax: number;
-  amount_shipping: number;
+  amount_subtotal?: number;
+  amount_tax?: number;
+  amount_shipping?: number;
   amount_total: number;
-  created_at: string;
+  total_amount?: number;
+  created_at?: string;
 }
 
 export interface OrderItem {
   id: string;
   order_id: string;
-  variation_id: string;
+  variation_id?: string;
+  product_variation_id?: string;
   unit_price: number;
   quantity: number;
 }
@@ -88,4 +94,25 @@ export interface ProcessedStripeEvent {
   id: string;
   event_type: string;
   processed_at: string;
+}
+
+/**
+ * Price Fallback Resolution Rule (HIGH_LEVEL_DESIGN Section 3.2):
+ * effective_price = COALESCE(variation.price_override, product.base_price)
+ *
+ * Resolves the unit price by falling back to the parent product's base_price
+ * if the variation does not specify an explicit price_override.
+ *
+ * @param product - Base product object containing base_price
+ * @param variation - Product variation object optionally containing price_override
+ * @returns The effective numeric purchase price
+ */
+export function getEffectivePrice(
+  product: Pick<Product, 'base_price'>,
+  variation?: Pick<ProductVariation, 'price_override'> | null
+): number {
+  if (variation?.price_override != null && !Number.isNaN(Number(variation.price_override))) {
+    return Number(variation.price_override);
+  }
+  return Number(product.base_price);
 }
