@@ -115,6 +115,19 @@ function verifyArchitectureIntegrity() {
     throw new Error('wrangler.toml must configure R2 bucket binding BUCKET');
   }
 
+  // Verify Production and Staging Custom Domain Routes
+  if (
+    !wranglerContent.includes('pattern = "chrishop.com/*"') ||
+    !wranglerContent.includes('pattern = "www.chrishop.com/*"')
+  ) {
+    throw new Error(
+      'wrangler.toml must configure production routes for chrishop.com/* and www.chrishop.com/*'
+    );
+  }
+  if (!wranglerContent.includes('pattern = "staging.chrishop.com/*"')) {
+    throw new Error('wrangler.toml must configure staging route for staging.chrishop.com/*');
+  }
+
   // 2. HLD zero-legacy references check
   const hld = fs.readFileSync('docs/HIGH_LEVEL_DESIGN.md', 'utf-8');
   const legacyRegex = /\b(hetzner|vps|docker|caddy|directus|redis|postgres|stripe)\b/i;

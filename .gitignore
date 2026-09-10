@@ -36,3 +36,7 @@ pnpm-debug.log*
 
 # Testing / Coverage
 coverage
+
+# Cloudflare & Wrangler
+.wrangler/
+worker-configuration.d.ts
