@@ -19,7 +19,9 @@ export interface Product {
   description?: string;
   base_price: number;
   status: ProductStatus;
+  /** High-resolution hero/banner image URL or Directus file ID */
   hero_image?: string;
+  /** Primary catalog thumbnail / card preview image URL or Directus file ID */
   featured_image?: string;
   gallery?: string[];
   category_id?: string;
@@ -64,7 +66,6 @@ export interface Order {
   customer_name?: string;
   shipping_name: string;
   shipping_address: ShippingAddress;
-  status?: string;
   order_status: OrderStatus;
   shipping_status: ShippingStatus;
   carrier?: string;
@@ -77,14 +78,14 @@ export interface Order {
   amount_tax?: number;
   amount_shipping?: number;
   amount_total: number;
-  total_amount?: number;
   created_at?: string;
 }
 
 export interface OrderItem {
   id: string;
   order_id: string;
-  variation_id?: string;
+  variation_id: string;
+  /** Directus database foreign key alias */
   product_variation_id?: string;
   unit_price: number;
   quantity: number;

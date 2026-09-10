@@ -340,6 +340,9 @@ pnpm run format
 
 ## 9. Testing Stripe Webhooks Locally
 
+> [!NOTE]
+> **Planned for Phase 3 (Story 3.3)**: The `/api/webhooks/stripe` endpoint and dynamic Stripe Checkout integration are scheduled for implementation in Phase 3. The instructions below document the target development workflow once those routes are established.
+
 ChrisShop uses Stripe Checkout for order payments and stock reconciliation. To test webhook event handling locally:
 
 ### 9.1 Log In to Stripe CLI
