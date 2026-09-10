@@ -18,6 +18,11 @@
     "format:check": "prettier --check .",
     "seed": "pnpm --filter cms seed"
   },
+  "pnpm": {
+    "overrides": {
+      "sharp": "0.33.5"
+    }
+  },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
     "@cloudflare/workers-types": "^4.20240923.0",
