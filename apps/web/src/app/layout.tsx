@@ -1,3 +1,4 @@
+import type React from 'react';
 import type { Metadata } from 'next';
 import { Header } from '@chrishop/ui';
 import './globals.css';
@@ -16,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Chris's Shop. All rights reserved.
+          © {new Date().getFullYear()} Chris&apos;s Shop. All rights reserved.
         </footer>
       </body>
     </html>

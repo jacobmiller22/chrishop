@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check": "tsc --noEmit",
+    "seed": "node scripts/seed.js",
     "schema:export": "node scripts/schema-export.js",
     "schema:apply": "node scripts/schema-apply.js"
   },

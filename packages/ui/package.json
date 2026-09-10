@@ -9,7 +9,9 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@chrishop/types": "workspace:*"
+    "@chrishop/types": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-slot": "^1.1.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",
