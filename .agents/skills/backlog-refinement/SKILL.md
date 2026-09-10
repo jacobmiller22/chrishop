@@ -76,3 +76,34 @@ Compile a structured Grooming & Refinement Report containing:
 2. **Gaps & Discrepancies**: Hidden risks or inconsistencies found.
 3. **Refined & Created Stories**: Links to updated or newly opened issues.
 4. **Decisions Needing Input**: Any low-confidence questions presented with specific options.
+
+---
+
+## 3. Autonomous Scheduled Daemon (`launchd`)
+
+ChrisShop provides an automated host-level background daemon using macOS `launchd` to execute this refinement protocol every 12 hours (at 02:00 and 14:00 EDT/EST).
+
+### Management Commands
+```bash
+# Install and register the LaunchAgent with macOS launchd
+./infra/launchd/install.sh install
+
+# Check daemon registration and status
+./infra/launchd/install.sh status
+
+# Trigger an immediate refinement execution
+./infra/launchd/install.sh run-now
+
+# View latest logs
+./infra/launchd/install.sh logs
+
+# Unload and remove daemon
+./infra/launchd/install.sh uninstall
+```
+
+### Components
+- `infra/launchd/com.chrishop.backlog-refinement.plist`: LaunchAgent definition configured with `StartCalendarInterval` for 02:00 and 14:00 daily.
+- `infra/launchd/refinement-runner.sh`: Executable bash runner that loads environment, runs health checks, and invokes the Python auditor.
+- `infra/launchd/refinement_audit.py`: Zero-dependency Python auditor cross-referencing issues, code on disk, and optional LLM critique (Claude Opus / Gemini).
+- `infra/launchd/install.sh`: Turnkey management script for operator installation and monitoring.
+
