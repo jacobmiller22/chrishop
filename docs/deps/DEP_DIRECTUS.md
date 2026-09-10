@@ -137,7 +137,7 @@ Directus functionality is extended via `@directus/extensions-sdk`:
 | `apps/cms/scripts/schema-export.ts`   | `[EXISTS]`  | Phase 1         | TypeScript script exporting schema snapshot              |
 | `apps/cms/scripts/seed.ts`            | `[EXISTS]`  | Phase 1         | Database seeding script with demo catalog                |
 | `apps/cms/extensions/`                | `[EXISTS]`  | Phase 1         | Custom extensions directory for hooks and endpoints      |
-| `infra/scripts/deps/directus_sync.sh` | `[PLANNED]` | Story 2.13      | Shell automation script for CI/CD schema synchronization |
+| `infra/scripts/deps/directus_sync.sh` | `[EXISTS]`  | Story 2.2       | Shell automation script for CI/CD schema synchronization |
 
 ---
 
