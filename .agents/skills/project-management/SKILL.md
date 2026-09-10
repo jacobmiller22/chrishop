@@ -111,4 +111,3 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Switch back to the main monorepo worktree: `wt switch main`.
    - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.
    - Prune git metadata: `git worktree prune` and confirm with `wt list`.
-

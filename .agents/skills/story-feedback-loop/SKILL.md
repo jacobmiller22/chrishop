@@ -95,9 +95,11 @@ To maintain total transparency for team members and stakeholders, **periodic com
 Post comments upon reaching the following milestones:
 
 ### 3.1 Milestone 1: Start-of-Work & Initial Technical Strategy
-*(Posted during Story Initialization as shown in Section 2).*
+
+_(Posted during Story Initialization as shown in Section 2)._
 
 ### 3.2 Milestone 2: Major Component / Implementation Milestone
+
 When significant structural progress is made (e.g., scaffolding completed, data models defined, core business logic implemented, or third-party service integrated):
 
 ```bash
@@ -110,6 +112,7 @@ gh issue comment <IssueNumber> --body "🔨 **Progress Update**: Core Implementa
 ```
 
 ### 3.3 Milestone 3: Local Verification & Test Suite Execution
+
 When local monorepo validation (typecheck, linting, build, and unit/integration tests) passes:
 
 ```bash
@@ -122,6 +125,7 @@ gh issue comment <IssueNumber> --body "🔄 **Progress Update**: Local Verificat
 ```
 
 ### 3.4 Milestone 4: SME Judge Review Findings & Scope Decisions
+
 When the SME Reviewing Judge inspects the work against the high-level design and architectural intent:
 
 ```bash
@@ -136,6 +140,7 @@ gh issue comment <IssueNumber> --body "🔍 **SME Judge Review Findings**
 ```
 
 ### 3.5 Milestone 5: Deferred Scope & Follow-Up Stories Created
+
 If the Judge identifies scope expansion that should be tracked separately:
 
 ```bash
@@ -147,6 +152,7 @@ The following deferred scope items have been formalized as new user stories:
 ```
 
 ### 3.6 Milestone 6: Pull Request Opened & Linked
+
 When the Pull Request is created on GitHub:
 
 ```bash
@@ -159,6 +165,7 @@ gh issue comment <IssueNumber> --body "🔀 **Pull Request Opened**
 ```
 
 ### 3.7 Milestone 7: CI Verification Passed / Troubleshooting Updates
+
 If CI fails or succeeds:
 
 ```bash
@@ -234,12 +241,15 @@ To guarantee end-to-end traceability, Pull Requests and GitHub Issues **MUST** b
 ### 5.1 PR Requirements (Linking PR to Issue)
 
 1. **Closing Keyword in PR Body**: The Pull Request description MUST include standard GitHub closing syntax on its own line:
+
    ```markdown
    Fixes #<IssueNumber>
    ```
-   *(Acceptable keywords: `Fixes #<IssueNumber>`, `Closes #<IssueNumber>`, `Resolves #<IssueNumber>`)*. This links the PR in GitHub's native Development sidebar and automates board transitions.
+
+   _(Acceptable keywords: `Fixes #<IssueNumber>`, `Closes #<IssueNumber>`, `Resolves #<IssueNumber>`)_. This links the PR in GitHub's native Development sidebar and automates board transitions.
 
 2. **PR Title Format**: Include the story number and issue reference:
+
    ```text
    feat(<scope>): Story <X>.<Y> <Short Title> (#<IssueNumber>)
    ```
@@ -273,6 +283,7 @@ Every story created in an isolated worktree via `wt` must be cleanly torn down u
 ### 6.1 Pre-Cleanup Verification
 
 Before removing a worktree, confirm that:
+
 1. All changes are committed: `git status` reports clean working directory.
 2. The branch has been pushed to the remote: `git push -u origin <branch>`.
 3. The Pull Request is open and visible on GitHub.
@@ -281,23 +292,28 @@ Before removing a worktree, confirm that:
 
 1. **Switch Context Back to the Main Monorepo Root**:
    Never attempt to delete a worktree while your active shell or command execution context is inside it.
+
    ```bash
    wt switch main
    ```
 
 2. **Reap Processes and Remove Worktree via `wt remove`**:
    Use `wt remove` with the `--reap` flag. This terminates any lingering background processes (dev servers, watchers, Docker background helpers) running inside the worktree directory before removing it:
+
    ```bash
    wt remove --reap feature/story-<X>-<Y>-<shortname>
    ```
+
    > [!NOTE]
    > If you wish to retain the local branch ref after removing the worktree directory, pass `--no-delete-branch`:
+   >
    > ```bash
    > wt remove --reap --no-delete-branch feature/story-<X>-<Y>-<shortname>
    > ```
 
 3. **Handling Dirty or Aborted Worktrees**:
    If a worktree needs to be removed after an aborted spike or dirty state:
+
    ```bash
    wt remove --force -D feature/story-<X>-<Y>-<shortname>
    ```
@@ -361,11 +377,13 @@ Once the comprehensive comment has been posted:
 
 1. **Update Issue Labels**:
    Remove the `status:in-progress` label and add `status:completed`:
+
    ```bash
    gh issue edit <IssueNumber> --remove-label "status:in-progress" --add-label "status:completed"
    ```
 
 2. **Close the GitHub Issue**:
+
    ```bash
    gh issue close <IssueNumber> --reason "completed"
    ```
@@ -407,4 +425,3 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Reaped running processes and removed worktree: `wt remove --reap feature/story-<X>-<Y>-<shortname>`.
   - [ ] Pruned git worktree metadata: `git worktree prune`.
   - [ ] Verified clean state via `wt list`.
-
