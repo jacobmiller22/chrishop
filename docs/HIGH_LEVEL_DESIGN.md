@@ -215,6 +215,7 @@ export class DiscordNotificationProvider implements NotificationProvider {
 - **Webhook Security**: Raw-body HMAC-SHA256 signature verification on all incoming Shopify webhooks to prevent spoofing or tampering.
 - **PCI DSS Compliance**: Level 1 PCI DSS compliance fully offloaded to Shopify Checkout. The custom storefront application never touches, transmits, or stores cardholder data.
 - **Edge Protection**: Cloudflare global WAF rules, automated DDoS mitigation, Turnstile bot challenges, and TLS 1.3 termination at edge nodes worldwide.
+- **Automated Dependency Security Scanning**: Continuous dependency vulnerability auditing enforcing `pnpm audit --audit-level=high` in CI/CD pipelines (`deploy.yml` and `ci.yml`), GitHub Actions Dependency Review on pull requests, and automated Dependabot scanning across all monorepo packages, blocking builds and pull requests on high or critical severity vulnerabilities.
 
 ---
 
