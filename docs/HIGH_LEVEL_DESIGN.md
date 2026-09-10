@@ -57,17 +57,17 @@ chrishop/
 
 To combine boutique creative presentation with robust, PCI-compliant transactional reliability, the platform maintains a strict separation of concerns:
 
-| Data Domain | Authority | Rationale |
-| :--- | :--- | :--- |
-| **Product Title & Story** | Payload CMS (synced to Shopify) | Rich editorial content originates in the CMS |
-| **Rich Description & Statements** | Payload CMS | Extended artist statements and provenance data |
-| **High-Res Artwork & Gallery** | Payload CMS (Cloudflare R2) | Uncompressed imagery stored with zero egress fees |
-| **Limited Edition Metadata** | Payload CMS | Edition run numbers, certificate info, drop countdowns |
-| **Price & SKU** | Shopify | Authoritative pricing for cart and payment execution |
-| **Real-time Inventory Levels** | Shopify | Native stock decrement and oversell prevention |
-| **Cart & Checkout Sessions** | Shopify | Managed, PCI-compliant checkout workflow |
-| **Orders & Fulfillment** | Shopify | Centralized merchant dashboard for shipping and labels |
-| **Tax & Shipping Rules** | Shopify | Configured once in Shopify Admin; calculated dynamically |
+| Data Domain                       | Authority                       | Rationale                                                |
+| :-------------------------------- | :------------------------------ | :------------------------------------------------------- |
+| **Product Title & Story**         | Payload CMS (synced to Shopify) | Rich editorial content originates in the CMS             |
+| **Rich Description & Statements** | Payload CMS                     | Extended artist statements and provenance data           |
+| **High-Res Artwork & Gallery**    | Payload CMS (Cloudflare R2)     | Uncompressed imagery stored with zero egress fees        |
+| **Limited Edition Metadata**      | Payload CMS                     | Edition run numbers, certificate info, drop countdowns   |
+| **Price & SKU**                   | Shopify                         | Authoritative pricing for cart and payment execution     |
+| **Real-time Inventory Levels**    | Shopify                         | Native stock decrement and oversell prevention           |
+| **Cart & Checkout Sessions**      | Shopify                         | Managed, PCI-compliant checkout workflow                 |
+| **Orders & Fulfillment**          | Shopify                         | Centralized merchant dashboard for shipping and labels   |
+| **Tax & Shipping Rules**          | Shopify                         | Configured once in Shopify Admin; calculated dynamically |
 
 ### 3.2 Content Schema (Cloudflare D1 via Payload CMS)
 
@@ -114,6 +114,7 @@ At checkout time, Shopify Storefront API acts as the authoritative price validat
 ### 3.4 Synchronization Bridge (Payload to Shopify Admin API)
 
 When Chris creates or modifies a product in Payload CMS:
+
 1. **Hook Execution**: Payload's `afterChange` collection hook inspects the update payload.
 2. **Shopify Admin API Call**:
    - If `shopify_product_id` is null, an automated GraphQL mutation (`productCreate`) provisions the product and variants in Shopify, storing returned GIDs into D1.
@@ -170,6 +171,7 @@ sequenceDiagram
 5. **Customer Tracking Email**: Shopify automatically transmits branded shipment confirmation and tracking updates to the customer. When desired, supplementary transactional notifications are dispatched via the **Resend API**.
 
 ### Phase 2 Scale Readiness:
+
 - Shopify seamlessly integrates with 1-click label generators (e.g., Shopify Shipping or Shippo apps), allowing Chris to print thermal shipping labels directly inside Shopify Admin without custom code maintenance.
 
 ---
@@ -232,7 +234,7 @@ flowchart LR
     PushMain[Push to main] --> Build[pnpm build:check]
     Build --> Test[pnpm test:unit]
     Test --> DeployProd[wrangler deploy --env production]
-    
+
     PushStaging[Push to staging] --> BuildStaging[pnpm build:check]
     BuildStaging --> TestStaging[pnpm test:unit]
     TestStaging --> DeployStaging[wrangler deploy --env staging]
@@ -248,12 +250,12 @@ flowchart LR
 
 ## 9. Observability & Monitoring Matrix
 
-| Component | Metric / Health Probe | Frequency / Trigger | Target Channel | Corrective Action |
-| :--- | :--- | :--- | :--- | :--- |
-| **Edge Health** | HTTP GET `/api/health` | Every 60 seconds | Better Stack & Discord `#dev-alerts` | Automated edge retry & alert |
-| **Application Errors** | Unhandled JS Exceptions | Event-driven | Sentry & Discord `#dev-alerts` | Triage error stack trace |
-| **New Purchases** | Shopify `orders/create` | Event-driven | Discord `#store-orders` | Fulfillment review |
-| **Low Stock Telemetry** | Product stock $\le 2$ units | Event-driven | Discord `#store-orders` | Prepare post-drop announcement |
+| Component               | Metric / Health Probe       | Frequency / Trigger | Target Channel                       | Corrective Action              |
+| :---------------------- | :-------------------------- | :------------------ | :----------------------------------- | :----------------------------- |
+| **Edge Health**         | HTTP GET `/api/health`      | Every 60 seconds    | Better Stack & Discord `#dev-alerts` | Automated edge retry & alert   |
+| **Application Errors**  | Unhandled JS Exceptions     | Event-driven        | Sentry & Discord `#dev-alerts`       | Triage error stack trace       |
+| **New Purchases**       | Shopify `orders/create`     | Event-driven        | Discord `#store-orders`              | Fulfillment review             |
+| **Low Stock Telemetry** | Product stock $\le 2$ units | Event-driven        | Discord `#store-orders`              | Prepare post-drop announcement |
 
 ---
 

@@ -11,6 +11,7 @@ This runbook guides operators through provisioning and configuring the complete 
 - Installed Wrangler CLI (`pnpm exec wrangler`).
 
 Authenticate locally:
+
 ```bash
 pnpm exec wrangler login
 ```
@@ -62,6 +63,7 @@ pnpm exec wrangler r2 bucket create chrishop-media-prod
 ```
 
 Apply CORS configuration to permit image requests from the storefront:
+
 ```bash
 pnpm exec wrangler r2 bucket cors set chrishop-media-prod --file infra/r2/cors-media.json
 ```

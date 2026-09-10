@@ -16,14 +16,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install Dependencies
@@ -32,8 +30,11 @@ jobs:
       - name: Monorepo Typecheck & Lint
         run: pnpm run check
 
-      - name: Run Automated Tests
-        run: pnpm run test
+      - name: Run Unit Tests
+        run: pnpm run test:unit
+
+      - name: Run Ephemeral Integration Tests
+        run: pnpm run test:integration
 
       - name: Build Monorepo Workspaces
         run: pnpm run build

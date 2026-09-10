@@ -20,13 +20,13 @@ The **ChrisShop** platform is organized as a Turborepo monorepo powered by `pnpm
 
 Unlike legacy server architectures, this stack requires **zero virtual machines or background container daemons**. Miniflare emulates SQLite D1 databases, Workers KV, and R2 storage in-process.
 
-| Service / Interface | Local Port | Access URL | Description |
-| :--- | :--- | :--- | :--- |
-| **Next.js Storefront** | `3000` | `http://localhost:3000` | Public customer storefront |
-| **Payload CMS Admin** | `3000` | `http://localhost:3000/admin` | Embedded TypeScript content management |
-| **Edge API Routes** | `3000` | `http://localhost:3000/api/*` | Health check, webhooks, cart mutations |
-| **Miniflare Local D1** | In-Process | `.wrangler/state/v3/d1` | Local SQLite-compatible database |
-| **Miniflare Local KV** | In-Process | `.wrangler/state/v3/kv` | Local ISR cache handler |
+| Service / Interface    | Local Port | Access URL                    | Description                            |
+| :--------------------- | :--------- | :---------------------------- | :------------------------------------- |
+| **Next.js Storefront** | `3000`     | `http://localhost:3000`       | Public customer storefront             |
+| **Payload CMS Admin**  | `3000`     | `http://localhost:3000/admin` | Embedded TypeScript content management |
+| **Edge API Routes**    | `3000`     | `http://localhost:3000/api/*` | Health check, webhooks, cart mutations |
+| **Miniflare Local D1** | In-Process | `.wrangler/state/v3/d1`       | Local SQLite-compatible database       |
+| **Miniflare Local KV** | In-Process | `.wrangler/state/v3/kv`       | Local ISR cache handler                |
 
 ---
 
@@ -120,6 +120,7 @@ pnpm run dev
 ```
 
 This single command:
+
 1. Spawns Turborepo to watch packages.
 2. Initializes Miniflare with local SQLite D1 bindings and KV storage.
 3. Serves the Next.js Storefront at `http://localhost:3000`.
@@ -162,7 +163,7 @@ Verify that the webhook handler logs successful verification and that the Discor
 
 ## 7. Testing & Quality Verification
 
-Run the full verification pipeline before submitting any PR:
+Run tests and the full verification pipeline before submitting any PR:
 
 ```bash
 # 1. Monorepo Typecheck & Lint
@@ -171,9 +172,15 @@ pnpm run check
 # 2. Monorepo Unit Test Suites
 pnpm run test:unit
 
-# 3. Production Build Validation
+# 3. Ephemeral Integration Tests (In-memory D1 SQLite & Shopify Client)
+pnpm run test:integration
+
+# 4. Run All Tests
+pnpm run test:all
+
+# 5. Production Build Validation
 pnpm run build
 
-# 4. Turnkey Pre-PR Verification Pipeline
+# 6. Turnkey Pre-PR Verification Pipeline (All 6 Stages)
 pnpm run verify:local
 ```

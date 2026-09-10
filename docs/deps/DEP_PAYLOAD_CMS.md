@@ -30,12 +30,7 @@ export default buildConfig({
   admin: {
     user: 'users',
   },
-  collections: [
-    Categories,
-    Products,
-    ProductVariations,
-    Media,
-  ],
+  collections: [Categories, Products, ProductVariations, Media],
   db: d1Adapter({
     binding: process.env.DB, // Bound in Cloudflare Workers environment
   }),
@@ -66,6 +61,7 @@ export default buildConfig({
 Payload CMS defines schemas as standard TypeScript collection configurations:
 
 ### 3.1 `Products` Collection
+
 - `title`: Text (required)
 - `slug`: Text (unique, required)
 - `shopify_product_id`: Text (unique index, linked Shopify GID)
@@ -78,6 +74,7 @@ Payload CMS defines schemas as standard TypeScript collection configurations:
 - `description`: RichText (Lexical)
 
 ### 3.2 `ProductVariations` Collection
+
 - `product_id`: Relationship to `Products`
 - `shopify_variant_id`: Text (unique index, linked Shopify GID)
 - `variation_name`: Text (required)

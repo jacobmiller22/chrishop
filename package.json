@@ -8,7 +8,8 @@
     "check": "turbo run check",
     "test": "turbo run test",
     "test:unit": "turbo run test",
-    "test:all": "pnpm run test:unit && pnpm run verify:local",
+    "test:integration": "tsx --test tests/integration/**/*.test.ts",
+    "test:all": "pnpm run test:unit && pnpm run test:integration",
     "verify:local": "tsx scripts/verify-local.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
@@ -17,12 +18,14 @@
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
+    "@cloudflare/workers-types": "^4.20240923.0",
     "@types/node": "^20.11.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "tsx": "^4.23.13",
     "turbo": "^2.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "wrangler": "^3.100.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {

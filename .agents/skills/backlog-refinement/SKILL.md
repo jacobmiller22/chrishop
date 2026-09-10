@@ -49,9 +49,10 @@ gh pr list
 Compare the repository state against `docs/HIGH_LEVEL_DESIGN.md` and `docs/deps/`:
 
 - **Storefront**: `apps/web` (Next.js App Router, routes, components)
-- **CMS**: `apps/cms` (Directus schema, extensions, hooks)
+- **CMS**: `apps/cms` (Payload CMS v3 collections, hooks, access control)
 - **Packages**: `packages/types`, `packages/ui`, `packages/notifications`
-- **Infrastructure**: `infra/docker`, `infra/vps`, `infra/caddy`
+- **Cloudflare Edge**: `wrangler.toml`, `migrations/`, edge routes
+- **Integration Tests**: `tests/integration/` (in-memory D1, Workers KV, Shopify client)
 
 Confirm whether implemented code matches the design specifications.
 
@@ -59,9 +60,10 @@ Confirm whether implemented code matches the design specifications.
 
 Review each phase against the following failure modes:
 
-- **Drop Concurrency**: Are Redis stock reservations atomic and bounded? Is there an automated unlock mechanism if checkout is abandoned?
-- **Stripe Edge Cases**: Is webhook verification raw-body? Are replay attacks (>300s) rejected? Are idempotency keys used?
-- **Schema & Migrations**: Are Directus migrations version-controlled and applied idempotently in CI/CD?
+- **Drop Concurrency & Checkout**: Are Shopify cart mutations atomic and redirecting properly? Are inventory stock queries indexed in D1?
+- **Shopify Webhook Security**: Is webhook signature verification raw-body HMAC-SHA256? Are stale or replay attacks rejected? Are idempotency mechanisms in place?
+- **Schema & Migrations**: Are Cloudflare D1 migrations version-controlled and applied idempotently via Wrangler?
+- **Ephemeral Test Coverage**: Are edge routes and D1 queries validated via `tests/integration/` without relying solely on compilation?
 - **Observability**: Are Sentry, Better Stack, and Discord alerts configured with actionable error context?
 - **Worktree Cleanliness**: Are all previous worktrees reaped and pruned (`wt list`)?
 
