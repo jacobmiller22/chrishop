@@ -88,7 +88,7 @@ For stories marked with `creator-review` (Story 1.8, Story 2.7, Story 3.7):
 
 ## 5. Task Completion Protocol (Mandatory Workflow)
 
-Upon finishing implementation for any task or story (refer to [story-feedback-loop](file:///Users/jacobmiller22/projects/chrishop/skills/story-feedback-loop/SKILL.md) for full execution details):
+Upon finishing implementation for any task or story (refer to [story-feedback-loop](../story-feedback-loop/SKILL.md) for full execution details):
 
 1. **Execute Monorepo Verification**:
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.

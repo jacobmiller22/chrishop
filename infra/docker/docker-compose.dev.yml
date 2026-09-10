@@ -45,6 +45,33 @@ services:
       - '9001:9001'
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ['CMD-SHELL', "bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: chrishop-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      STORAGE_S3_KEY: ${STORAGE_S3_KEY:-minioadmin}
+      STORAGE_S3_SECRET: ${STORAGE_S3_SECRET:-minioadmin}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-chrishop-media}
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set myminio http://minio:9000 $${STORAGE_S3_KEY} $${STORAGE_S3_SECRET}; do
+        echo 'Waiting for MinIO to be ready...';
+        sleep 1;
+      done;
+      /usr/bin/mc mb --ignore-existing myminio/$${STORAGE_S3_BUCKET};
+      /usr/bin/mc anonymous set public myminio/$${STORAGE_S3_BUCKET} || /usr/bin/mc anonymous set download myminio/$${STORAGE_S3_BUCKET};
+      echo 'MinIO bucket initialized successfully';
+      exit 0;
+      "
 
   cms:
     image: directus/directus:11
@@ -52,6 +79,8 @@ services:
     restart: always
     ports:
       - '8055:8055'
+    volumes:
+      - ./../../apps/cms/extensions:/directus/extensions
     environment:
       KEY: ${KEY:-chrishop-secret-key}
       SECRET: ${SECRET:-chrishop-secret-jwt}
@@ -66,18 +95,31 @@ services:
       CACHE_ENABLED: 'true'
       CACHE_STORE: redis
       CACHE_REDIS: redis://redis:6379
+      REDIS: redis://redis:6379
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8055}
       STORAGE_LOCATIONS: ${STORAGE_LOCATIONS:-s3}
       STORAGE_S3_DRIVER: ${STORAGE_S3_DRIVER:-s3}
       STORAGE_S3_KEY: ${STORAGE_S3_KEY:-minioadmin}
       STORAGE_S3_SECRET: ${STORAGE_S3_SECRET:-minioadmin}
       STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-chrishop-media}
+      STORAGE_S3_REGION: ${STORAGE_S3_REGION:-us-east-1}
       STORAGE_S3_ENDPOINT: http://minio:9000
+      STORAGE_S3_FORCE_PATH_STYLE: 'true'
       STORAGE_S3_S3_FORCE_PATH_STYLE: 'true'
+      STORAGE_CACHE_TTL: ${STORAGE_CACHE_TTL:-86400}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://127.0.0.1:8055/server/ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   pgdata:
