@@ -1,31 +1,85 @@
 # Caddyfile - ChrisShop Edge Proxy & Wildcard SSL Configuration
-
 {
-    email admin@chrishop.com
+	email admin@chrishop.com
+}
+
+(cloudflare_tls) {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+}
+
+(security_headers) {
+	header {
+		# HTTP Strict Transport Security (HSTS)
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		# Prevent MIME sniffing
+		X-Content-Type-Options "nosniff"
+		# Prevent clickjacking
+		X-Frame-Options "SAMEORIGIN"
+		# Content Security Policy
+		Content-Security-Policy "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';"
+		# Referrer policy
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Feature & permissions policy
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
 }
 
 # Production Storefront
-chrishop.com {
-    reverse_proxy web:3000
+shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+	reverse_proxy web:3000
 }
 
-# Directus Admin UI
-admin.chrishop.com {
-    reverse_proxy cms:8055
+# Directus CMS Admin UI
+admin.shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+	reverse_proxy cms:8055
 }
 
-# Staging Environment
-staging.chrishop.com {
-    reverse_proxy staging-web:3000
+# Staging Storefront
+staging.shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+	reverse_proxy staging-web:3000
 }
 
-# Ephemeral Wildcard PR Previews (*.preview.chrishop.com)
-*.preview.chrishop.com {
-    tls {
-        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-    }
-    @preview header_regexp Host ^pr-(?<pr_id>\d+)\.preview\.chrishop\.com$
-    handle @preview {
-        reverse_proxy pr-{re.preview.pr_id}-web:3000
-    }
+# Staging Directus CMS Admin UI
+admin.staging.shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+	reverse_proxy staging-cms:8055
+}
+
+# Dynamic PR Preview Storefront (pr-{id}.preview.shop.jacobmiller22.com)
+https://*.preview.shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+
+	@preview header_regexp Host ^pr-(?<pr_id>\d+)\.preview\.shop\.jacobmiller22\.com$
+	handle @preview {
+		reverse_proxy pr-{re.Host.pr_id}-web:3000
+	}
+
+	handle {
+		respond "Preview environment not found" 404
+	}
+}
+
+# Dynamic PR Preview Directus CMS Admin (admin.pr-{id}.preview.shop.jacobmiller22.com)
+https://admin.*.preview.shop.jacobmiller22.com {
+	import cloudflare_tls
+	import security_headers
+
+	@admin_preview header_regexp Host ^admin\.pr-(?<pr_id>\d+)\.preview\.shop\.jacobmiller22\.com$
+	handle @admin_preview {
+		reverse_proxy pr-{re.Host.pr_id}-cms:8055
+	}
+
+	handle {
+		respond "Preview CMS environment not found" 404
+	}
 }
