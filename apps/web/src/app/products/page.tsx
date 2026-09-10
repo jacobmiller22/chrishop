@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/directus';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 interface ProductsPageProps {
   searchParams?: Promise<{
@@ -156,7 +156,8 @@ export default async function ProductsPage(props: ProductsPageProps) {
                       {product.title}
                     </h2>
                     <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed">
-                      {product.description || 'Exclusive physical collectible hand-crafted by Chris.'}
+                      {product.description ||
+                        'Exclusive physical collectible hand-crafted by Chris.'}
                     </p>
                   </div>
 

@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { fetchProductBySlug } from '@/lib/directus';
+import { fetchProductBySlug, getProducts } from '@/lib/directus';
 import ProductDetailClient from './ProductDetailClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const products = await getProducts({ status: ['published'], limit: 100 });
+  return products.map((p) => ({ slug: p.slug }));
+}
 
 interface ProductPageProps {
   params: Promise<{
@@ -17,7 +22,7 @@ export async function generateMetadata(props: ProductPageProps): Promise<Metadat
 
   if (!product) {
     return {
-      title: 'Product Not Found | Chris\'s Shop',
+      title: "Product Not Found | Chris's Shop",
       description: 'The requested collectible product could not be found.',
     };
   }

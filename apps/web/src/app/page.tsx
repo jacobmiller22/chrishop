@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/directus';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function HomePage() {
   const products = await fetchProducts();
@@ -16,7 +16,7 @@ export default async function HomePage() {
   const flagshipVariation = featuredProduct?.variations?.[0];
   const flagshipPrice = flagshipVariation
     ? flagshipVariation.effective_price
-    : featuredProduct?.base_price ?? 0;
+    : (featuredProduct?.base_price ?? 0);
 
   const flagshipImageUrl = featuredProduct
     ? getAssetUrl(featuredProduct.featured_image || featuredProduct.hero_image)
@@ -34,12 +34,16 @@ export default async function HomePage() {
           Exclusive Art & Physical Collectibles
         </h1>
         <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-400">
-          Limited edition sculptures, archival fine art prints, and artisan apparel released in timed
-          drops. Direct from creator to collector.
+          Limited edition sculptures, archival fine art prints, and artisan apparel released in
+          timed drops. Direct from creator to collector.
         </p>
         <div className="pt-2 flex items-center justify-center gap-4">
           <Link href="/products">
-            <Button variant="primary" size="lg" className="font-semibold shadow-lg shadow-amber-500/20">
+            <Button
+              variant="primary"
+              size="lg"
+              className="font-semibold shadow-lg shadow-amber-500/20"
+            >
               Explore All Drops ({products.length})
             </Button>
           </Link>
@@ -65,7 +69,10 @@ export default async function HomePage() {
                 Featured Live Release
               </h2>
             </div>
-            <Link href="/products" className="text-sm text-amber-400 hover:text-amber-300 transition-colors">
+            <Link
+              href="/products"
+              className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+            >
               View All Catalog →
             </Link>
           </div>
@@ -107,11 +114,12 @@ export default async function HomePage() {
                     <Badge variant="success">
                       In Stock ({flagshipVariation.stock_quantity} remaining)
                     </Badge>
-                    {flagshipVariation.is_limited_edition && flagshipVariation.total_edition_count && (
-                      <Badge variant="info">
-                        Limited Edition of {flagshipVariation.total_edition_count}
-                      </Badge>
-                    )}
+                    {flagshipVariation.is_limited_edition &&
+                      flagshipVariation.total_edition_count && (
+                        <Badge variant="info">
+                          Limited Edition of {flagshipVariation.total_edition_count}
+                        </Badge>
+                      )}
                   </>
                 ) : (
                   <Badge variant="success">Published Release</Badge>
@@ -198,9 +206,7 @@ export default async function HomePage() {
                       <h4 className="font-bold text-lg text-slate-100 group-hover:text-amber-400 transition-colors line-clamp-1">
                         {item.title}
                       </h4>
-                      <p className="text-xs text-slate-400 line-clamp-2 mt-1">
-                        {item.description}
-                      </p>
+                      <p className="text-xs text-slate-400 line-clamp-2 mt-1">{item.description}</p>
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800">
