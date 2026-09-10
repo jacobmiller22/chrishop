@@ -1,0 +1,17 @@
+name: Ephemeral PR Preview Teardown
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  teardown-preview:
+    name: Destroy Ephemeral Preview Stack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Teardown Isolated PR Stack
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          echo "Tearing down preview project pr-${PR_NUM}..."
+          echo "Dropping database pr_${PR_NUM}_db..."
+          echo "Removing Caddy dynamic reverse proxy route..."
