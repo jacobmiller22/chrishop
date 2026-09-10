@@ -1,0 +1,174 @@
+---
+# ==============================================================================
+# ChrisShop Ansible Role: Common (Tasks)
+# ==============================================================================
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Update apt cache and install base OS packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# ------------------------------------------------------------------------------
+# Swap File Allocation & Tuning
+# ------------------------------------------------------------------------------
+- name: Check if swap file exists
+  ansible.builtin.stat:
+    path: "{{ common_swap_path }}"
+  register: swap_stat
+  when: common_swap_enabled
+
+- name: Allocate swap file if absent
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ common_swap_size_mb }}M {{ common_swap_path }}"
+  when: common_swap_enabled and not swap_stat.stat.exists
+
+- name: Set swap file permissions to 0600
+  ansible.builtin.file:
+    path: "{{ common_swap_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: common_swap_enabled
+
+- name: Format swap file
+  ansible.builtin.command:
+    cmd: "mkswap {{ common_swap_path }}"
+  when: common_swap_enabled and not swap_stat.stat.exists
+
+- name: Enable swap file
+  ansible.builtin.command:
+    cmd: "swapon {{ common_swap_path }}"
+  when: common_swap_enabled and not swap_stat.stat.exists
+  failed_when: false
+
+- name: Ensure swap entry in /etc/fstab
+  ansible.posix.mount:
+    path: none
+    src: "{{ common_swap_path }}"
+    fstype: swap
+    opts: sw
+    state: present
+  when: common_swap_enabled
+
+- name: Configure vm.swappiness sysctl
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-swappiness.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      vm.swappiness = {{ common_swappiness }}
+  notify: Apply sysctl
+
+# ------------------------------------------------------------------------------
+# SSH Daemon Hardening
+# ------------------------------------------------------------------------------
+- name: Ensure sshd_config.d directory exists
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy SSH daemon hardening configuration
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      # Managed by Ansible - ChrisShop VPS Hardening
+      Port {{ common_ssh_port }}
+      PermitRootLogin no
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+      X11Forwarding no
+      MaxAuthTries {{ common_ssh_max_auth_tries }}
+      AllowUsers {{ common_ssh_allow_users }}
+  notify: Restart ssh
+
+# ------------------------------------------------------------------------------
+# Fail2ban Brute-Force Defense
+# ------------------------------------------------------------------------------
+- name: Ensure fail2ban jail directory exists
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy Fail2ban SSH jail configuration
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/sshd.local
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible - ChrisShop Fail2ban SSH Defense
+      [sshd]
+      enabled = true
+      port = {{ common_ssh_port }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = {{ common_fail2ban_maxretry }}
+      bantime = {{ common_fail2ban_bantime }}
+      findtime = {{ common_fail2ban_findtime }}
+  notify: Restart fail2ban
+
+- name: Ensure fail2ban service is enabled and started
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# Unattended Upgrades Configuration
+# ------------------------------------------------------------------------------
+- name: Configure periodic unattended upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Ensure unattended-upgrades service is enabled
+  ansible.builtin.service:
+    name: unattended-upgrades
+    state: started
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# UFW Firewall Configuration per DEP_HETZNER.md Port Matrix
+# ------------------------------------------------------------------------------
+- name: Set UFW default incoming policy to deny
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+- name: Set UFW default outgoing policy to allow
+  community.general.ufw:
+    direction: outgoing
+    default: allow
+
+- name: Configure UFW firewall rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ common_ufw_rules }}"
+
+- name: Enable UFW firewall service
+  community.general.ufw:
+    state: enabled

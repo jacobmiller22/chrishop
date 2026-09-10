@@ -197,9 +197,9 @@ The following table clarifies the canonical path and implementation status for a
 
 | Path                                      | Status      | Scheduled Story | Description                                                   |
 | ----------------------------------------- | ----------- | --------------- | ------------------------------------------------------------- |
-| `infra/vps/cloud-init.yaml`               | `[PLANNED]` | Story 2.10      | Base OS bootstrap and hardening specification                 |
-| `infra/vps/playbook.yml`                  | `[PLANNED]` | Story 2.10      | Ansible automation for system packages and docker maintenance |
-| `infra/vps/inventory.ini`                 | `[PLANNED]` | Story 2.10      | Server IP inventory for Staging & Production VPS hosts        |
+| `infra/vps/cloud-init.yaml`               | `[EXISTS]`  | Story 2.10      | Base OS bootstrap and hardening specification                 |
+| `infra/vps/playbook.yml`                  | `[EXISTS]`  | Story 2.10      | Ansible automation for system packages and docker maintenance |
+| `infra/vps/inventory.ini`                 | `[EXISTS]`  | Story 2.10      | Server IP inventory for Staging & Production VPS hosts        |
 | `infra/scripts/deps/hetzner_provision.sh` | `[PLANNED]` | Story 2.12      | CLI wrapper script for automated VPS creation                 |
 | `infra/docker/docker-compose.prod.yml`    | `[PLANNED]` | Story 2.8       | Production multi-container composition                        |
 | `infra/docker/docker-compose.staging.yml` | `[PLANNED]` | Story 2.9       | Staging multi-container composition                           |

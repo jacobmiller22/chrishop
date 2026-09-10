@@ -1,0 +1,32 @@
+---
+# ==============================================================================
+# ChrisShop Ansible Role: Docker (Defaults)
+# Docker Engine installation, daemon presets, and private network setup
+# ==============================================================================
+
+docker_keyring_dir: "/etc/apt/keyrings"
+docker_keyring_path: "/etc/apt/keyrings/docker.asc"
+docker_gpg_url: "https://download.docker.com/linux/ubuntu/gpg"
+
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Docker daemon log rotation and performance options per DEP_HETZNER.md
+docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  live-restore: true
+  userland-proxy: false
+
+# Users to add to the docker group
+docker_users:
+  - "deploy"
+
+# Isolated private bridge network for internal services per DEP_HETZNER.md Section 1
+docker_network_name: "chrishop-internal"

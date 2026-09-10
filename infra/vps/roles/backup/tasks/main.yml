@@ -1,0 +1,53 @@
+---
+# ==============================================================================
+# ChrisShop Ansible Role: Backup (Tasks)
+# ==============================================================================
+
+- name: Ensure ChrisShop scripts directory exists
+  ansible.builtin.file:
+    path: "{{ backup_scripts_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy database backup script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/backup.sh"
+    dest: "{{ backup_scripts_dir }}/backup.sh"
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy disaster recovery restore script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/restore.sh"
+    dest: "{{ backup_scripts_dir }}/restore.sh"
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy backup environment file
+  ansible.builtin.template:
+    src: backup.env.j2
+    dest: "{{ backup_env_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Deploy backup logrotate configuration
+  ansible.builtin.template:
+    src: logrotate-backup.j2
+    dest: /etc/logrotate.d/chrishop-backup
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure cron job for automated daily offsite backups
+  ansible.builtin.cron:
+    name: "ChrisShop Automated Offsite Database Backup"
+    minute: "{{ backup_cron_minute }}"
+    hour: "{{ backup_cron_hour }}"
+    user: root
+    job: "/usr/bin/env bash -c 'set -a && source {{ backup_env_file }} && set +a && {{ backup_scripts_dir }}/backup.sh >> {{ backup_log_file }} 2>&1'"
+    state: present
