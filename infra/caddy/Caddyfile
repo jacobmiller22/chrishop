@@ -1,0 +1,31 @@
+# Caddyfile - ChrisShop Edge Proxy & Wildcard SSL Configuration
+
+{
+    email admin@chrishop.com
+}
+
+# Production Storefront
+chrishop.com {
+    reverse_proxy web:3000
+}
+
+# Directus Admin UI
+admin.chrishop.com {
+    reverse_proxy cms:8055
+}
+
+# Staging Environment
+staging.chrishop.com {
+    reverse_proxy staging-web:3000
+}
+
+# Ephemeral Wildcard PR Previews (*.preview.chrishop.com)
+*.preview.chrishop.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    @preview header_regexp Host ^pr-(?<pr_id>\d+)\.preview\.chrishop\.com$
+    handle @preview {
+        reverse_proxy pr-{re.preview.pr_id}-web:3000
+    }
+}

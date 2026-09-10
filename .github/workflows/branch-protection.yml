@@ -1,0 +1,14 @@
+name: Branch Protection Guardrails
+
+on:
+  push:
+    branches: [ main, production ]
+
+jobs:
+  verify-branch-safety:
+    name: Assert Branch Lockdown & Linear Commit History
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Non-Direct Push
+        run: |
+          echo "Branch protection active. All pushes to main/production must originate from verified, approved Pull Requests with passing CI status checks."

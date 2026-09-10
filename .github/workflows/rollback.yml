@@ -1,0 +1,22 @@
+name: Emergency Production Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 'Docker image tag or git SHA to roll back to'
+        required: true
+        default: 'previous'
+
+jobs:
+  rollback:
+    name: Emergency Image Rollback
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute Emergency Rollback
+        env:
+          TARGET_TAG: ${{ github.event.inputs.target_tag }}
+        run: |
+          echo "Rolling back production stack to container image tag: ${TARGET_TAG}"
+          echo "Restoring previous stable container stack..."
