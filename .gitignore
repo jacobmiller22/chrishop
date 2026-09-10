@@ -6,6 +6,8 @@ node_modules
 .next
 apps/web/.next/
 apps/web/out/
+.open-next
+apps/web/.open-next/
 dist
 build
 out
