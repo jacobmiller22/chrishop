@@ -67,3 +67,24 @@ For stories marked with `creator-review` (Story 1.8, Story 2.7, Story 3.7):
 1. Ensure the demo artifact or preview environment URL is active.
 2. Document walkthrough instructions and test accounts.
 3. Obtain explicit sign-off or feedback from Chris before closing the review story.
+
+---
+
+## 5. Task Completion Protocol (Mandatory Workflow)
+
+Upon finishing implementation for any task or story:
+1. **Execute Monorepo Verification**:
+   - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
+   - Run build validation (`npx pnpm run build`) where applicable.
+2. **Merge Worktree / Feature Branch**:
+   - Merge the feature branch into `main` with clear, standard commit messages.
+3. **Update & Close GitHub Issue**:
+   - Post a detailed comment on the corresponding GitHub Issue (`gh issue comment <id> --body "..."`) containing:
+     - **Completion Status & Story Title**
+     - **Branch & Commit Hash References** (feature commit SHA & merge commit SHA).
+     - **Thorough Technical Summary of Deliverables** (created/modified files, interfaces, packages, endpoints, and verification output).
+   - Close the GitHub Issue via `gh issue close <id>`.
+4. **Update Progress & Unblocked Dependencies**:
+   - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
+   - Present a concise report to the user with completed work, commit references, and unblocked next steps.
+
