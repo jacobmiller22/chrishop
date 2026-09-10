@@ -6,13 +6,17 @@
     "dev": "turbo run dev",
     "check": "turbo run check",
     "test": "turbo run test",
+    "lint": "turbo run check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "seed": "pnpm --filter cms seed"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
+    "eslint": "^8.57.0",
     "prettier": "^3.2.5",
-    "eslint": "^8.57.0"
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
