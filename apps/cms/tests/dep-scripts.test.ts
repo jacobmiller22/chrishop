@@ -7,7 +7,7 @@ import { execSync } from 'node:child_process';
 describe('Dependency Control Automation Scripts (Story 2.2)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
   const scriptsDir = path.join(repoRoot, 'infra/scripts/deps');
-  const hetznerScript = path.join(scriptsDir, 'hetzner_provision.sh');
+  const hetznerScript = path.join(repoRoot, 'infra/archive/scripts/hetzner_provision.sh');
   const directusScript = path.join(scriptsDir, 'directus_sync.sh');
   const r2Script = path.join(scriptsDir, 'r2_create_buckets.sh');
   const corsConfigFile = path.join(repoRoot, 'infra/r2/cors-media.json');

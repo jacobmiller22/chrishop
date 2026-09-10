@@ -1,26 +1,70 @@
-name: Production Deployment
+name: Cloudflare Workers CI/CD Deployment
 
 on:
   push:
-    branches: [production]
+    branches:
+      - main
+      - staging
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target deployment environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  deploy-production:
-    name: Deploy Zero-Downtime Rolling Update
+  validate-and-deploy:
+    name: Validate & Deploy to Cloudflare Workers
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy to Hetzner VPS via SSH
-        env:
-          VPS_HOST: ${{ secrets.PRODUCTION_VPS_IP }}
-          VPS_USER: deploy
-          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck & Lint
+        run: pnpm run check
+
+      - name: Run Unit Test Suite
+        run: pnpm run test:unit
+
+      - name: Build Application
+        run: pnpm run build
+
+      - name: Determine Target Environment
+        id: env
         run: |
-          echo "Connecting to Hetzner VPS host..."
-          echo "Executing Phase A additive schema migrations..."
-          echo "Starting rolling deployment with /api/health health check gate..."
-          echo "Deploy successful."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "target=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "target=production" >> $GITHUB_OUTPUT
+          else
+            echo "target=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env ${{ steps.env.outputs.target }}

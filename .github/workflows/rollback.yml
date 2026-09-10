@@ -1,22 +1,46 @@
-name: Emergency Production Rollback
+name: Cloudflare Workers Emergency Rollback
 
 on:
   workflow_dispatch:
     inputs:
-      target_tag:
-        description: 'Docker image tag or git SHA to roll back to'
+      deployment_id:
+        description: "Cloudflare Workers deployment ID to rollback to (or leave blank for previous)"
+        required: false
+        default: ""
+      environment:
+        description: "Environment to rollback"
         required: true
-        default: 'previous'
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
 
 jobs:
   rollback:
-    name: Emergency Image Rollback
+    name: Execute Instant Workers Rollback
     runs-on: ubuntu-latest
 
     steps:
-      - name: Execute Emergency Rollback
-        env:
-          TARGET_TAG: ${{ github.event.inputs.target_tag }}
-        run: |
-          echo "Rolling back production stack to container image tag: ${TARGET_TAG}"
-          echo "Restoring previous stable container stack..."
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rollback Deployment
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: rollback ${{ github.event.inputs.deployment_id }} --env ${{ github.event.inputs.environment }}

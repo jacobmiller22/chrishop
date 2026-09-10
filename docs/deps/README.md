@@ -6,19 +6,29 @@ Each specification defines connection parameters, authentication, security contr
 
 ---
 
-## Dependency Matrix & Specification Index
+## Active Dependency Matrix
 
-| Dependency                | Specification                                  | Core Role & Architecture                                                                         | Key Interfaces & Protocols              |
-| ------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| **Hetzner Cloud**         | [`DEP_HETZNER.md`](DEP_HETZNER.md)             | Host VPS (CX22 staging, CPX21 production), OS hardening, cloud-init, UFW firewall                | `hcloud` CLI, Ansible, Cloud-Init       |
-| **Directus CMS 11**       | [`DEP_DIRECTUS.md`](DEP_DIRECTUS.md)           | Headless content management, schema snapshots, order fulfillment console                         | `@directus/sdk`, S3 Driver, Redis Cache |
-| **Stripe Payments**       | [`DEP_STRIPE.md`](DEP_STRIPE.md)               | Dynamic Checkout sessions (`price_data`), SAQ-A PCI compliance, raw HMAC webhooks, idempotency   | Stripe Node.js SDK, Stripe CLI          |
-| **Cloudflare R2**         | [`DEP_CLOUDFLARE_R2.md`](DEP_CLOUDFLARE_R2.md) | S3-compatible zero-egress object storage (`chrishop-media`, `chrishop-backups`), CORS, lifecycle | `@aws-sdk/client-s3`, Wrangler CLI      |
-| **Redis 7 OSS**           | [`DEP_REDIS.md`](DEP_REDIS.md)                 | 10-minute pre-checkout stock reservations, atomic Lua scripts, AOF persistence                   | `ioredis`, `redis-cli`                  |
-| **Resend Email API**      | [`DEP_RESEND.md`](DEP_RESEND.md)               | Transactional email delivery for order receipts and carrier shipment tracking                    | Resend Node.js SDK, DKIM/SPF            |
-| **Discord Notifications** | [`DEP_DISCORD.md`](DEP_DISCORD.md)             | Real-time ops alerts (`#store-orders`, `#dev-alerts`), rich embeds, rate limiting                | Discord Webhooks, REST API              |
-| **Caddy Web Server**      | [`DEP_CADDY.md`](DEP_CADDY.md)                 | Edge reverse proxy, automatic Let's Encrypt / ZeroSSL, Cloudflare DNS-01 wildcard TLS            | `xcaddy`, Caddyfile                     |
-| **Cloudflare**            | [`DEP_CLOUDFLARE.md`](DEP_CLOUDFLARE.md)       | Authoritative DNS (`shop.jacobmiller22.com`), Full (Strict) SSL, Edge WAF, ACME token            | Cloudflare API v4, Dashboard            |
+| Dependency | Specification | Core Role & Architecture | Key Interfaces & Protocols |
+| :--- | :--- | :--- | :--- |
+| **Cloudflare Platform** | [`DEP_CLOUDFLARE.md`](DEP_CLOUDFLARE.md) | Edge runtime (Workers), WAF, global CDN, DNS, Turnstile anti-bot | `@opennextjs/cloudflare`, Wrangler CLI |
+| **Cloudflare D1** | [`DEP_CLOUDFLARE_D1.md`](DEP_CLOUDFLARE_D1.md) | Serverless relational SQLite database for Payload CMS content | `@payloadcms/db-d1-sqlite`, Wrangler D1 |
+| **Cloudflare R2** | [`DEP_CLOUDFLARE_R2.md`](DEP_CLOUDFLARE_R2.md) | Zero-egress S3-compatible asset storage for artwork and media | `@aws-sdk/client-s3`, Wrangler R2 |
+| **Payload CMS v3** | [`DEP_PAYLOAD_CMS.md`](DEP_PAYLOAD_CMS.md) | Embedded Next.js App Router CMS for editorial content and drops | Payload Local API, TypeScript schemas |
+| **Shopify Headless** | [`DEP_SHOPIFY.md`](DEP_SHOPIFY.md) | Headless cart, checkout, payments, inventory, and order fulfillment | `@shopify/storefront-api-client`, GraphQL |
+| **Resend Email API** | [`DEP_RESEND.md`](DEP_RESEND.md) | Transactional email delivery for order confirmations and tracking | Resend Node.js SDK, DKIM/SPF |
+| **Discord Notifications** | [`DEP_DISCORD.md`](DEP_DISCORD.md) | Real-time ops alerts (`#store-orders`, `#dev-alerts`), rich embeds | Discord Webhooks, REST API |
+
+---
+
+## Archived Specifications (`docs/deps/archive/`)
+
+The following legacy infrastructure specifications have been superseded as part of Story 0.2 (Architecture Migration to Cloudflare-Native & Shopify Headless):
+
+- [`archive/DEP_STRIPE.md`](archive/DEP_STRIPE.md) — Replaced by [`DEP_SHOPIFY.md`](DEP_SHOPIFY.md).
+- [`archive/DEP_HETZNER.md`](archive/DEP_HETZNER.md) — Replaced by Cloudflare Workers.
+- [`archive/DEP_DIRECTUS.md`](archive/DEP_DIRECTUS.md) — Replaced by [`DEP_PAYLOAD_CMS.md`](DEP_PAYLOAD_CMS.md).
+- [`archive/DEP_REDIS.md`](archive/DEP_REDIS.md) — Replaced by Shopify native inventory & Workers KV.
+- [`archive/DEP_CADDY.md`](archive/DEP_CADDY.md) — Replaced by Cloudflare native TLS and routing.
 
 ---
 

@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 
 describe('VPS Infrastructure-as-Code Integrity (Story 2.10)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
-  const infraVpsDir = path.join(repoRoot, 'infra/vps');
+  const infraVpsDir = path.join(repoRoot, 'infra/archive/vps');
 
   it('should have infra/vps/cloud-init.yaml with required bootstrap directives', () => {
     const cloudInitPath = path.join(infraVpsDir, 'cloud-init.yaml');

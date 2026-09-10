@@ -9,7 +9,7 @@ describe('Directus Extension SDK & Build Pipeline', () => {
   const cmsRoot = path.resolve(__dirname, '..');
   const extensionsDir = path.join(cmsRoot, 'extensions');
   const helloWorldDir = path.join(extensionsDir, 'hello-world');
-  const composePath = path.join(repoRoot, 'infra/docker/docker-compose.dev.yml');
+  const composePath = path.join(repoRoot, 'infra/archive/docker/docker-compose.dev.yml');
 
   it('should discover extension directories containing package.json', () => {
     const dirs = getExtensionDirs();
