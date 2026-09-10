@@ -107,3 +107,8 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
 5. **Update Progress & Unblocked Dependencies**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a concise report to the user with completed work, PR/commit references, and unblocked next steps.
+6. **Worktree Teardown & Process Reaping**:
+   - Switch back to the main monorepo worktree: `wt switch main`.
+   - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.
+   - Prune git metadata: `git worktree prune` and confirm with `wt list`.
+
