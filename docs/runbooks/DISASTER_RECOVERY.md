@@ -14,6 +14,7 @@ This runbook documents step-by-step procedures for recovering the **ChrisShop** 
 ## 2. Emergency Recovery Steps
 
 ### Step 1: Provision Replacement VPS Host
+
 If the original Hetzner VPS host is unreachable or destroyed, provision a new Hetzner CPX21 server:
 
 ```bash
@@ -22,6 +23,7 @@ hcloud server create --name chrishop-prod-recovery --type cpx21 --image ubuntu-2
 ```
 
 ### Step 2: Run Ansible OS Hardening & Docker Stack Setup
+
 Apply host OS hardening and initialize container directories:
 
 ```bash
@@ -29,6 +31,7 @@ ansible-playbook -i infra/vps/inventory.ini infra/vps/playbook.yml
 ```
 
 ### Step 3: Fetch Master Age Decryption Key
+
 Retrieve the master `age` decryption key from GitHub Encrypted Secrets or offsite password manager:
 
 ```bash
@@ -38,6 +41,7 @@ chmod 600 /etc/age/chrishop_backup.key
 ```
 
 ### Step 4: Run Restore Script
+
 List available backups in offsite R2 archive and execute system restoration:
 
 ```bash
@@ -49,6 +53,7 @@ aws --endpoint-url https://... s3 ls s3://chrishop-backups/database/
 ```
 
 ### Step 5: Start Container Stack & Verify Health Check
+
 Start production containers and verify `/api/health`:
 
 ```bash

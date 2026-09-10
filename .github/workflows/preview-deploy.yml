@@ -32,13 +32,13 @@ jobs:
             const prNumber = context.payload.pull_request.number;
             const previewUrl = process.env.PREVIEW_URL;
             const body = `🚀 **Ephemeral PR Preview Deployed!**\n\nPreview Environment: [${previewUrl}](${previewUrl})\nDirectus Admin UI: [${previewUrl}/admin](${previewUrl}/admin)\n\n*This environment will automatically tear down when the PR is closed.*`;
-            
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
             });
-            
+
             const botComment = comments.find(c => c.body.includes('Ephemeral PR Preview Deployed!'));
             if (botComment) {
               await github.rest.issues.updateComment({

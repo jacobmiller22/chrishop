@@ -53,7 +53,9 @@ export class DiscordNotificationProvider implements NotificationProvider {
       });
 
       if (!response.ok) {
-        console.error(`[DiscordNotificationProvider] Failed to dispatch alert: ${response.statusText}`);
+        console.error(
+          `[DiscordNotificationProvider] Failed to dispatch alert: ${response.statusText}`
+        );
       }
     } catch (err) {
       console.error('[DiscordNotificationProvider] Error sending notification:', err);
@@ -79,7 +81,9 @@ export class DiscordNotificationProvider implements NotificationProvider {
  */
 export class ConsoleNotificationProvider implements NotificationProvider {
   async send(payload: NotificationPayload): Promise<void> {
-    console.log(`[Notification:${payload.severity || 'info'}] ${payload.title} - ${payload.message}`);
+    console.log(
+      `[Notification:${payload.severity || 'info'}] ${payload.title} - ${payload.message}`
+    );
     if (payload.fields) {
       console.log('  Fields:', payload.fields);
     }
@@ -102,11 +106,15 @@ export class CompositeNotificationProvider implements NotificationProvider {
 
   async notifyOrderCreated(order: Order): Promise<void> {
     await Promise.all(
-      this.providers.map((p) => (p.notifyOrderCreated ? p.notifyOrderCreated(order) : p.send({
-        title: `New Order #${order.id}`,
-        message: `Order total: $${order.amount_total}`,
-        severity: 'success'
-      })))
+      this.providers.map((p) =>
+        p.notifyOrderCreated
+          ? p.notifyOrderCreated(order)
+          : p.send({
+              title: `New Order #${order.id}`,
+              message: `Order total: $${order.amount_total}`,
+              severity: 'success',
+            })
+      )
     );
   }
 }

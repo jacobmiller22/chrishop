@@ -32,7 +32,8 @@ export default function HomePage() {
           Exclusive Art & Physical Collectibles
         </h1>
         <p className="max-w-2xl mx-auto text-lg text-slate-400">
-          Limited edition sculptures and prints released in timed drops. Direct from creator to collector.
+          Limited edition sculptures and prints released in timed drops. Direct from creator to
+          collector.
         </p>
       </section>
 

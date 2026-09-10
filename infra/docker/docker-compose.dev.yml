@@ -10,11 +10,11 @@ services:
       POSTGRES_USER: chrishop
       POSTGRES_PASSWORD: chrishop_dev_secret
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chrishop -d chrishop_dev"]
+      test: ['CMD-SHELL', 'pg_isready -U chrishop -d chrishop_dev']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,11 +25,11 @@ services:
     restart: always
     command: redis-server --appendonly yes --appendfsync everysec
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,8 +43,8 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - '9000:9000'
+      - '9001:9001'
     volumes:
       - miniodata:/data
 
@@ -53,7 +53,7 @@ services:
     container_name: chrishop-cms
     restart: always
     ports:
-      - "8055:8055"
+      - '8055:8055'
     environment:
       KEY: chrishop-secret-key
       SECRET: chrishop-secret-jwt
