@@ -108,6 +108,7 @@ services:
       STORAGE_S3_FORCE_PATH_STYLE: 'true'
       STORAGE_S3_S3_FORCE_PATH_STYLE: 'true'
       STORAGE_CACHE_TTL: ${STORAGE_CACHE_TTL:-86400}
+      EXTENSIONS_AUTO_RELOAD: 'true'
     depends_on:
       postgres:
         condition: service_healthy
