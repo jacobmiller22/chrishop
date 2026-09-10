@@ -1,5 +1,5 @@
 {
   "extends": "@chrishop/config/tsconfig.node.json",
-  "include": ["**/*.ts", "**/*.js"],
+  "include": ["src/**/*", "scripts/**/*", "**/*.ts"],
   "exclude": ["node_modules"]
 }
