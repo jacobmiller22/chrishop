@@ -7,7 +7,7 @@
     "dev": "turbo run dev",
     "check": "turbo run check",
     "test": "turbo run test",
-    "test:unit": "turbo run test",
+    "test:unit": "turbo run test && tsx --test tests/integration/dependency-control.test.ts",
     "test:integration": "tsx --test tests/integration/**/*.test.ts tests/spike/**/*.test.ts",
     "test:spike": "tsx --test tests/spike/**/*.test.ts",
     "test:all": "pnpm run test:unit && pnpm run test:integration",
