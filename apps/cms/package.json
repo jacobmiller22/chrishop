@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check": "tsc --noEmit",
-    "test": "tsx --test 'tests/**/*.test.ts'",
+    "test": "tsx --test",
     "seed": "tsx scripts/seed.ts",
     "schema:export": "tsx scripts/schema-export.ts",
     "schema:apply": "tsx scripts/schema-apply.ts"

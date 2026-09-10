@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check": "tsc --noEmit",
-    "test": "tsx --test 'tests/**/*.test.ts'"
+    "test": "tsx --test"
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
