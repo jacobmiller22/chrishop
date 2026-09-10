@@ -130,7 +130,8 @@ wrangler r2 bucket lifecycle add chrishop-backups \
 | `infra/docker/docker-compose.dev.yml`     | `[EXISTS]`  | Phase 1         | MinIO S3 emulator for local development                        |
 | `infra/scripts/backup.sh`                 | `[EXISTS]`  | Phase 1         | Automated backup script uploading encrypted dumps to R2        |
 | `infra/scripts/restore.sh`                | `[EXISTS]`  | Phase 1         | Disaster recovery script downloading and decrypting R2 backups |
-| `infra/scripts/deps/r2_create_buckets.sh` | `[PLANNED]` | Story 4.4       | Automation script provisioning R2 buckets and applying CORS    |
+| `infra/scripts/deps/r2_create_buckets.sh` | `[EXISTS]`  | Story 2.2       | Automation script provisioning R2 buckets and applying CORS    |
+| `infra/r2/cors-media.json`                | `[EXISTS]`  | Story 2.2       | CORS configuration rules for media bucket                      |
 
 ---
 

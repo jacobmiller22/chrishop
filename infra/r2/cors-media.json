@@ -1,0 +1,20 @@
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
+      "AllowedOrigins": [
+        "https://chrishop.com",
+        "https://admin.chrishop.com",
+        "https://shop.jacobmiller22.com",
+        "https://admin.shop.jacobmiller22.com",
+        "https://*.preview.chrishop.com",
+        "https://*.preview.shop.jacobmiller22.com",
+        "http://localhost:3000",
+        "http://localhost:8055"
+      ],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
