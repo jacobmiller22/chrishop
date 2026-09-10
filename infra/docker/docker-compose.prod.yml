@@ -1,0 +1,238 @@
+# ==============================================================================
+# CHRISHOP E-COMMERCE PLATFORM - PRODUCTION DOCKER COMPOSE CONFIGURATION
+# ==============================================================================
+# Architecture:
+#   - Caddy 2: Reverse proxy with automated Cloudflare DNS-01 ACME wildcard TLS
+#   - Next.js Web: Production storefront container running on Node.js
+#   - Directus CMS: Headless content & order management engine
+#   - PostgreSQL 16: Relational persistence for orders, inventory & Directus data
+#   - Redis OSS 7: Pre-checkout stock locks, session cache & Directus transforms
+#
+# Network Security & Port Isolation:
+#   - Only Caddy exposes public host ports (80/443 TCP & UDP).
+#   - Internal services (web, cms, postgres, redis) expose NO host ports.
+#   - Private bridge networks (chrishop-edge, chrishop-internal) enforce strict
+#     multi-tier isolation.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 16 Relational Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: chrishop-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chrishop_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-chrishop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-chrishop} -d ${POSTGRES_DB:-chrishop_prod}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - internal
+
+  # ----------------------------------------------------------------------------
+  # Redis OSS 7 Cache & Inventory Lock Engine
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: chrishop-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy noeviction
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - internal
+
+  # ----------------------------------------------------------------------------
+  # Directus CMS 11 Headless Content Engine
+  # ----------------------------------------------------------------------------
+  cms:
+    image: directus/directus:11
+    container_name: chrishop-cms
+    restart: unless-stopped
+    volumes:
+      - ../../apps/cms/extensions:/directus/extensions
+    environment:
+      KEY: ${KEY}
+      SECRET: ${SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@chrishop.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-chrishop_prod}
+      DB_USER: ${POSTGRES_USER:-chrishop}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PUBLIC_URL: ${PUBLIC_URL:-https://admin.shop.jacobmiller22.com}
+      CACHE_ENABLED: 'true'
+      CACHE_STORE: redis
+      CACHE_REDIS: redis://redis:6379
+      REDIS: redis://redis:6379
+      STORAGE_LOCATIONS: ${STORAGE_LOCATIONS:-r2}
+      STORAGE_R2_DRIVER: s3
+      STORAGE_R2_KEY: ${STORAGE_R2_KEY:-${CLOUDFLARE_R2_ACCESS_KEY_ID:-}}
+      STORAGE_R2_SECRET: ${STORAGE_R2_SECRET:-${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}}
+      STORAGE_R2_BUCKET: ${STORAGE_R2_BUCKET:-chrishop-media}
+      STORAGE_R2_REGION: ${STORAGE_R2_REGION:-auto}
+      STORAGE_R2_ENDPOINT: ${STORAGE_R2_ENDPOINT:-https://${CLOUDFLARE_ACCOUNT_ID:-}.r2.cloudflarestorage.com}
+      STORAGE_R2_PUBLIC_URL: ${STORAGE_R2_PUBLIC_URL:-https://media.chrishop.com}
+      STORAGE_R2_FORCE_PATH_STYLE: 'false'
+      STORAGE_CACHE_TTL: ${STORAGE_CACHE_TTL:-86400}
+      AUTH_PROVIDERS: 'local'
+      AUTH_2FA_REQUIRED: 'true'
+      CORS_ENABLED: 'true'
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://shop.jacobmiller22.com,https://chrishop.com}
+      CORS_METHODS: 'GET,POST,PATCH,DELETE'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://127.0.0.1:8055/server/ping || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - internal
+      - edge
+
+  # ----------------------------------------------------------------------------
+  # Next.js Production Storefront
+  # ----------------------------------------------------------------------------
+  web:
+    image: ${WEB_IMAGE:-chrishop-web:latest}
+    container_name: chrishop-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://shop.jacobmiller22.com}
+      NEXT_PUBLIC_CMS_URL: ${NEXT_PUBLIC_CMS_URL:-https://admin.shop.jacobmiller22.com}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL:-https://admin.shop.jacobmiller22.com}
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://cms:8055}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-chrishop}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chrishop_prod}}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-orders@chrishop.com}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      BETTER_STACK_UPTIME_KEY: ${BETTER_STACK_UPTIME_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      cms:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - internal
+      - edge
+
+  # ----------------------------------------------------------------------------
+  # Custom Caddy Reverse Proxy & Edge TLS
+  # ----------------------------------------------------------------------------
+  caddy:
+    build: ../caddy/
+    image: chrishop-caddy:latest
+    container_name: chrishop-caddy
+    restart: unless-stopped
+    ports:
+      - '${CADDY_HTTP_PORT:-80}:80'
+      - '${CADDY_HTTPS_PORT:-443}:443'
+      - '${CADDY_HTTPS_PORT:-443}:443/udp'
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      cms:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'caddy version || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - edge
+
+networks:
+  edge:
+    name: chrishop-edge
+    driver: bridge
+  internal:
+    name: chrishop-internal
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: chrishop-postgres-data
+  redisdata:
+    name: chrishop-redis-data
+  caddy_data:
+    name: chrishop-caddy-data
+  caddy_config:
+    name: chrishop-caddy-config
