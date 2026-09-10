@@ -1,7 +1,10 @@
+import { withPayload } from '@payloadcms/next/withPayload';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@chrishop/ui', '@chrishop/types', '@chrishop/notifications'],
+  serverExternalPackages: ['@libsql/client', 'drizzle-orm'],
   images: {
     remotePatterns: [
       {
@@ -32,4 +35,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPayload(nextConfig);
