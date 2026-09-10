@@ -419,7 +419,48 @@ pnpm seed
 
 ---
 
-## 11. Troubleshooting & FAQ
+## 11. Automated Backlog Grooming & Refinement Daemon (macOS `launchd`)
+
+ChrisShop provides an autonomous host-level background daemon using macOS `launchd` to perform adversarial backlog review, codebase alignment checks, and story refinement every 12 hours (scheduled at `02:00` and `14:00` EDT/EST).
+
+This daemon runs independently of active IDE sessions or in-editor timers.
+
+### 11.1 Service Management Commands
+
+The service is managed using the turnkey script in `infra/launchd/install.sh`:
+
+```bash
+# Install and register the LaunchAgent with macOS launchd
+./infra/launchd/install.sh install
+
+# Check service registration and status
+./infra/launchd/install.sh status
+
+# Trigger an immediate manual refinement run (without waiting for the schedule)
+./infra/launchd/install.sh run-now
+
+# View latest stdout and stderr logs
+./infra/launchd/install.sh logs
+
+# Unload and remove the service
+./infra/launchd/install.sh uninstall
+```
+
+### 11.2 Enabling AI Reasoning (Claude Opus / Gemini)
+
+The daemon automatically runs deterministic backlog integrity audits. To enable deep adversarial LLM analysis (identifying missing failure modes, suggesting new stories, spotting race conditions), configure your API key in `~/.chrishop/refinement.env`:
+
+```bash
+# Example ~/.chrishop/refinement.env
+ANTHROPIC_API_KEY=sk-ant-api03-...
+REFINEMENT_MODEL=claude-3-opus-20240229
+```
+
+Generated reports are persisted to `~/.chrishop/logs/refinement-report-latest.md`.
+
+---
+
+## 12. Troubleshooting & FAQ
 
 ### Issue: Port Collisions (`address already in use`)
 
