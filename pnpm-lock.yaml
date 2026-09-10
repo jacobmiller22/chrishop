@@ -66,6 +66,9 @@ importers:
       '@chrishop/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@directus/sdk':
+        specifier: ^25.0.1
+        version: 25.0.1
       next:
         specifier: ^15.1.0
         version: 15.5.25(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -100,6 +103,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

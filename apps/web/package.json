@@ -7,13 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@chrishop/config": "workspace:*",
     "@chrishop/notifications": "workspace:*",
     "@chrishop/types": "workspace:*",
     "@chrishop/ui": "workspace:*",
+    "@directus/sdk": "^25.0.1",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -27,6 +29,7 @@
     "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.2"
   }
 }
