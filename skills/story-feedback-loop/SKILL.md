@@ -8,7 +8,9 @@ description: Process and instructions for executing user story implementation an
 This skill defines the mandatory protocol for implementing and reviewing user stories on the **ChrisShop** monorepo using isolated `wt` worktrees, an intent-driven Subject Matter Expert (SME) Judge feedback loop, mandatory issue status updates (`in-progress`), periodic issue comments at major milestones, comprehensive completion comments with linked PRs and follow-up actions, PR creation, and automated CI verification.
 
 ## When to Use This Skill
+
 Use this skill whenever:
+
 - Tackling shovel-ready user stories across any delivery phase.
 - Isolating story implementation using `wt` git worktrees.
 - Running a dual-role feedback loop between an **Implementor** agent and an **SME Reviewing Judge** agent.
@@ -22,6 +24,7 @@ Use this skill whenever:
 ## 1. Environment & Story Initialization (`In Progress` Setup)
 
 Before writing any code for a story:
+
 1. **Ensure Worktree Tooling**: Confirm Git 2.43+ and `wt` (worktrunk) are available in `PATH` (`export PATH="/opt/homebrew/bin:$PATH"`).
 2. **Mark Story as In Progress**:
    - Add the `status:in-progress` label to the GitHub Issue:
@@ -51,6 +54,7 @@ Before writing any code for a story:
 To maintain visibility for team members and project stakeholders, **periodic comments MUST be posted on the GitHub issue** as work moves through key milestones:
 
 1. **Local Implementation Milestone**: When core implementation and local verification (typecheck/lint/build) finish:
+
    ```bash
    gh issue comment <IssueNumber> --body "🔄 **Progress Update**: Local Implementation & Verification Complete
 
@@ -60,6 +64,7 @@ To maintain visibility for team members and project stakeholders, **periodic com
    ```
 
 2. **SME Judge Review Milestone**: When the SME Judge evaluates implementation against architecture intent:
+
    ```bash
    gh issue comment <IssueNumber> --body "🔍 **SME Judge Review Findings**
 
@@ -69,6 +74,7 @@ To maintain visibility for team members and project stakeholders, **periodic com
    ```
 
 3. **Follow-Up Story Creation Milestone**: If new follow-up stories/issues are created during review:
+
    ```bash
    gh issue comment <IssueNumber> --body "📌 **Scope Expansion Update**: Follow-Up Stories Created
 
@@ -110,6 +116,7 @@ flowchart TD
 ```
 
 ### 3.1 Role 1: Implementor Execution Protocol
+
 1. **Implementation**: Build all required code, configuration, tests, or documentation files in the story's worktree.
 2. **Local Monorepo Verification**:
    - Run typecheck and linting: `pnpm run check`
@@ -124,6 +131,7 @@ flowchart TD
    - Post PR link comment on the GitHub issue.
 
 ### 3.2 Role 2: SME Reviewing Judge Protocol
+
 The SME Judge is a domain expert aware that initial user stories may be hastily written or incomplete. The Judge must **NOT** just check off boxes.
 
 1. **Intent Evaluation**:
@@ -148,6 +156,7 @@ The SME Judge is a domain expert aware that initial user stories may be hastily 
 Upon completion of story implementation and passing CI verification, the SME Judge / Implementor MUST post a comprehensive completion comment on the GitHub issue before closing it.
 
 ### 4.1 GitHub Issue Completion Comment Template
+
 ```bash
 gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
 
@@ -174,7 +183,9 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
 ```
 
 ### 4.2 Closing the Issue
+
 Once the comprehensive comment is posted and CI has passed:
+
 ```bash
 gh issue edit <IssueNumber> --remove-label "status:in-progress" --add-label "status:completed"
 gh issue close <IssueNumber>
@@ -185,6 +196,7 @@ gh issue close <IssueNumber>
 ## 5. Mandatory Checklist for Story Loop Execution
 
 Every agent executing a story must ensure:
+
 - [ ] Story marked `In Progress` with label `status:in-progress` upon start.
 - [ ] Start-of-work comment posted on GitHub Issue with worktree name and technical plan.
 - [ ] Periodic progress comments posted on GitHub Issue at key milestones (local check, SME review, PR creation).

@@ -9,7 +9,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title = "Chris's Shop",
-  subtitle = "Exclusive drops & limited edition art",
+  subtitle = 'Exclusive drops & limited edition art',
   navItems = [
     { label: 'Shop Drops', href: '#' },
     { label: 'About Chris', href: '#' },
