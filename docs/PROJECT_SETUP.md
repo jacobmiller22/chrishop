@@ -84,6 +84,9 @@ gh issue create --title "Story 1.5: Local Development Documentation & Agentic Sk
 gh issue create --title "Story 1.6: Baseline CI Prep Workflow" --body "Create .github/workflows/ci.yml running linting, type-checking, and workspace build validation on PRs." --label "epic:phase-1,type:infra" --milestone "Phase 1: Prototyping & Local Dev"
 gh issue create --title "Story 1.7: Branch Protection & Environment Lockdown" --body "Configure GitHub branch protection rules for main and production branches enforcing CI checks and PR approvals." --label "epic:phase-1,type:security" --milestone "Phase 1: Prototyping & Local Dev"
 gh issue create --title "Story 1.8: Phase 1 Creator Review - Local Demo & Content Model Walkthrough" --body "Conduct interactive local demo with Chris to review Directus Admin UI, product setup, draft content models, and drop countdown logic." --label "epic:phase-1,creator-review" --milestone "Phase 1: Prototyping & Local Dev"
+gh issue create --title "Story 1.9: .env.example Template File" --body "Create .env.example at repo root with safe placeholder values for Postgres, Directus, MinIO, Redis, Stripe, and Discord." --label "epic:phase-1,type:docs" --milestone "Phase 1: Prototyping & Local Dev"
+gh issue create --title "Story 1.10: Shared Config Package (packages/config)" --body "Create packages/config containing shared tsconfig.base.json, ESLint configs, and Prettier presets." --label "epic:phase-1,type:infra" --milestone "Phase 1: Prototyping & Local Dev"
+gh issue create --title "Story 1.11: MinIO Bucket Initialization Service" --body "Add minio-init helper service in docker-compose.dev.yml to provision chrishop-media S3 bucket automatically." --label "epic:phase-1,type:infra" --milestone "Phase 1: Prototyping & Local Dev"
 ```
 
 ### Phase 2 Stories
@@ -95,6 +98,10 @@ gh issue create --title "Story 2.4: Ephemeral Environment Docker & Caddy Routing
 gh issue create --title "Story 2.5: Ephemeral PR Preview Deployment Workflow" --body "Create .github/workflows/preview-deploy.yml for automated PR environment provisioning." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
 gh issue create --title "Story 2.6: Ephemeral PR Teardown Workflow" --body "Create .github/workflows/preview-teardown.yml to destroy preview stack on PR close." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
 gh issue create --title "Story 2.7: Phase 2 Creator Review - Live Ephemeral Preview Feedback Loop" --body "Deploy pr-X.preview.chrishop.com preview deployments for Chris to test staging features, drop UI, and R2 uploads." --label "epic:phase-2,creator-review" --milestone "Phase 2: Infrastructure & Dependencies"
+gh issue create --title "Story 2.8: Production Docker Compose (docker-compose.prod.yml)" --body "Create infra/docker/docker-compose.prod.yml defining production container configurations." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
+gh issue create --title "Story 2.9: Staging Docker Compose (docker-compose.staging.yml)" --body "Create infra/docker/docker-compose.staging.yml for permanent staging environment at staging.chrishop.com." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
+gh issue create --title "Story 2.10: VPS Infrastructure Skeleton (cloud-init, Ansible)" --body "Create cloud-init.yaml, playbook.yml, and inventory.ini under infra/vps/." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
+gh issue create --title "Story 2.11: Custom Caddy Docker Image (xcaddy + Cloudflare DNS)" --body "Create infra/caddy/Dockerfile building Caddy with Cloudflare DNS plugin." --label "epic:phase-2,type:infra" --milestone "Phase 2: Infrastructure & Dependencies"
 ```
 
 ### Phase 3 Stories

@@ -31,18 +31,16 @@ The project is structured into 6 delivery phases:
 
 ## 2. Issue Lifecycle & Board Management
 
-### 2.1 Issue Creation & Formatting
-Every issue must specify:
-- Clear title matching `Story X.Y: <Capability Name>`.
-- Body detailing task acceptance criteria, dependencies (`Dependencies: Story A.B`), and technical components involved.
-- Relevant labels (`epic:phase-X`, `type:feature` / `type:infra` / `type:security` / `type:docs`, and `creator-review` if applicable).
-- Milestone assignment.
+### 2.1 Issue Start Protocol (`In Progress`)
+Before commencing work on any story:
+1. Label the issue: `gh issue edit <IssueNumber> --add-label "status:in-progress"`
+2. Post an initial comment on the issue (`gh issue comment <IssueNumber> --body "🚀 **Status**: In Progress..."`).
+3. Move card on GitHub Project v2 board to `In Progress`.
 
-```bash
-gh issue create --title "Story X.Y: <Title>" --body "<Description>" --label "epic:phase-X,type:feature" --milestone "Phase X: <Name>"
-```
+### 2.2 Periodic Progress Audit Comments
+During execution, post comments at key milestones (local check passed, SME Judge intent review, deferred scope creation, PR opened).
 
-### 2.2 Creating Pull Requests & Linking Issues
+### 2.3 Creating Pull Requests & Linking Issues
 When work on a story is ready for review/merge:
 1. Ensure changes are committed on a feature branch (`feature/story-X-Y-<short-name>`) or isolated worktree branch (`subagent-Story-X-Y-...`).
 2. Create a GitHub Pull Request using `gh pr create`:
@@ -80,20 +78,21 @@ For stories marked with `creator-review` (Story 1.8, Story 2.7, Story 3.7):
 
 ## 5. Task Completion Protocol (Mandatory Workflow)
 
-Upon finishing implementation for any task or story:
+Upon finishing implementation for any task or story (refer to [story-feedback-loop](file:///Users/jacobmiller22/projects/chrishop/skills/story-feedback-loop/SKILL.md) for full execution details):
 1. **Execute Monorepo Verification**:
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
    - Run build validation (`npx pnpm run build`) where applicable.
 2. **Create & Link Pull Request**:
    - Create a Pull Request via `gh pr create` targeting `main`, including `Fixes #<IssueNumber>` in the PR body.
-3. **Merge Pull Request**:
-   - Merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`) with clean, standard commit messages.
-4. **Update & Close GitHub Issue**:
-   - Post a detailed comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
-     - **Completion Status & Story Title**
-     - **PR Link & Commit SHA References** (PR URL, feature commit SHA & merge commit SHA).
-     - **Thorough Technical Summary of Deliverables** (created/modified files, interfaces, packages, endpoints, and verification output).
-   - Ensure the GitHub Issue is closed (`gh issue close <IssueNumber>`).
+3. **Merge Pull Request / CI Verification**:
+   - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`).
+4. **Post Comprehensive Completion Comment & Close GitHub Issue**:
+   - Post a comprehensive completion comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
+     - **Completion Status & Deliverables Summary** (created/modified files, interfaces, endpoints, verification outputs).
+     - **Linked Pull Requests & Commit References** (PR URL e.g. `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`, commit SHA).
+     - **Verification Results** (typecheck, lint, build, test outputs).
+     - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, deployment notes).
+   - Update issue label to `status:completed` and close the issue (`gh issue close <IssueNumber>`).
 5. **Update Progress & Unblocked Dependencies**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a concise report to the user with completed work, PR/commit references, and unblocked next steps.
