@@ -1,13 +1,7 @@
 {
+  "extends": "@chrishop/config/tsconfig.node.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "declaration": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "declaration": true
   },
   "include": ["src/**/*"]
 }

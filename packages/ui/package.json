@@ -18,6 +18,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@chrishop/config": "workspace:*",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",

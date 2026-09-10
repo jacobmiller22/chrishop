@@ -9,6 +9,7 @@
     "check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@chrishop/config": "workspace:*",
     "typescript": "^5.7.2"
   }
 }

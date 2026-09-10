@@ -10,6 +10,7 @@
     "schema:apply": "node scripts/schema-apply.js"
   },
   "dependencies": {
+    "@chrishop/config": "workspace:*",
     "@chrishop/types": "workspace:*"
   },
   "devDependencies": {
