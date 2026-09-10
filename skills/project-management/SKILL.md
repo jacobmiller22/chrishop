@@ -42,13 +42,21 @@ Every issue must specify:
 gh issue create --title "Story X.Y: <Title>" --body "<Description>" --label "epic:phase-X,type:feature" --milestone "Phase X: <Name>"
 ```
 
-### 2.2 Updating Issue Status
-When beginning work on an issue:
-1. Create a feature branch named `feature/story-X-Y-<short-name>`.
-2. Link the PR to the issue by including `Fixes #<IssueNumber>` in the PR description.
-3. The `.github/workflows/board-sync.yml` automation will automatically move the card to `In Progress`.
-4. Upon PR creation, status moves to `In Review`.
-5. Upon PR merge to `main`, status moves to `Done`.
+### 2.2 Creating Pull Requests & Linking Issues
+When work on a story is ready for review/merge:
+1. Ensure changes are committed on a feature branch (`feature/story-X-Y-<short-name>`) or isolated worktree branch (`subagent-Story-X-Y-...`).
+2. Create a GitHub Pull Request using `gh pr create`:
+   ```bash
+   gh pr create \
+     --title "feat(phase-X): Story X.Y <Story Title>" \
+     --body "## Summary of Changes
+   <Detailed technical summary of deliverables, components, and packages>
+
+   ## Related Issue
+   Fixes #<IssueNumber>" \
+     --base main
+   ```
+3. **Mandatory Issue Linking**: The PR description **MUST** explicitly include `Fixes #<IssueNumber>` or `Closes #<IssueNumber>`. This links the PR directly to the issue on GitHub and ensures the GitHub Project Board (`board-sync.yml`) moves the issue card through `In Progress` ➔ `In Review` ➔ `Done` automatically upon PR creation and merge.
 
 ---
 
@@ -76,15 +84,17 @@ Upon finishing implementation for any task or story:
 1. **Execute Monorepo Verification**:
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
    - Run build validation (`npx pnpm run build`) where applicable.
-2. **Merge Worktree / Feature Branch**:
-   - Merge the feature branch into `main` with clear, standard commit messages.
-3. **Update & Close GitHub Issue**:
-   - Post a detailed comment on the corresponding GitHub Issue (`gh issue comment <id> --body "..."`) containing:
+2. **Create & Link Pull Request**:
+   - Create a Pull Request via `gh pr create` targeting `main`, including `Fixes #<IssueNumber>` in the PR body.
+3. **Merge Pull Request**:
+   - Merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`) with clean, standard commit messages.
+4. **Update & Close GitHub Issue**:
+   - Post a detailed comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
      - **Completion Status & Story Title**
-     - **Branch & Commit Hash References** (feature commit SHA & merge commit SHA).
+     - **PR Link & Commit SHA References** (PR URL, feature commit SHA & merge commit SHA).
      - **Thorough Technical Summary of Deliverables** (created/modified files, interfaces, packages, endpoints, and verification output).
-   - Close the GitHub Issue via `gh issue close <id>`.
-4. **Update Progress & Unblocked Dependencies**:
+   - Ensure the GitHub Issue is closed (`gh issue close <IssueNumber>`).
+5. **Update Progress & Unblocked Dependencies**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
-   - Present a concise report to the user with completed work, commit references, and unblocked next steps.
+   - Present a concise report to the user with completed work, PR/commit references, and unblocked next steps.
 
