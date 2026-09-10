@@ -39,7 +39,17 @@ The platform provides three distinct environments:
 pnpm exec wrangler login
 ```
 
+<<<<<<< HEAD
 Verify your authenticated account ID:
+=======
+---
+
+## 2. D1 Relational Database Setup & Operations
+
+### 2.1 Remote D1 Database Provisioning
+
+Provision isolated D1 relational databases for staging and production:
+>>>>>>> 4f09fa0 (feat(infra): Story 2.19 Cloudflare D1 Database Provisioning & Miniflare Setup (#90))
 
 ```bash
 pnpm exec wrangler whoami
@@ -62,22 +72,78 @@ pnpm exec wrangler d1 create chrishop-prod-db
 pnpm exec wrangler d1 create chrishop-preview-db
 ```
 
-Record the output `database_id` UUIDs into `wrangler.toml`:
-- Production: `[[d1_databases]]` and `[[env.production.d1_databases]]`
-- Staging: `[[env.staging.d1_databases]]`
-- Preview: `[[env.preview.d1_databases]]`
+Each provisioning command outputs a unique `database_id` UUID. Bind these IDs in `wrangler.toml` under `[[d1_databases]]`, `[[env.staging.d1_databases]]`, and `[[env.preview.d1_databases]]`.
 
-### Applying Migrations
+### 2.2 D1 Bindings in `wrangler.toml`
+
+The ChrisShop monorepo declares D1 bindings across environments with the migrations directory configured:
+
+```toml
+# Production Cloudflare D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "chrishop-prod-db"
+database_id = "<production-database-uuid>"
+migrations_dir = "migrations"
+
+# Staging Environment Configuration
+[env.staging]
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "chrishop-staging-db"
+database_id = "<staging-database-uuid>"
+migrations_dir = "migrations"
+
+# Ephemeral PR Preview Environment Configuration
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "chrishop-preview-db"
+database_id = "<preview-database-uuid>"
+migrations_dir = "migrations"
+```
+
+### 2.3 Local Miniflare Emulation Setup
+
+Cloudflare D1 runs locally via **Miniflare** in-process, without requiring Docker, PostgreSQL, or external daemon processes.
+
+- **Local State Location**: Local SQLite state is persisted under `.wrangler/state/v3/d1`.
+- **Git Hygiene**: `.wrangler/` is git-ignored to prevent ephemeral database state files from entering version control.
+- **Turnkey Setup Script**: Run `./scripts/d1-local-setup.sh` or `pnpm run d1:setup` to apply initial migrations and verify tables and query indexes.
+
+### 2.4 D1 Migrations Workflow
+
+Migrations are stored in the `migrations/` directory and tracked in the `d1_migrations` table:
 
 ```bash
-# Apply migrations to Staging
-pnpm exec wrangler d1 migrations apply chrishop-staging-db --remote
+# 1. Author a new migration file
+pnpm exec wrangler d1 migrations create chrishop-prod-db <migration_name>
 
-# Apply migrations to Production
+# 2. Apply migrations to local Miniflare emulation
+pnpm exec wrangler d1 migrations apply chrishop-prod-db --local
+# or via npm script:
+pnpm run d1:migrate:local
+
+# 3. Apply migrations to remote staging
+pnpm exec wrangler d1 migrations apply chrishop-staging-db --remote --env staging
+
+# 4. Apply migrations to remote production
 pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote
+```
 
-# Apply migrations locally in Miniflare
-pnpm exec wrangler d1 migrations apply chrishop-dev-db --local
+### 2.5 Query Execution & Verification
+
+Verify database schema and query indexes using `wrangler d1 execute`:
+
+```bash
+# Execute query against local Miniflare SQLite
+pnpm exec wrangler d1 execute chrishop-prod-db --local --command "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'index');"
+
+# Execute query against remote staging database
+pnpm exec wrangler d1 execute chrishop-staging-db --remote --env staging --command "SELECT count(*) FROM products;"
+
+# Execute query against remote production database
+pnpm exec wrangler d1 execute chrishop-prod-db --remote --command "SELECT count(*) FROM products;"
 ```
 
 ---
