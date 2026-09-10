@@ -23,11 +23,11 @@ Use this skill whenever you need to:
 
 The project is structured into 6 delivery phases:
 
-- **Phase 1: Prototyping & Local Dev** (`epic:phase-1`) - Monorepo skeleton, `docker-compose.dev.yml`, `LOCAL_DEVELOPMENT.md`, baseline CI, branch protection, local Creator review.
-- **Phase 2: Infrastructure & Dependencies** (`epic:phase-2`) - `DEP_*.md` manifests, dependency control scripts, integration tests, ephemeral preview environments (`pr-X.preview.chrishop.com`), Creator preview review.
-- **Phase 3: End-to-End Integration** (`epic:phase-3`) - Storefront + CMS integration, Redis stock lock engine, Stripe dynamic checkout, Discord alerts, Resend tracking email, full drop dry run with Chris.
-- **Phase 4: DevOps & Failover Automation** (`epic:phase-4`) - Production CD pipeline, rolling deployment health check gate (`/api/health`), two-phase migrations, offsite backups (`backup.sh`), emergency rollback (`rollback.yml`), disaster recovery runbook.
-- **Phase 5: Security Hardening** (`epic:phase-5`) - VPS host hardening (Ansible), Directus RBAC + TOTP 2FA, `age` secrets isolation, CI security audits.
+- **Phase 1: Prototyping & Local Dev** (`epic:phase-1`) - Monorepo skeleton, Cloudflare Workers dev harness, `LOCAL_DEVELOPMENT.md`, baseline CI, branch protection, local Creator review.
+- **Phase 2: Infrastructure & Dependencies** (`epic:phase-2`) - `DEP_*.md` manifests, dependency control scripts, ephemeral Miniflare/D1 integration tests, Cloudflare preview environments, Creator preview review.
+- **Phase 3: End-to-End Integration** (`epic:phase-3`) - Storefront + Payload CMS v3 integration, Shopify checkout & cart mutations, Discord alerts, Resend tracking email, full drop dry run with Chris.
+- **Phase 4: DevOps & Failover Automation** (`epic:phase-4`) - Cloudflare Workers CI/CD deployment pipeline, edge route health check gate (`/api/health`), D1 zero-downtime migrations, emergency instant rollback (`rollback.yml`), disaster recovery runbook.
+- **Phase 5: Security Hardening** (`epic:phase-5`) - Cloudflare WAF & bot management, Payload CMS RBAC + 2FA, Shopify webhook HMAC validation, CI security audits.
 - **Phase 6+: Feature Enhancements** (`epic:phase-6`) - Shippo 1-click shipping labels, drop waitlists, analytics dashboards.
 
 ---

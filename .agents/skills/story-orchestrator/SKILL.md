@@ -70,8 +70,8 @@ Before spawning subagents, the Orchestrator MUST verify that the selected batch 
 - **Valid Concurrent Batch Example**:
   - Worker A: `Story 1.12` (`apps/web`)
   - Worker B: `Story 2.1` (`docs/deps/`)
-  - Worker C: `Story 2.11` (`infra/caddy/`)
-  - Worker D: `Story 2.13` (`apps/cms/extensions/`)
+  - Worker C: `Story 2.11` (`packages/notifications/`)
+  - Worker D: `Story 2.13` (`tests/integration/`)
 - **Conflicting Batch Example**: Spawning two workers that both modify `apps/web/src/app/products/page.tsx` simultaneously. If two top-ranked candidates conflict, defer the second candidate and select the next available non-conflicting story.
 
 ---
@@ -145,7 +145,7 @@ When a worker reports completion, the Orchestrator MUST NOT take its word at fac
 - [ ] 3. **PR & Linking**: Is the PR open/merged on GitHub? Does the PR description include `Fixes #<N>`? Did CI checks pass (`gh pr checks <PR_NUMBER>`)?
 - [ ] 4. **Worktree Hygiene**: Did the worker clean up after itself? Run `wt list` — verify that `feature/story-X-Y` is NOT lingering in the active worktree list.
 - [ ] 5. **Monorepo Integrity**: Run `pnpm run check && pnpm run test:unit` at repository root to ensure zero cross-workspace TypeScript errors or test regressions.
-- [ ] 6. **Local Runtime Verification**: Did the worker provide evidence of passing `pnpm run verify:local` (container health, live service probes, and tests)? Reject any deliverables that only rely on compilation without runtime validation.
+- [ ] 6. **Local Runtime Verification**: Did the worker provide evidence of passing `pnpm run verify:local` (ephemeral D1/KV integration tests, unit tests, build, and secrets hygiene)? Reject any deliverables that only rely on compilation without runtime validation.
 ```
 
 ### Remediation Protocol

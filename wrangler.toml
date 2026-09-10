@@ -48,3 +48,26 @@ bucket_name = "chrishop-media-staging"
 NODE_ENV = "staging"
 NEXT_PUBLIC_SITE_URL = "https://staging.chrishop.com"
 PAYLOAD_PUBLIC_SERVER_URL = "https://staging.chrishop.com"
+
+# Ephemeral PR Preview Environment Configuration
+[env.preview]
+name = "chrishop-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "chrishop-preview-db"
+database_id = "00000000-0000-0000-0000-000000000003"
+migrations_dir = "migrations"
+
+[[env.preview.kv_namespaces]]
+binding = "NEXT_CACHE_WORKERS_KV"
+id = "00000000-0000-0000-0000-000000000003"
+
+[[env.preview.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "chrishop-media-preview"
+
+[env.preview.vars]
+NODE_ENV = "preview"
+NEXT_PUBLIC_SITE_URL = "https://preview.chrishop.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://preview.chrishop.com"

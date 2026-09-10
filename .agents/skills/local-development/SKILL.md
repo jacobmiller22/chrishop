@@ -1,11 +1,13 @@
 ---
 name: local-development
-description: Detailed instructions and workflows for running, debugging, seeding, and testing the ChrisShop local monorepo development stack.
+description: Detailed instructions and workflows for running, debugging, seeding, and testing the ChrisShop local monorepo development stack with Cloudflare Workers, D1 SQLite, Workers KV, R2, Payload CMS v3, and Shopify.
 ---
 
 # Local Development Skill
 
 This skill provides step-by-step operational workflows and troubleshooting runbooks for AI agents and human developers interacting with the **ChrisShop** local monorepo development environment.
+
+The ChrisShop platform operates on a **zero-container, Cloudflare-native architecture**. Local development runs purely in-process without containers or external servers. All local persistence and edge runtimes are handled via Miniflare, SQLite/D1, Workers KV, R2 emulation, and Shopify Storefront APIs.
 
 ---
 
@@ -13,13 +15,13 @@ This skill provides step-by-step operational workflows and troubleshooting runbo
 
 Activate or consult this skill whenever you need to:
 
-- Initialize, verify, or shut down local containerized infrastructure (PostgreSQL 16, Redis 7, MinIO S3 emulator, Directus 11 CMS).
-- Verify or manually execute S3 bucket provisioning for `chrishop-media`.
-- Apply Directus schema migrations (`schema:apply`) or export updated snapshots (`schema:export`).
-- Seed the local database catalog with sample categories, limited-edition products, variations, inventory, and administrative permissions.
-- Run local development servers (`apps/web`, `apps/cms`) or execute monorepo quality checks (`pnpm run check`, `pnpm run test`, `pnpm run build`).
-- Simulate and test local Stripe webhook events via Stripe CLI.
-- Diagnose and resolve common local environment failure modes (port collisions, unhealthy containers, stale caches).
+- Set up and verify the local development environment using Node.js 22+, pnpm 9+, and Wrangler CLI.
+- Run local development servers (`apps/web`, `apps/cms`) with Turborepo and Wrangler.
+- Execute the local verification harness (`pnpm run verify:local`) before committing or submitting pull requests.
+- Run ephemeral integration tests (`pnpm run test:integration`) against in-memory D1 SQLite, Workers KV, and Shopify webhook HMAC validation.
+- Execute local Cloudflare D1 migrations and database operations (`pnpm exec wrangler d1 execute`).
+- Seed or inspect local catalog data, product variations, and administrative configurations.
+- Diagnose and resolve common local environment failure modes (stale caches, missing environment variables, port conflicts).
 
 ---
 
@@ -27,18 +29,18 @@ Activate or consult this skill whenever you need to:
 
 The ChrisShop platform comprises the following workspace packages and services:
 
-| Component          | Path / Container         | Local Port      | URL / Interface         | Purpose                                       |
-| :----------------- | :----------------------- | :-------------- | :---------------------- | :-------------------------------------------- |
-| **Storefront**     | `apps/web`               | `3000`          | `http://localhost:3000` | Next.js 15 App Router customer storefront     |
-| **CMS & Scripts**  | `apps/cms`               | `8055`          | `http://localhost:8055` | Directus 11 Headless CMS & schema migrations  |
-| **UI Components**  | `packages/ui`            | N/A             | Shared package          | React UI component library                    |
-| **Domain Types**   | `packages/types`         | N/A             | Shared package          | Shared TypeScript interfaces & types          |
-| **Notifications**  | `packages/notifications` | N/A             | Shared package          | Transactional email & Discord alert utilities |
-| **Tooling Config** | `packages/config`        | N/A             | Shared package          | Centralized ESLint, Prettier, and TS configs  |
-| **PostgreSQL 16**  | `chrishop-postgres`      | `5432`          | `localhost:5432`        | Primary relational database                   |
-| **Redis 7 OSS**    | `chrishop-redis`         | `6379`          | `localhost:6379`        | Caching & stock reservation locks             |
-| **MinIO S3**       | `chrishop-minio`         | `9000` / `9001` | `http://localhost:9001` | Object storage emulator & admin console       |
-| **MinIO Init**     | `chrishop-minio-init`    | N/A             | Container task          | Automated S3 bucket & policy provisioner      |
+| Component          | Path / Service           | Local Port | URL / Interface               | Purpose                                          |
+| :----------------- | :----------------------- | :--------- | :---------------------------- | :----------------------------------------------- |
+| **Storefront**     | `apps/web`               | `3000`     | `http://localhost:3000`       | Next.js 15 App Router customer storefront        |
+| **CMS**            | `apps/cms`               | `3000`     | `http://localhost:3000/admin` | Payload CMS v3 Headless CMS & D1 schema bindings |
+| **UI Components**  | `packages/ui`            | N/A        | Shared package                | React UI component library                       |
+| **Domain Types**   | `packages/types`         | N/A        | Shared package                | Shared TypeScript interfaces & types             |
+| **Notifications**  | `packages/notifications` | N/A        | Shared package                | Transactional email & Discord alert utilities    |
+| **Tooling Config** | `packages/config`        | N/A        | Shared package                | Centralized ESLint, Prettier, and TS configs     |
+| **Cloudflare D1**  | SQLite / Miniflare       | In-process | Local SQLite file             | Primary relational catalog & orders database     |
+| **Workers KV**     | Miniflare KV             | In-process | Local KV namespace            | Edge caching, ISR, and rate limiting             |
+| **Cloudflare R2**  | Miniflare R2             | In-process | Local object storage          | Product artwork, photography, and media          |
+| **Shopify API**    | Remote / Mock            | HTTPS      | Shopify Storefront API        | Checkout, cart mutations, and inventory source   |
 
 ---
 
@@ -46,17 +48,17 @@ The ChrisShop platform comprises the following workspace packages and services:
 
 ### Step 1: Pre-Flight Environment Check
 
-Confirm that the local host environment meets version requirements:
+Confirm that the local host environment meets runtime requirements:
 
 ```bash
-# Verify Node.js (>= 20.0.0)
+# Verify Node.js (>= 20.0.0, recommended v22+ LTS)
 node -v
 
 # Verify pnpm (>= 9.0.0)
 pnpm -v
 
-# Verify Docker engine is running
-docker info > /dev/null 2>&1 || echo "Docker daemon is not running!"
+# Verify Wrangler CLI is installed
+pnpm exec wrangler --version
 ```
 
 ### Step 2: Environment Configuration
@@ -71,76 +73,63 @@ if [ ! -f .env ]; then
 fi
 ```
 
-### Step 3: Launch Local Container Stack
+Required environment variables in `.env` include:
 
-Start containerized infrastructure using the root Docker Compose dev manifest:
+- `NEXT_PUBLIC_SITE_URL` (default: `http://localhost:3000`)
+- `PAYLOAD_SECRET` (local secret string)
+- `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (or sandbox credentials)
+- `SHOPIFY_WEBHOOK_SECRET` (for webhook HMAC verification)
 
-```bash
-docker compose -f infra/docker/docker-compose.dev.yml up -d
-```
+### Step 3: Local Verification Harness (`pnpm run verify:local`)
 
-Verify that containers have initialized and passed health checks:
-
-```bash
-docker compose -f infra/docker/docker-compose.dev.yml ps
-```
-
-_Expected output:_
-
-- `chrishop-postgres`: `Up (healthy)`
-- `chrishop-redis`: `Up (healthy)`
-- `chrishop-minio`: `Up (healthy)`
-- `chrishop-minio-init`: `Exited (0)`
-- `chrishop-cms`: `Up (healthy)`
-
-### Step 4: S3 Bucket Provisioning Verification
-
-The `chrishop-minio-init` container automatically provisions the `chrishop-media` S3 bucket upon startup. Verify completion:
+Before pushing code or creating pull requests, execute the automated 6-stage verification harness:
 
 ```bash
-docker compose -f infra/docker/docker-compose.dev.yml logs minio-init | grep "MinIO bucket initialized successfully"
+pnpm run verify:local
 ```
 
-_Manual Fallback_: If the bucket was not created, run:
+The harness executes the following checks:
+
+1. **Node.js & pnpm Versions**: Validates runtime engines against `package.json`.
+2. **Monorepo Dependencies**: Verifies workspace links and lockfile integrity.
+3. **Typecheck & Linting**: Runs `turbo run check` across all workspace packages.
+4. **Ephemeral Integration Tests**: Runs `tsx --test tests/integration/**/*.test.ts` (in-memory D1 SQLite, Shopify client, and edge routes).
+5. **Monorepo Production Build**: Runs `turbo run build` across all packages.
+6. **Secret Hygiene Scan**: Scans workspace files for leaked API keys, tokens, or private credentials.
+
+### Step 4: Running Ephemeral Integration Tests
+
+Integration tests run completely in-process using Node.js built-in SQLite (`DatabaseSync(':memory:')`) and mock edge runtimes:
 
 ```bash
-docker compose -f infra/docker/docker-compose.dev.yml exec minio /bin/sh -c "
-  mc alias set myminio http://localhost:9000 minioadmin minioadmin && \
-  mc mb --ignore-existing myminio/chrishop-media && \
-  mc anonymous set download myminio/chrishop-media
-"
+# Run integration test suite
+pnpm run test:integration
+
+# Run all tests (unit + integration)
+pnpm run test:all
 ```
 
-### Step 5: Directus Schema Synchronization & Database Seeding
+Integration test suites cover:
 
-Once PostgreSQL and Directus are healthy, apply the version-controlled schema snapshot and seed catalog data:
+- `tests/integration/d1-database.test.ts`: D1 table schemas, indexes (`slug`, `shopify_product_id`, `sku`), relational joins, and `wrangler d1` CLI execution.
+- `tests/integration/shopify-client.test.ts`: Storefront API cart creation, checkout redirect URLs, and raw HMAC-SHA256 webhook signature security validation.
+- `tests/integration/edge-routes.test.ts`: Edge handler routes (`/api/health`).
+
+### Step 5: Cloudflare D1 Local Database Operations
+
+Execute D1 migrations and queries locally using the Wrangler CLI:
 
 ```bash
-# Synchronize Directus collections and fields
-pnpm --filter cms schema:apply
+# Execute local D1 SQL migrations
+pnpm exec wrangler d1 execute chrishop-prod-db --local --file=./migrations/0001_initial.sql
 
-# Seed catalog categories, limited-edition products, variations, and admin roles
-pnpm seed
+# Execute an interactive query against the local D1 database
+pnpm exec wrangler d1 execute chrishop-prod-db --local --command="SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
-### Step 6: Monorepo Verification & Quality Checks
+### Step 6: Running Development Servers
 
-Run monorepo validation tasks across all packages:
-
-```bash
-# Typecheck & Linting
-pnpm run check
-
-# Production Build Validation
-pnpm run build
-
-# Automated Tests
-pnpm run test
-```
-
-### Step 7: Running Development Servers
-
-Start all applications concurrently with live reloading via Turborepo:
+Start all monorepo applications concurrently with live reloading via Turborepo:
 
 ```bash
 pnpm run dev
@@ -148,42 +137,27 @@ pnpm run dev
 
 Or target specific applications individually:
 
-- **Next.js Storefront (`apps/web`)**: `pnpm --filter web dev` (available at `http://localhost:3000`)
-- **Directus CMS Extensions (`apps/cms`)**: `pnpm --filter cms dev` (available at `http://localhost:8055`)
+- **Next.js Storefront & Payload CMS**: `pnpm --filter web dev` (available at `http://localhost:3000` and `http://localhost:3000/admin`)
+- **Cloudflare Workers Preview**: `pnpm exec wrangler dev`
 
-### Step 8: Testing Stripe Webhooks Locally
+### Step 7: Environment Teardown & Clean Reset
 
-1. Forward Stripe events to the local Next.js webhook endpoint:
-   ```bash
-   stripe listen --forward-to localhost:3000/api/webhooks/stripe
-   ```
-2. Note the printed webhook signing secret (`whsec_...`) and update `STRIPE_WEBHOOK_SECRET` in `.env`.
-3. In a separate terminal, trigger sample test events:
-   ```bash
-   stripe trigger checkout.session.completed
-   stripe trigger checkout.session.expired
-   ```
+Because the development environment is zero-container, cleaning the state is instantaneous:
 
-### Step 9: Environment Teardown & Clean Reset
-
-- **Preserve Data (Normal Stop)**:
-  ```bash
-  docker compose -f infra/docker/docker-compose.dev.yml down
-  ```
-- **Wipe All Data & Volumes (Clean State Restart)**:
-  ```bash
-  docker compose -f infra/docker/docker-compose.dev.yml down -v
-  ```
+```bash
+# Wipe build caches and local test databases
+rm -rf .turbo apps/*/.turbo apps/*/.next packages/*/.turbo packages/*/dist .wrangler
+```
 
 ---
 
 ## Agent Troubleshooting Playbook
 
-| Symptom / Error                                                  | Root Cause                                                                            | Automated Remediation Command                                                                                       |
-| :--------------------------------------------------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ |
-| `Bind for 0.0.0.0:<PORT> failed: port is already allocated`      | Existing process or container is occupying port 5432, 6379, 8055, 9000, 9001, or 3000 | Run `lsof -ti :<PORT> \| xargs kill -9` then restart containers                                                     |
-| Directus container exits or logs `Can't connect to the database` | Directus attempted connection before PostgreSQL finished initialization               | Healthchecks handle this automatically. Wait 10s and run `docker compose -f infra/docker/docker-compose.dev.yml ps` |
-| Directus reports `NoSuchBucket` or media upload failure          | `chrishop-media` bucket not created in MinIO emulator                                 | Execute fallback bucket creation: `docker compose -f infra/docker/docker-compose.dev.yml up minio-init`             |
-| `StripeSignatureVerificationError` on webhook receipt            | `STRIPE_WEBHOOK_SECRET` in `.env` does not match active `stripe listen` instance      | Copy active `whsec_...` from `stripe listen` into `.env` and restart dev server                                     |
-| Stale TypeScript or Next.js build errors after branch switch     | Turborepo cache or Next.js `.next` folder contains stale artifacts                    | Run `rm -rf .turbo apps/*/.turbo apps/*/.next packages/*/.turbo packages/*/dist` then `pnpm run check`              |
-| `pnpm: command not found`                                        | Corepack or global pnpm not installed                                                 | Run `corepack enable` or `npm install -g pnpm@9`                                                                    |
+| Symptom / Error                                            | Root Cause                                                | Automated Remediation Command                                                                          |
+| :--------------------------------------------------------- | :-------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `pnpm run verify:local` fails at Stage 4 (Integration)     | In-memory D1 schema mismatch or SQLite error              | Inspect `tests/integration/` test failures; run `pnpm run test:integration` with full stack traces     |
+| `Shopify HMAC signature verification failed`               | Webhook handler did not receive raw text body             | Ensure webhook route reads raw body as `Buffer` or `text()` before parsing JSON                        |
+| `Wrangler CLI not found`                                   | Wrangler not installed in root dependencies               | Run `pnpm install` at repo root                                                                        |
+| Port `3000` is already in use                              | Lingering Next.js or node dev process                     | Run `lsof -ti :3000 \| xargs kill -9` then restart dev server                                          |
+| Stale TypeScript or Next.js build errors after branch pull | Turborepo cache or `.next` cache contains stale artifacts | Run `rm -rf .turbo apps/*/.turbo apps/*/.next packages/*/.turbo packages/*/dist` then `pnpm run check` |
+| `pnpm: command not found`                                  | Corepack or global pnpm not installed                     | Run `corepack enable` or `npm install -g pnpm@9`                                                       |

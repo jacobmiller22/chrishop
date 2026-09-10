@@ -105,7 +105,7 @@ When significant structural progress is made (e.g., scaffolding completed, data 
 ```bash
 gh issue comment <IssueNumber> --body "🔨 **Progress Update**: Core Implementation Milestone Reached
 
-- **Completed**: <Specific components/modules implemented, e.g., Redis lock service scaffolding and lock acquisition logic>
+- **Completed**: <Specific components/modules implemented, e.g., D1 database client scaffolding and Shopify webhook HMAC verification>
 - **Files Modified/Created**: <Key file paths touched>
 - **Current Technical Decision**: <Key architectural choice or pattern applied>
 - **Next Step**: <Unit test authoring and monorepo verification>"
@@ -119,12 +119,12 @@ When local monorepo validation via the turnkey pipeline (`pnpm run verify:local`
 gh issue comment <IssueNumber> --body "🔄 **Progress Update**: Local Verification Succeeded
 
 - **Pre-PR Verification Pipeline**: Passed (\`pnpm run verify:local\`)
-  - **Docker Container Stack**: Healthy (PostgreSQL, Redis, MinIO, Directus CMS)
+  - **Runtime & Engines**: Node.js 22+, pnpm 9+ verified
   - **Typecheck & Lint**: Passed (\`pnpm run check\`)
   - **Unit Tests**: Passed (\`pnpm run test:unit\`) — <X tests passed, 0 failures across all packages>
-  - **Live Service Probes**: Directus API, Redis PING, MinIO S3, and \`/api/health\` verified
+  - **Ephemeral Integration Tests**: Passed (\`pnpm run test:integration\`) — In-memory D1 SQLite, Workers KV, and Shopify client verified
   - **Build Validation**: Passed (\`pnpm run build\`)
-  - **Git Hygiene**: Clean worktree state
+  - **Secret Hygiene & Worktree State**: Clean, zero credential leaks
 - **Next Step**: Handoff to SME Reviewing Judge for architectural intent evaluation"
 ```
 
@@ -204,13 +204,13 @@ Each story requires two distinct operational roles: **Implementor** and **SME Re
 3. **Local Monorepo Verification**:
    - Run the turnkey verification pipeline: `pnpm run verify:local`
    - Ensure all 6 verification stages pass:
-     1. Local Docker container health (PostgreSQL, Redis, MinIO, Directus CMS).
-     2. Typecheck & linting (`pnpm run check`).
-     3. Monorepo unit test suites (`pnpm run test:unit`).
-     4. Live dependency probes (Directus API, Redis PING, MinIO S3, `/api/health`).
+     1. Runtime & engine verification (Node.js 22+, pnpm 9+).
+     2. Workspace package graph & lockfile integrity.
+     3. Typecheck & linting (`pnpm run check`).
+     4. Ephemeral integration test suites (`pnpm run test:integration` covering in-memory D1 SQLite, Workers KV, and Shopify client).
      5. Production build validation (`pnpm run build`).
-     6. Git worktree hygiene (clean state, zero leaked logs or temp files).
-   - **Never rely solely on compilation (`tsc` or `build`)**: Runtime behavior and service connectivity must be proven locally against the active container stack before opening a PR.
+     6. Secret hygiene scan & clean worktree state.
+   - **Never rely solely on compilation (`tsc` or `build`)**: Runtime behavior and service connectivity must be proven locally via `pnpm run test:integration` and `pnpm run verify:local` before opening a PR.
    - Post local verification comment (Milestone 3).
 4. **Handoff to SME Judge**:
    - Present completed code and verification outputs to the SME Judge for review.
@@ -230,8 +230,8 @@ The SME Judge is an architectural authority who ensures stories do not merely ch
 
 1. **Intent & Verification Evaluation**:
    - Review code against `docs/HIGH_LEVEL_DESIGN.md` and related architecture specs.
-   - Verify that the Implementor ran and passed `pnpm run verify:local` (including live container probes).
-   - Guard against "compilation-only" solutions: ensure database queries, Redis interactions, and API calls are backed by concrete tests, not just type signatures.
+   - Verify that the Implementor ran and passed `pnpm run verify:local` (including ephemeral integration tests).
+   - Guard against "compilation-only" solutions: ensure database queries, D1 SQLite operations, KV interactions, and Shopify API calls are backed by concrete tests, not just type signatures.
    - Check error resilience, edge-case coverage, security practices, and code hygiene.
 2. **Scope Adjudication**:
    - **Immediate Scope**: Reject changes if missing elements compromise the story's core purpose or introduce technical debt.
@@ -310,7 +310,7 @@ Before removing a worktree, confirm that:
    ```
 
 2. **Reap Processes and Remove Worktree via `wt remove`**:
-   Use `wt remove` with the `--reap` flag. This terminates any lingering background processes (dev servers, watchers, Docker background helpers) running inside the worktree directory before removing it:
+   Use `wt remove` with the `--reap` flag. This terminates any lingering background processes (dev servers, watchers, background helpers) running inside the worktree directory before removing it:
 
    ```bash
    wt remove --reap feature/story-<X>-<Y>-<shortname>
@@ -416,8 +416,8 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Created and switched to isolated worktree: `wt switch --create feature/story-<X>-<Y>-<shortname>`.
 - [ ] **Periodic Progress Updates**:
   - [ ] Posted Milestone 2 comment upon reaching core component/scaffolding milestone.
-  - [ ] Ran `pnpm run verify:local` (container health, check, test:unit, live probes, build, hygiene) and posted Milestone 3 comment with verification outputs.
-  - [ ] Verified live service integration against local Docker containers (not just compilation).
+  - [ ] Ran `pnpm run verify:local` (engine check, check, test:unit, test:integration, build, secrets hygiene) and posted Milestone 3 comment with verification outputs.
+  - [ ] Verified live service integration against ephemeral Miniflare/D1 test suite (not just compilation).
   - [ ] Conducted SME Reviewing Judge intent evaluation and posted Milestone 4 comment.
   - [ ] Created GitHub issues for any deferred scope and posted Milestone 5 comment with issue links.
 - [ ] **Pull Request & Bidirectional Linking**:

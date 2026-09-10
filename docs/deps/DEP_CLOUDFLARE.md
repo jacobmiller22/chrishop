@@ -11,7 +11,9 @@ This document specifies the unified edge platform architecture, service bindings
 This rationale is preserved verbatim from Issue #88 as the official architectural decision record.
 
 #### The Problem with the VPS Approach
+
 The two-VPS architecture (2× Hetzner CPX12 at ~$28/mo) solved environment isolation, but created ongoing **developer maintenance obligations** that are disproportionate to the scale of this project:
+
 - SSH access management, key rotation, and `known_hosts` hygiene
 - OS-level patching (Ubuntu kernel updates, `apt upgrade`, unattended-upgrades monitoring)
 - Docker Engine and Docker Compose plugin version management
@@ -24,26 +26,32 @@ The two-VPS architecture (2× Hetzner CPX12 at ~$28/mo) solved environment isola
 None of this delivers product value. Every hour spent on VPS maintenance is an hour not spent on storefront features, product drops, or Chris's revenue.
 
 #### Why Cloudflare Solves This
+
 Cloudflare Workers eliminates the entire class of server maintenance. The deployment model is `git push` → automatic global edge deployment. There is no server to patch, no SSH key to rotate, no Docker image to upgrade, no backup cron to monitor. Cloudflare manages the runtime, global distribution, and availability SLA.
 
 #### Why Directus Cannot Work on Cloudflare
+
 Directus is a persistent Node.js server that requires a long-lived process, a writable filesystem for extensions, and a server-side database connection pool. None of these are available in a Workers environment. Directus fundamentally cannot run on Cloudflare without a VPS — which defeats the entire purpose of the migration.
 
 #### Why Payload CMS v3 Is the Right Replacement
-Payload CMS v3 is architected to run *inside* a Next.js App Router application as standard route handlers. This means:
+
+Payload CMS v3 is architected to run _inside_ a Next.js App Router application as standard route handlers. This means:
+
 - Payload admin UI is served at `/admin/*` routes within the same Workers deployment — no second server
 - Schema is defined in TypeScript code (`payload.config.ts`) — version controlled naturally, no `snapshot.yaml` sync ceremony
 - Official `@payloadcms/db-d1-sqlite` adapter (stable, v3.87+) connects directly to Cloudflare D1
 - Works with `@opennextjs/cloudflare` adapter on Workers Paid plan
 
 #### Cost Comparison (12-Month Horizon)
-| Architecture | Monthly | Annual |
-| :--- | :--- | :--- |
-| Two Hetzner CPX12 VPS + Vercel | ~$28/mo | ~$336/yr |
-| Cloudflare Workers Paid (includes D1 + KV) | ~$5/mo | ~$60/yr |
-| **Savings** | **~$23/mo** | **~$276/yr** |
+
+| Architecture                               | Monthly     | Annual       |
+| :----------------------------------------- | :---------- | :----------- |
+| Two Hetzner CPX12 VPS + Vercel             | ~$28/mo     | ~$336/yr     |
+| Cloudflare Workers Paid (includes D1 + KV) | ~$5/mo      | ~$60/yr      |
+| **Savings**                                | **~$23/mo** | **~$276/yr** |
 
 #### Why Workers KV Is NOT a Database Replacement
+
 Workers KV is eventually consistent and has no relational model. It is correct only as a **read cache** on top of D1 — not as the primary database. Cloudflare D1 (SQLite-compatible, strongly consistent, relational) is the correct database tier.
 
 ---
@@ -119,6 +127,7 @@ bucket_name = "chrishop-media-staging"
 ## 4. Local Development with Miniflare
 
 Local development requires zero external daemon processes. Running `pnpm dev` uses `wrangler dev`, which utilizes Miniflare to emulate:
+
 - **D1**: Local SQLite storage stored in `.wrangler/state/v3/d1`.
 - **KV**: Local key-value store in memory and filesystem.
 - **R2**: Local filesystem-backed object storage emulator.

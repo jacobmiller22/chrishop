@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       deployment_id:
-        description: "Cloudflare Workers deployment ID to rollback to (or leave blank for previous)"
+        description: 'Cloudflare Workers deployment ID to rollback to (or leave blank for previous)'
         required: false
-        default: ""
+        default: ''
       environment:
-        description: "Environment to rollback"
+        description: 'Environment to rollback'
         required: true
-        default: "production"
+        default: 'production'
         type: choice
         options:
           - production
@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
