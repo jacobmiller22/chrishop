@@ -25,6 +25,7 @@
     "format:check": "prettier --check .",
     "audit:security": "pnpm audit --audit-level=high",
     "audit:roadmap": "tsx scripts/audit-roadmap.ts",
+    "pm:prioritize": "tsx scripts/prioritize-backlog.ts",
     "seed": "tsx scripts/seed-db.ts",
     "db:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:seed": "tsx scripts/seed-db.ts",
