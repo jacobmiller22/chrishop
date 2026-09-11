@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 
 describe('Cloudflare D1 Ephemeral Database Integration (DEP_CLOUDFLARE_D1)', () => {
   let db: DatabaseSync;
@@ -164,6 +165,68 @@ describe('Cloudflare D1 Ephemeral Database Integration (DEP_CLOUDFLARE_D1)', () 
     assert.ok(
       output.includes('execute') || output.includes('migrations'),
       'Must show execute or migrations'
+    );
+  });
+
+  it('should verify migrations/0001_initial.sql exists and applies cleanly to SQLite', () => {
+    assert.ok(fs.existsSync('migrations/0001_initial.sql'), 'Migration file must exist');
+    const sql = fs.readFileSync('migrations/0001_initial.sql', 'utf-8');
+
+    const freshDb = new DatabaseSync(':memory:');
+    freshDb.exec(sql);
+
+    const tables = (
+      freshDb.prepare("SELECT name FROM sqlite_master WHERE type='table';").all() as {
+        name: string;
+      }[]
+    ).map((r) => r.name);
+    assert.ok(tables.includes('categories'), 'categories table must be created');
+    assert.ok(tables.includes('products'), 'products table must be created');
+    assert.ok(tables.includes('product_variations'), 'product_variations table must be created');
+
+    const indexes = (
+      freshDb.prepare("SELECT name FROM sqlite_master WHERE type='index';").all() as {
+        name: string;
+      }[]
+    ).map((r) => r.name);
+    assert.ok(indexes.includes('idx_products_slug'), 'idx_products_slug must exist');
+    assert.ok(indexes.includes('idx_products_shopify_id'), 'idx_products_shopify_id must exist');
+    assert.ok(
+      indexes.includes('idx_product_variations_sku'),
+      'idx_product_variations_sku must exist'
+    );
+    assert.ok(
+      indexes.includes('idx_product_variations_product_id'),
+      'idx_product_variations_product_id must exist'
+    );
+    assert.ok(indexes.includes('idx_categories_slug'), 'idx_categories_slug must exist');
+  });
+
+  it('should verify wrangler.toml D1 database bindings for staging and production', () => {
+    assert.ok(fs.existsSync('wrangler.toml'), 'wrangler.toml must exist');
+    const wranglerConfig = fs.readFileSync('wrangler.toml', 'utf-8');
+    assert.ok(
+      wranglerConfig.includes('database_name = "chrishop-prod-db"'),
+      'Production database binding chrishop-prod-db must be configured'
+    );
+    assert.ok(
+      wranglerConfig.includes('database_name = "chrishop-staging-db"'),
+      'Staging database binding chrishop-staging-db must be configured'
+    );
+    assert.ok(
+      wranglerConfig.includes('migrations_dir = "migrations"'),
+      'migrations_dir must be configured as migrations'
+    );
+  });
+
+  it('should execute query against local Miniflare D1 emulator without external daemons', () => {
+    const output = execSync(
+      'pnpm exec wrangler d1 execute chrishop-prod-db --local --command "SELECT 1 as test;"',
+      { encoding: 'utf-8' }
+    );
+    assert.ok(
+      output.includes('"test": 1') || output.includes('"test":1'),
+      'Query output must confirm execution against local D1 SQLite state'
     );
   });
 });

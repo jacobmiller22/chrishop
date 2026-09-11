@@ -139,18 +139,28 @@ For the complete guide, see [DEVELOPMENT.md](file:///Users/jacobmiller22/project
 
 ## 5. Local Database Management (Cloudflare D1)
 
-Cloudflare D1 stores local development data in SQLite database files managed under `.wrangler/`.
+Cloudflare D1 stores local development data in SQLite database files managed under `.wrangler/state/v3/d1`.
 
-### 5.1 Execute SQL Queries Locally
+### 5.1 Turnkey Local D1 Setup & Emulation
+
+Run the automated local D1 setup script to apply migrations and verify query indexes:
 
 ```bash
-pnpm exec wrangler d1 execute chrishop-dev-db --local --command "SELECT name FROM sqlite_master WHERE type='table';"
+pnpm run d1:setup
 ```
 
-### 5.2 Apply Database Migrations Locally
+### 5.2 Execute SQL Queries Locally
 
 ```bash
-pnpm exec wrangler d1 migrations apply chrishop-dev-db --local
+pnpm exec wrangler d1 execute chrishop-prod-db --local --command "SELECT name FROM sqlite_master WHERE type='table';"
+```
+
+### 5.3 Apply Database Migrations Locally
+
+```bash
+pnpm run d1:migrate:local
+# Or directly via wrangler:
+pnpm exec wrangler d1 migrations apply chrishop-prod-db --local
 ```
 
 ---

@@ -27,6 +27,8 @@
     "audit:roadmap": "tsx scripts/audit-roadmap.ts",
     "pm:prioritize": "tsx scripts/prioritize-backlog.ts",
     "seed": "tsx scripts/seed-db.ts",
+    "d1:setup": "bash scripts/d1-local-setup.sh",
+    "d1:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:seed": "tsx scripts/seed-db.ts",
     "cf:types": "wrangler types"

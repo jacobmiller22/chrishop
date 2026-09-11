@@ -50,3 +50,4 @@ CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_product_variations_sku ON product_variations(sku);
 CREATE INDEX IF NOT EXISTS idx_product_variations_product_id ON product_variations(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_variations_shopify_id ON product_variations(shopify_variant_id);
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
