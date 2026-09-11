@@ -14,7 +14,7 @@ describe('Cloudflare Platform Provisioning & Wrangler CLI Configuration (Story 2
   const mcpConfigPath = path.join(homeDir, '.gemini/config/mcp_config.json');
   const globalSkillsDir = path.join(homeDir, '.agents/skills');
 
-  it('should verify wrangler.toml declares parameterizable routes for jacobmiller22.com and chrishop.com', () => {
+  it('should verify wrangler.toml declares parameterizable routes for jacobmiller22.com', () => {
     assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist');
     const content = fs.readFileSync(wranglerPath, 'utf-8');
 
@@ -26,16 +26,6 @@ describe('Cloudflare Platform Provisioning & Wrangler CLI Configuration (Story 2
     assert.ok(
       content.includes('pattern = "staging.chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
       'Staging routes must include staging.chrishop.jacobmiller22.com'
-    );
-
-    // Primary domain routes
-    assert.ok(
-      content.includes('pattern = "chrishop.com/*"') && content.includes('zone_name = "chrishop.com"'),
-      'Production routes must include chrishop.com'
-    );
-    assert.ok(
-      content.includes('pattern = "staging.chrishop.com/*"') && content.includes('zone_name = "chrishop.com"'),
-      'Staging routes must include staging.chrishop.com'
     );
   });
 
@@ -74,7 +64,7 @@ describe('Cloudflare Platform Provisioning & Wrangler CLI Configuration (Story 2
     assert.ok(Array.isArray(cors.CORSRules), 'CORSRules must be an array');
     const origins: string[] = cors.CORSRules[0]?.AllowedOrigins || [];
 
-    assert.ok(origins.includes('https://chrishop.com'), 'Must allow https://chrishop.com');
+    assert.ok(origins.includes('https://chrishop.jacobmiller22.com'), 'Must allow https://chrishop.jacobmiller22.com');
     assert.ok(origins.includes('https://shop.jacobmiller22.com'), 'Must allow https://shop.jacobmiller22.com');
     assert.ok(origins.includes('http://localhost:3000'), 'Must allow http://localhost:3000');
   });

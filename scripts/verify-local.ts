@@ -117,15 +117,17 @@ function verifyArchitectureIntegrity() {
 
   // Verify Production and Staging Custom Domain Routes
   if (
-    !wranglerContent.includes('pattern = "chrishop.com/*"') ||
-    !wranglerContent.includes('pattern = "www.chrishop.com/*"')
+    !wranglerContent.includes('pattern = "chrishop.jacobmiller22.com/*"') ||
+    !wranglerContent.includes('zone_name = "jacobmiller22.com"')
   ) {
     throw new Error(
-      'wrangler.toml must configure production routes for chrishop.com/* and www.chrishop.com/*'
+      'wrangler.toml must configure production route for chrishop.jacobmiller22.com/* with zone jacobmiller22.com'
     );
   }
-  if (!wranglerContent.includes('pattern = "staging.chrishop.com/*"')) {
-    throw new Error('wrangler.toml must configure staging route for staging.chrishop.com/*');
+  if (!wranglerContent.includes('pattern = "staging.chrishop.jacobmiller22.com/*"')) {
+    throw new Error(
+      'wrangler.toml must configure staging route for staging.chrishop.jacobmiller22.com/*'
+    );
   }
 
   // 2. HLD zero-legacy references check
@@ -245,7 +247,10 @@ async function main() {
 
   await runStep('3. Monorepo Unit Test Suites (test:unit)', verifyUnitTests);
 
-  await runStep('4. Ephemeral Miniflare Integration (test:integration)', verifyIntegrationTests);
+  await runStep(
+    '4. Local In-Memory Miniflare Integration (test:integration)',
+    verifyIntegrationTests
+  );
 
   await runStep('5. Dependency Security Audit Gate (audit:security)', verifySecurityAudit);
 

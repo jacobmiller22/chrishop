@@ -9,7 +9,12 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'media.chrishop.com',
+        hostname: 'media.chrishop.jacobmiller22.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.jacobmiller22.com',
         pathname: '/**',
       },
       {

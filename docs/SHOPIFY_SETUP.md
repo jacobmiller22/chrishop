@@ -50,7 +50,7 @@ Configure webhook notifications for order processing and Discord announcements:
 2. Create Webhook:
    - **Event**: `Order creation`
    - **Format**: `JSON`
-   - **URL**: `https://chrishop.com/api/webhooks/shopify`
+   - **URL**: `https://chrishop.jacobmiller22.com/api/webhooks/shopify`
    - **Webhook API Version**: Latest stable (`2025-01`)
 3. Copy the **Webhook signing secret** from the bottom of the Webhooks page.
 4. Store as `SHOPIFY_WEBHOOK_SECRET`:

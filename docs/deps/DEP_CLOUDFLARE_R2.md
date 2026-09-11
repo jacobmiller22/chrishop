@@ -36,7 +36,7 @@ R2_BUCKET_NAME="chrishop-media"
 R2_ACCESS_KEY_ID="${CLOUDFLARE_R2_ACCESS_KEY_ID}"
 R2_SECRET_ACCESS_KEY="${CLOUDFLARE_R2_SECRET_ACCESS_KEY}"
 R2_ENDPOINT="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
-NEXT_PUBLIC_R2_PUBLIC_URL="https://media.chrishop.com"
+NEXT_PUBLIC_R2_PUBLIC_URL="https://media.chrishop.jacobmiller22.com"
 ```
 
 ### 2.3 Programmatic SDK Access (`@aws-sdk/client-s3`)
@@ -58,10 +58,10 @@ export const r2Client = new S3Client({
 
 ## 3. Bucket Configurations & Access Policies
 
-| Bucket Name        | Visibility              | CDN Domain                   | Encryption at Rest                      | Purpose                                                         |
-| ------------------ | ----------------------- | ---------------------------- | --------------------------------------- | --------------------------------------------------------------- |
-| `chrishop-media`   | Public Read             | `https://media.chrishop.com` | Server-Side (AES-256)                   | Product gallery images, category hero banners, catalog assets   |
-| `chrishop-backups` | Private (No public URL) | None                         | Client-side `age` + Server-Side AES-256 | Automated D1 database backups and snapshot exports              |
+| Bucket Name        | Visibility              | CDN Domain                                    | Encryption at Rest                      | Purpose                                                         |
+| ------------------ | ----------------------- | --------------------------------------------- | --------------------------------------- | --------------------------------------------------------------- |
+| `chrishop-media`   | Public Read             | `https://media.chrishop.jacobmiller22.com`    | Server-Side (AES-256)                   | Product gallery images, category hero banners, catalog assets   |
+| `chrishop-backups` | Private (No public URL) | None                                          | Client-side `age` + Server-Side AES-256 | Automated D1 database backups and snapshot exports              |
 
 ---
 
@@ -73,11 +73,12 @@ CORS must permit browser asset uploads and cross-origin rendering across product
 [
   {
     "AllowedOrigins": [
-      "https://chrishop.com",
-      "https://admin.chrishop.com",
+      "https://chrishop.jacobmiller22.com",
+      "https://staging.chrishop.jacobmiller22.com",
+      "https://admin.chrishop.jacobmiller22.com",
       "https://shop.jacobmiller22.com",
       "https://admin.shop.jacobmiller22.com",
-      "https://*.preview.chrishop.com",
+      "https://*-chrishop.jacobmiller22.com",
       "https://*.preview.shop.jacobmiller22.com",
       "http://localhost:3000",
       "http://localhost:8055"
@@ -142,7 +143,7 @@ aws --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" \
   s3 cp test.jpg s3://chrishop-media/test.jpg
 
 # Verify public CDN URL resolution
-curl -I https://media.chrishop.com/test.jpg
+curl -I https://media.chrishop.jacobmiller22.com/test.jpg
 
 # Verify backup upload pipeline
 infra/scripts/backup.sh

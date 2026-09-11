@@ -18,7 +18,7 @@ export function getAssetUrl(fileOrKey?: string | { id?: string; url?: string } |
     return key;
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_R2_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://chrishop.com/media').replace(/\/+$/, '');
+  const baseUrl = (process.env.NEXT_PUBLIC_R2_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://media.chrishop.jacobmiller22.com').replace(/\/+$/, '');
   const cleanKey = key.replace(/^\/+/, '');
   return `${baseUrl}/${cleanKey}`;
 }

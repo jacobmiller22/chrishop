@@ -40,7 +40,7 @@ Organize backlog execution into 4 distinct horizons:
 1. **Horizon 1: Immediate Critical Path (Next 24–48 Hours)**: Finishing prerequisites to close the current active milestone.
 2. **Horizon 2: Primary Milestone Convergence**: Resolving external dependencies and staging deployment for the subsequent milestone.
 3. **Horizon 3: End-to-End Delivery**: Feature integrations, transactional webhooks, and full drop dry runs.
-4. **Horizon 4: Pre-Launch Readiness & Live Cutover**: High-concurrency load testing, security audits, and DNS cutover to `chrishop.com`.
+4. **Horizon 4: Pre-Launch Readiness & Live Cutover**: High-concurrency load testing, security audits, and DNS cutover to `chrishop.jacobmiller22.com`.
 
 ### Pillar 5: Milestone Transition & Closeout Gates
 A GitHub milestone CANNOT be closed until:
