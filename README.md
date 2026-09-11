@@ -1,6 +1,6 @@
-# ChrisShop — E-Commerce Drop Platform
+# ChrisShop — Cloudflare-Native Headless Commerce Platform
 
-A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Engineered for high-concurrency drops, dynamic Stripe Checkout, atomic SQL stock locks, and headlessly managed content via Directus CMS.
+A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and **Discord** operational alerts.
 
 ---
 
@@ -8,39 +8,48 @@ A high-performance, resilient monorepo architecture for Chris's limited-edition 
 
 ```mermaid
 graph TD
-    Client["Browser / Mobile Client"] --> Caddy["Caddy Reverse Proxy (Auto-TLS & Cloudflare DNS-01)"]
-    Caddy -->|"shop.jacobmiller22.com"| Web["Next.js 15 App Router (Storefront & API Routes)"]
-    Caddy -->|"admin.shop.jacobmiller22.com"| CMS["Directus 11 Headless CMS"]
+    Client["Browser / Mobile Client"] --> CF["Cloudflare Edge Network (Global Anycast CDN & DDoS Protection)"]
+    CF --> Workers["Next.js 15 Storefront & Edge Routes (Cloudflare Workers via OpenNext)"]
+    
+    subgraph Edge Services ["Cloudflare Edge Ecosystem"]
+        Workers -->|"Edge Relational Queries"| D1[("Cloudflare D1 (SQLite)")]
+        Workers -->|"Edge ISR Cache Handler"| KV[("Cloudflare Workers KV")]
+        Workers -->|"Product Images & Artwork Assets"| R2[("Cloudflare R2 Object Storage")]
+    end
 
-    Web -->|"Cached REST API"| CMS
-    Web -->|"10-Min Pre-Checkout Lock"| Redis[("Redis OSS Cache")]
-    Web -->|"Atomic SQL Inventory (Kysely)"| Postgres[("PostgreSQL 16")]
-    CMS --> Postgres
+    subgraph Content Management ["Embedded CMS"]
+        Workers -->|"Embedded Route /admin"| Payload["Payload CMS v3 (D1 Adapter)"]
+        Payload --> D1
+        Payload --> R2
+    end
 
-    CMS -->|"Asset Uploads / Transforms"| Storage[("MinIO / Cloudflare R2")]
-    Web -->|"Dynamic Checkout"| Stripe["Stripe Checkout API"]
-    Stripe -->|"/api/webhooks/stripe"| Web
+    subgraph Commerce & Fulfillment ["Shopify Headless Commerce"]
+        Workers -->|"Storefront API (GraphQL)"| Shopify["Shopify Storefront API"]
+        Shopify -->|"Hosted High-Scale Checkout"| ShopifyCheckout["Shopify Checkout (PCI SAQ-A)"]
+        ShopifyCheckout -->|"/api/webhooks/shopify"| Workers
+    end
 
-    Web -->|"Order & Low Stock Alerts"| Discord["Discord Webhook Engine"]
-    CMS -->|"Tracking Emails"| Resend["Resend API"]
+    subgraph Notifications & Ops ["Operational Alerting"]
+        Workers -->|"Order Receipts & Tracking Updates"| Resend["Resend Transactional Email"]
+        Workers -->|"Drop Sales & Inventory Alerts"| Discord["Discord Webhook Engine"]
+    end
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer               | Technology                               | Rationale                                                                            |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Monorepo**        | `pnpm` + `Turborepo`                     | Ultra-fast cached builds, isolated workspace packages                                |
-| **Storefront**      | Next.js 15 (App Router, React 19)        | Server components, ISR caching (`revalidate=60`), dynamic metadata                   |
-| **Styling & UI**    | Tailwind CSS v4 + Radix UI Primitives    | Accessible (WCAG 2.1 AA compliant), unstyled primitives with high aesthetic finish   |
-| **CMS**             | Directus 11 (Headless Node.js CMS)       | Flexible relational content modeling, revision history, granular RBAC & TOTP 2FA     |
-| **Database**        | PostgreSQL 16 + Kysely                   | ACID transactions for atomic stock decrement, strict foreign keys                    |
-| **Caching & Locks** | Redis 7 OSS (AOF persistence)            | 10-minute pre-checkout stock reservations to prevent overselling                     |
-| **Payments**        | Stripe Checkout (dynamic `price_data`)   | Zero-catalog sync, SAQ-A PCI compliance, automatic tax calculation                   |
-| **Object Storage**  | MinIO (Dev) / Cloudflare R2 (Prod)       | S3-compatible API, zero egress bandwidth costs                                       |
-| **Notifications**   | Pluggable Provider (`Discord`, `Resend`) | Extensible alert engine for orders, low-stock, and tracking notifications            |
-| **Hosting & Proxy** | Hetzner Cloud VPS + Caddy 2              | Wildcard TLS certificates via Cloudflare DNS-01 challenge, Docker Compose deployment |
+| Layer | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Monorepo** | `pnpm` + `Turborepo` | Cached builds, strict dependency boundaries, fast CI/CD pipelines |
+| **Storefront & Edge** | Next.js 15 (App Router, React 19) on Cloudflare Workers | Sub-millisecond global cold starts, edge rendering, zero container management |
+| **Content Management** | Payload CMS v3 | Embedded TypeScript CMS at `/admin`, native SQLite/D1 database adapter |
+| **Edge Database** | Cloudflare D1 (SQLite) | Distributed SQL at the edge, ACID transactions, sub-5ms read latency |
+| **Edge Caching** | Cloudflare Workers KV | Ultra-fast key-value store for Next.js incremental static revalidation (ISR) |
+| **Object Storage** | Cloudflare R2 | High-speed S3-compatible media storage with zero egress bandwidth fees |
+| **Commerce & Checkout** | Shopify Headless | Battle-tested inventory reservation, PCI SAQ-A compliance, multi-currency checkout |
+| **Styling & UI** | Tailwind CSS v4 + Radix UI Primitives (`@chrishop/ui`) | WCAG 2.1 AA accessible, unstyled primitives with high aesthetic finish |
+| **Notifications** | Resend & Discord (`@chrishop/notifications`) | Pluggable providers for customer email delivery and real-time operational ops |
 
 ---
 
@@ -49,25 +58,22 @@ graph TD
 ```text
 chrishop/
 ├── apps/
-│   ├── web/                    # Next.js App Router storefront & API routes (/api/checkout, /api/webhooks/stripe, /api/health)
-│   └── cms/                    # Directus custom hooks, extensions, snapshots & seed scripts
+│   └── web/                    # Next.js 15 App Router storefront & embedded Payload CMS v3 (/admin)
 ├── packages/
-│   ├── config/                 # Shared tsconfig, ESLint, and Prettier configurations
-│   ├── notifications/          # Pluggable Notification Engine (Discord Webhook Provider, Console fallback)
+│   ├── config/                 # Shared tsconfig, ESLint, Prettier, and environment variable schemas
+│   ├── notifications/          # Pluggable Notification Engine (Discord Webhooks, Resend Email)
 │   ├── types/                  # Canonical TypeScript domain interfaces (Product, Variation, Order, etc.)
 │   └── ui/                     # Accessible component library (Tailwind CSS v4 + Radix UI)
-├── infra/
-│   ├── caddy/                  # Caddyfile & xcaddy Dockerfile with Cloudflare DNS plugin
-│   ├── directus/               # Schema snapshot version-controlled backup
-│   ├── docker/                 # docker-compose configurations (dev, staging, preview, prod)
-│   ├── scripts/                # Backup, restore, and branch protection automation
-│   └── vps/                    # Hetzner Cloud provisioning (cloud-init, Ansible playbook)
+├── migrations/
+│   └── 0001_initial.sql        # Canonical D1 / SQLite schema migrations
+├── scripts/
+│   ├── seed-db.ts              # Local database seeder (categories, products, variations)
+│   └── verify-local.ts         # Pre-PR local verification pipeline
 ├── docs/
 │   ├── HIGH_LEVEL_DESIGN.md    # Master architectural specification
-│   ├── LOCAL_DEVELOPMENT.md    # Step-by-step local development workflow
+│   ├── PROJECT_SETUP.md        # GitHub milestones, labels, and board workflows
 │   └── deps/                   # External dependency specifications (DEP_*.md)
-├── .github/
-│   └── workflows/              # CI/CD pipelines (Lint, Test, Deploy, Previews, Rollback)
+├── wrangler.toml               # Cloudflare Workers environment bindings (D1, KV, R2, routes)
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
@@ -78,9 +84,9 @@ chrishop/
 
 ### 1. Prerequisites
 
-- Node.js 20+ and `pnpm` 9+
-- Docker Engine 24+ and Docker Compose v2+
-- Git 2.43+
+- **Node.js**: `v20.x` or higher
+- **pnpm**: `v9.x` or higher (`corepack enable && pnpm --version`)
+- **Cloudflare Wrangler CLI**: Installed locally via workspace dev dependencies
 
 ### 2. Environment Setup
 
@@ -94,15 +100,13 @@ pnpm install
 
 # Copy environment variables template
 cp .env.example .env
+cp .env.example apps/web/.dev.vars
 ```
 
-### 3. Start Local Infrastructure
+### 3. Seed Local Database
 
 ```bash
-# Boot Postgres, Redis, MinIO, and Directus
-docker compose -f infra/docker/docker-compose.dev.yml up -d
-
-# Seed the database with sample products, categories, and test orders
+# Seed local SQLite / D1 database with sample categories, products, and variations
 pnpm seed
 ```
 
@@ -114,19 +118,37 @@ pnpm dev
 ```
 
 - **Storefront**: [http://localhost:3000](http://localhost:3000)
-- **Directus Admin**: [http://localhost:8055](http://localhost:8055) (`admin@chrishop.com` / `admin12345`)
-- **MinIO Console**: [http://localhost:9001](http://localhost:9001) (`minioadmin` / `minioadmin`)
+- **Payload CMS Admin**: [http://localhost:3000/admin](http://localhost:3000/admin)
+- **Health Check**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
 For full local development, testing, and troubleshooting instructions, see [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md).
 
 ---
 
+## Verification & Testing
+
+```bash
+# Run monorepo typecheck
+pnpm run check
+
+# Run unit tests across all packages
+pnpm run test:unit
+
+# Run integration tests (D1, R2, Shopify client, Payload CMS, Wrangler)
+pnpm run test:integration
+
+# Run full pre-PR verification pipeline
+pnpm run verify:local
+```
+
+---
+
 ## Documentation Directory
 
-- [High Level Design](docs/HIGH_LEVEL_DESIGN.md) — Comprehensive architecture and security specifications
-- [Local Development Guide](LOCAL_DEVELOPMENT.md) — Environment setup, commands, and troubleshooting
-- [Project Setup & Issue Management](docs/PROJECT_SETUP.md) — GitHub Milestones, Labels, and Board workflows
-- [External Dependencies](docs/deps/) — Technical specifications for Hetzner, Directus, Stripe, Cloudflare, etc.
+- [High Level Design](docs/HIGH_LEVEL_DESIGN.md) — Architectural invariants and system decisions
+- [Local Development Guide](LOCAL_DEVELOPMENT.md) — Local environment setup and workflows
+- [Project Setup & Issue Management](docs/PROJECT_SETUP.md) — Delivery phases and story specifications
+- [External Dependencies](docs/deps/README.md) — Technical specifications for Cloudflare, Shopify, Resend, Discord
 
 ---
 

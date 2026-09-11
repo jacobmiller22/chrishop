@@ -19,9 +19,9 @@ export interface Product {
   description?: string;
   base_price: number;
   status: ProductStatus;
-  /** High-resolution hero/banner image URL or Directus file ID */
+  /** High-resolution hero/banner image URL or Cloudflare R2 asset key */
   hero_image?: string;
-  /** Primary catalog thumbnail / card preview image URL or Directus file ID */
+  /** Primary catalog thumbnail / card preview image URL or Cloudflare R2 asset key */
   featured_image?: string;
   gallery?: string[];
   category_id?: string;
@@ -60,8 +60,9 @@ export type ShippingStatus = 'unfulfilled' | 'shipped' | 'delivered';
 
 export interface Order {
   id: string;
-  stripe_checkout_session_id?: string;
-  stripe_payment_intent_id?: string;
+  shopify_order_id?: string;
+  shopify_order_number?: string;
+  shopify_checkout_url?: string;
   customer_email: string;
   customer_name?: string;
   shipping_name: string;
@@ -78,6 +79,7 @@ export interface Order {
   amount_tax?: number;
   amount_shipping?: number;
   amount_total: number;
+  currency?: string;
   created_at?: string;
 }
 
@@ -85,13 +87,12 @@ export interface OrderItem {
   id: string;
   order_id: string;
   variation_id: string;
-  /** Directus database foreign key alias */
-  product_variation_id?: string;
+  shopify_variant_id?: string;
   unit_price: number;
   quantity: number;
 }
 
-export interface ProcessedStripeEvent {
+export interface ProcessedShopifyEvent {
   id: string;
   event_type: string;
   processed_at: string;

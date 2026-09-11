@@ -20,6 +20,7 @@ PHASE_ORDER = {
 }
 
 PRIORITY_ORDER = {
+    'priority:critical': 0,
     'priority:high': 1,
     'priority:medium': 2,
     'priority:low': 3,
@@ -67,24 +68,26 @@ def is_shovel_ready(issue, closed_numbers):
 def rank_key(issue):
     labels = [l['name'] for l in issue.get('labels', [])]
     
-    # Phase rank (1 to 6, default 99)
+    # Priority rank (0 to 3, default 99) - PRIMARY SORT
+    prio_rank = 99
+    for l in labels:
+        if l in PRIORITY_ORDER:
+            prio_rank = min(prio_rank, PRIORITY_ORDER[l])
+
+    # Phase rank (1 to 6, default 99) - SECONDARY SORT
     phase_rank = 99
     for l in labels:
         if l in PHASE_ORDER:
             phase_rank = min(phase_rank, PHASE_ORDER[l])
             
-    # Priority rank (1 to 3, default 99)
-    prio_rank = 99
-    for l in labels:
-        if l in PRIORITY_ORDER:
-            prio_rank = min(prio_rank, PRIORITY_ORDER[l])
-            
-    return (phase_rank, prio_rank, issue['number'])
+    return (prio_rank, phase_rank, issue['number'])
 
 def main():
     parser = argparse.ArgumentParser(description="Find shovel-ready ChrisShop stories")
     parser.add_argument("--repo", default="jacobmiller22/chrishop", help="Target repository")
     parser.add_argument("--limit", type=int, default=4, help="Maximum candidates to return (default: 4)")
+    parser.add_argument("--min-priority", choices=['critical', 'high', 'medium', 'low'], default=None,
+                        help="Filter candidates to minimum priority level")
     parser.add_argument("--json", action="store_true", help="Output raw JSON array")
     args = parser.parse_args()
 
@@ -96,6 +99,12 @@ def main():
     for issue in open_issues:
         ready, reason = is_shovel_ready(issue, closed_numbers)
         if ready:
+            if args.min_priority:
+                max_rank = PRIORITY_ORDER[f'priority:{args.min_priority}']
+                labels = [l['name'] for l in issue.get('labels', [])]
+                issue_prio = min([PRIORITY_ORDER[l] for l in labels if l in PRIORITY_ORDER] or [99])
+                if issue_prio > max_rank:
+                    continue
             candidates.append(issue)
         else:
             skipped.append((issue['number'], issue['title'], reason))

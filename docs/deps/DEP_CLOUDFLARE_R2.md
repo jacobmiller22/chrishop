@@ -27,20 +27,16 @@ CLOUDFLARE_R2_SECRET_ACCESS_KEY="<r2-secret-access-key>"
 CLOUDFLARE_R2_ENDPOINT="https://<cloudflare-account-id>.r2.cloudflarestorage.com"
 ```
 
-### 2.2 Directus Storage Driver Integration
+### 2.2 Payload CMS & Cloudflare Workers Storage Integration
 
-Directus connects to R2 using its native S3 driver:
+Payload CMS connects to R2 using `@payloadcms/storage-s3` or native Cloudflare Workers R2 bucket bindings (`env.BUCKET`):
 
 ```env
-STORAGE_LOCATIONS="r2"
-STORAGE_R2_DRIVER="s3"
-STORAGE_R2_KEY="${CLOUDFLARE_R2_ACCESS_KEY_ID}"
-STORAGE_R2_SECRET="${CLOUDFLARE_R2_SECRET_ACCESS_KEY}"
-STORAGE_R2_BUCKET="chrishop-media"
-STORAGE_R2_REGION="auto"
-STORAGE_R2_ENDPOINT="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
-STORAGE_R2_PUBLIC_URL="https://media.chrishop.com"
-STORAGE_R2_FORCE_PATH_STYLE=false
+R2_BUCKET_NAME="chrishop-media"
+R2_ACCESS_KEY_ID="${CLOUDFLARE_R2_ACCESS_KEY_ID}"
+R2_SECRET_ACCESS_KEY="${CLOUDFLARE_R2_SECRET_ACCESS_KEY}"
+R2_ENDPOINT="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+NEXT_PUBLIC_R2_PUBLIC_URL="https://media.chrishop.com"
 ```
 
 ### 2.3 Programmatic SDK Access (`@aws-sdk/client-s3`)
@@ -64,8 +60,8 @@ export const r2Client = new S3Client({
 
 | Bucket Name        | Visibility              | CDN Domain                   | Encryption at Rest                      | Purpose                                                         |
 | ------------------ | ----------------------- | ---------------------------- | --------------------------------------- | --------------------------------------------------------------- |
-| `chrishop-media`   | Public Read             | `https://media.chrishop.com` | Server-Side (AES-256)                   | Product gallery images, category hero banners, Directus assets  |
-| `chrishop-backups` | Private (No public URL) | None                         | Client-side `age` + Server-Side AES-256 | Automated daily, weekly, and monthly PostgreSQL encrypted dumps |
+| `chrishop-media`   | Public Read             | `https://media.chrishop.com` | Server-Side (AES-256)                   | Product gallery images, category hero banners, catalog assets   |
+| `chrishop-backups` | Private (No public URL) | None                         | Client-side `age` + Server-Side AES-256 | Automated D1 database backups and snapshot exports              |
 
 ---
 

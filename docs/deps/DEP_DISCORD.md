@@ -22,7 +22,7 @@ Notifications are segregated into two distinct Discord channels:
 
 | Channel         | Triggering Event                                       | Embed Color                      | Urgency / Action                     |
 | --------------- | ------------------------------------------------------ | -------------------------------- | ------------------------------------ |
-| `#store-orders` | Stripe Payment Complete (`checkout.session.completed`) | Green (`0x2ECC71` / `3066993`)   | Order packing & fulfillment prep     |
+| `#store-orders` | Shopify Order Placed (`orders/create` webhook) | Green (`0x2ECC71` / `3066993`)   | Order packing & fulfillment prep     |
 | `#store-orders` | Low Stock Warning (`stock_quantity <= 3`)              | Yellow (`0xF1C40F` / `15844367`) | Stock monitoring & drop wrap-up      |
 | `#store-orders` | Drop Sold Out (`stock_quantity == 0`)                  | Orange (`0xE67E22` / `15105570`) | Verify sold-out banner on storefront |
 | `#dev-alerts`   | Health Check Failure (`/api/health` status $\ne 200$)  | Red (`0xE74C3C` / `15158332`)    | Immediate on-call inspection         |
@@ -42,7 +42,7 @@ Payloads sent to Discord use the standard Rich Embed schema:
   "embeds": [
     {
       "title": "🛒 New Order #1042",
-      "description": "Payment successfully captured via Stripe Checkout.",
+      "description": "Order successfully placed via Shopify Headless Checkout.",
       "color": 3066993,
       "fields": [
         {
@@ -68,7 +68,7 @@ Payloads sent to Discord use the standard Rich Embed schema:
       ],
       "timestamp": "2026-09-10T17:00:00.000Z",
       "footer": {
-        "text": "ChrisShop Order Management • Directus Admin: admin.shop.jacobmiller22.com"
+        "text": "ChrisShop Order Management"
       }
     }
   ]

@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Badge, Button } from '@chrishop/ui';
-import type { StorefrontProduct, StorefrontVariation } from '@/lib/directus';
-import { getAssetUrl } from '@/lib/directus';
+import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
+import { getAssetUrl } from '@/lib/assets';
+import { shopify } from '@/lib/shopify';
 
 interface ProductDetailClientProps {
   product: StorefrontProduct;
@@ -51,6 +52,33 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const isComingSoon = selectedVariation?.status === 'coming_soon';
   const isAvailable = !isSoldOut && !isComingSoon;
 
+  const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const handleCheckout = async () => {
+    if (!selectedVariation || !isAvailable) return;
+    try {
+      setIsCheckingOut(true);
+      setCheckoutError(null);
+      const variantId =
+        selectedVariation.shopify_variant_id ||
+        `gid://shopify/ProductVariant/${selectedVariation.id}`;
+      const res = await shopify.createCart(variantId, 1);
+      const checkoutUrl = res.data?.cartCreate?.cart?.checkoutUrl;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        const errorMsg =
+          res.data?.cartCreate?.userErrors?.[0]?.message || 'Checkout is currently unavailable';
+        setCheckoutError(errorMsg);
+        setIsCheckingOut(false);
+      }
+    } catch (err: any) {
+      setCheckoutError(err?.message || 'Failed to initialize checkout');
+      setIsCheckingOut(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Breadcrumb Navigation */}
@@ -96,7 +124,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </span>
                 <div className="space-y-1">
                   <p className="text-sm font-mono text-amber-400">Archival Edition Preview</p>
-                  <p className="text-xs text-slate-500">Served via Directus CMS / MinIO S3</p>
+                  <p className="text-xs text-slate-500">Served via Cloudflare R2 Storage</p>
                 </div>
               </div>
             )}
@@ -165,7 +193,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 Limited Edition Drop
               </Badge>
               <Badge variant="neutral" className="text-xs font-mono">
-                Directus CMS
+                Payload CMS
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100">
@@ -292,14 +320,21 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               variant="primary"
               size="lg"
               className="w-full font-bold shadow-lg shadow-amber-500/20 py-3.5 text-base"
-              disabled={!isAvailable}
+              disabled={!isAvailable || isCheckingOut}
+              onClick={handleCheckout}
             >
-              {isSoldOut
-                ? 'Edition Sold Out'
-                : isComingSoon
-                  ? 'Releases Soon'
-                  : `Reserve Edition • $${Number(currentPrice).toFixed(2)}`}
+              {isCheckingOut
+                ? 'Preparing Checkout...'
+                : isSoldOut
+                  ? 'Edition Sold Out'
+                  : isComingSoon
+                    ? 'Releases Soon'
+                    : `Reserve Edition • $${Number(currentPrice).toFixed(2)}`}
             </Button>
+
+            {checkoutError && (
+              <p className="text-xs text-rose-400 font-mono text-center">{checkoutError}</p>
+            )}
 
             <Link href="/products" className="block">
               <Button variant="outline" size="md" className="w-full">
@@ -310,7 +345,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
           {/* CMS Integration Technical Footnote */}
           <div className="pt-4 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono space-y-1">
-            <p>Directus Collection: products & product_variations</p>
+            <p>Payload CMS Collection: products & product_variations</p>
             <p>Product ID: {product.id}</p>
             <p>Selected Variation ID: {selectedVariation?.id || 'none'}</p>
           </div>

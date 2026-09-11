@@ -16,7 +16,6 @@
     "@chrishop/notifications": "workspace:*",
     "@chrishop/types": "workspace:*",
     "@chrishop/ui": "workspace:*",
-    "@directus/sdk": "^25.0.1",
     "@payloadcms/db-d1-sqlite": "^3.89.0",
     "@payloadcms/next": "^3.89.0",
     "@payloadcms/richtext-lexical": "^3.89.0",

@@ -48,8 +48,7 @@ gh pr list
 
 Compare the repository state against `docs/HIGH_LEVEL_DESIGN.md` and `docs/deps/`:
 
-- **Storefront**: `apps/web` (Next.js App Router, routes, components)
-- **CMS**: `apps/cms` (Payload CMS v3 collections, hooks, access control)
+- **Storefront & CMS**: `apps/web` (Next.js App Router, routes, components, and embedded Payload CMS v3 at `/admin`)
 - **Packages**: `packages/types`, `packages/ui`, `packages/notifications`
 - **Cloudflare Edge**: `wrangler.toml`, `migrations/`, edge routes
 - **Integration Tests**: `tests/integration/` (in-memory D1, Workers KV, Shopify client)
@@ -71,7 +70,8 @@ Review each phase against the following failure modes:
 
 When updating or creating issues:
 
-- Use standard labels: `epic:phase-X`, `type:feature` / `type:infra` / `type:bug`, `priority:high` / `priority:medium` / `priority:low`, `size:small` / `size:medium` / `size:large`.
+- **Mandatory Priority Labeling**: Every story **MUST** have an explicit priority label (`priority:critical`, `priority:high`, `priority:medium`, `priority:low`). Stories lacking priority cannot be dispatched.
+- Use standard labels: `epic:phase-X`, `type:feature` / `type:infra` / `type:bug`, `size:small` / `size:medium` / `size:large`.
 - Clearly document dependencies in the issue body:
   ```markdown
   ### Dependencies
@@ -81,7 +81,17 @@ When updating or creating issues:
   ```
 - Detail acceptance criteria with explicit file paths and verification commands (`pnpm run check`, `pnpm run build`).
 
-### Step 5: Report Findings & Escalate Decisions
+### Step 5: Execute Adversarial Roadmap Audit
+
+Execute the automated roadmap and milestone integrity check:
+
+```bash
+pnpm run audit:roadmap
+```
+
+Verify that zero legacy architectural keywords exist in milestone descriptions, all issues have assigned milestones, and no completed stories remain open.
+
+### Step 6: Report Findings & Escalate Decisions
 
 Compile a structured Grooming & Refinement Report containing:
 

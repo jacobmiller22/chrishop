@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
-import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/directus';
+import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
 
 export const revalidate = 60;
 
@@ -48,7 +48,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
             </p>
           </div>
           <Badge variant="info" className="self-start md:self-auto py-1 px-3 text-xs">
-            Live Directus CMS Synced
+            Payload CMS & SQLite
           </Badge>
         </div>
 

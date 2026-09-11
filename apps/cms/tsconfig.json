@@ -1,8 +1,0 @@
-{
-  "extends": "@chrishop/config/tsconfig.node.json",
-  "compilerOptions": {
-    "declaration": false
-  },
-  "include": ["src/**/*", "scripts/**/*", "tests/**/*", "extensions/**/*.ts"],
-  "exclude": ["node_modules", "extensions/**/dist"]
-}

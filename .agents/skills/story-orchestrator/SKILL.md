@@ -48,13 +48,18 @@ When invoked, the Orchestrator MUST identify the top 3–5 shovel-ready stories 
 - Are **OPEN** and do **NOT** have `status:in-progress`, `blocked`, `needs-refinement`, or `creator-review` labels.
 - Have zero unresolved blockers in their `Dependencies` section (all prerequisites must be `CLOSED` on GitHub).
 - Have no active assignees.
+- **Are prioritized by Priority Tier first**: `priority:critical` (P0) > `priority:high` (P1) > `priority:medium` (P2) > `priority:low` (P3). Stories without priority labels are deprioritized until groomed.
 
 ### 2.1 Execution via Helper Script
 
-Run the automated discovery script:
+Run the automated priority-first discovery script:
 
 ```bash
+# Discover top candidates prioritized by criticality and phase
 python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4
+
+# Target only critical/high priority stories
+python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4 --min-priority high
 ```
 
 To output raw JSON for programmatic subagent prompt generation:

@@ -113,18 +113,27 @@ RESEND_API_KEY=mock_resend_api_key
 pnpm install
 ```
 
-### 4.2 Start Development Server
+### 4.2 Start Unified Development Server
 
 ```bash
 pnpm run dev
 ```
 
-This single command:
+This single orchestrator command:
 
-1. Spawns Turborepo to watch packages.
-2. Initializes Miniflare with local SQLite D1 bindings and KV storage.
-3. Serves the Next.js Storefront at `http://localhost:3000`.
-4. Serves Payload CMS Admin at `http://localhost:3000/admin`.
+1. Runs pre-flight checks: generates Cloudflare types (`wrangler types`), ensures local D1 SQLite state exists, and compiles the edge worker stub.
+2. Serves the Next.js Storefront at `http://localhost:3000`.
+3. Serves Payload CMS Admin at `http://localhost:3000/admin`.
+4. Spawns Cloudflare Wrangler & Miniflare edge runtime at `http://localhost:8787` with local D1, KV, and R2 bindings.
+5. Manages clean shutdown of all child processes on `SIGINT` (Ctrl+C) or `SIGTERM`.
+
+#### Granular Dev Commands
+- `pnpm run dev:web`: Run only the Next.js storefront & Payload CMS server.
+- `pnpm run dev:wrangler`: Run only the Cloudflare Wrangler emulator.
+- `pnpm run dev:types`: Refresh Cloudflare binding types (`worker-configuration.d.ts`).
+- `pnpm run dev:db`: Seed local D1 database with sample products and categories.
+
+For the complete guide, see [DEVELOPMENT.md](file:///Users/jacobmiller22/projects/chrishop/DEVELOPMENT.md).
 
 ---
 
@@ -178,9 +187,13 @@ pnpm run test:integration
 # 4. Run All Tests
 pnpm run test:all
 
-# 5. Production Build Validation
+# 5. Production Build Validation (All Workspaces & Cloudflare Worker)
 pnpm run build
+# Or explicitly build only apps or only worker bundle:
+pnpm run build:apps
+pnpm run build:worker
+pnpm run build:prod
 
-# 6. Turnkey Pre-PR Verification Pipeline (All 6 Stages)
+# 6. Turnkey Pre-PR Verification Pipeline (All 7 Stages)
 pnpm run verify:local
 ```

@@ -3,8 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
+    "build": "turbo run build && tsx scripts/build-worker.ts",
+    "build:apps": "turbo run build",
+    "build:worker": "tsx scripts/build-worker.ts",
+    "build:prod": "turbo run build && tsx scripts/build-worker.ts",
+    "dev": "tsx scripts/dev.ts",
+    "dev:web": "turbo run dev",
+    "dev:wrangler": "wrangler dev --port 8787",
+    "dev:types": "wrangler types",
+    "dev:db": "tsx scripts/seed-db.ts",
     "check": "turbo run check",
     "test": "turbo run test",
     "test:unit": "turbo run test && tsx --test tests/integration/dependency-control.test.ts",
@@ -17,12 +24,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "audit:security": "pnpm audit --audit-level=high",
-    "seed": "pnpm --filter cms seed"
-  },
-  "pnpm": {
-    "overrides": {
-      "sharp": "0.33.5"
-    }
+    "audit:roadmap": "tsx scripts/audit-roadmap.ts",
+    "seed": "tsx scripts/seed-db.ts",
+    "db:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
+    "db:seed": "tsx scripts/seed-db.ts",
+    "cf:types": "wrangler types"
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",

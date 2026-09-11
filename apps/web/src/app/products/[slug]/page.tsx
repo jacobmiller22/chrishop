@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { fetchProductBySlug, getProducts } from '@/lib/directus';
+import { fetchProductBySlug, getProducts } from '@/lib/catalog';
 import ProductDetailClient from './ProductDetailClient';
 
 export const revalidate = 60;

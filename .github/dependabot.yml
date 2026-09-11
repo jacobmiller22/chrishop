@@ -27,17 +27,6 @@ updates:
       - "dependencies"
       - "security"
 
-  # Content Management System (Payload CMS v3 / Directus)
-  - package-ecosystem: "npm"
-    directory: "/apps/cms"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "security"
-
   # Shared Configuration Package
   - package-ecosystem: "npm"
     directory: "/packages/config"

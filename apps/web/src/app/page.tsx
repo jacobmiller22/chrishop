@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
-import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/directus';
+import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 
 export const revalidate = 60;
 
@@ -28,7 +28,7 @@ export default async function HomePage() {
       <section className="text-center py-12 space-y-4">
         <div className="flex items-center justify-center gap-2">
           <Badge variant="warning">🔥 Next Drop Live Now</Badge>
-          <Badge variant="info">Directus CMS Synced</Badge>
+          <Badge variant="info">Payload CMS & SQLite</Badge>
         </div>
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent">
           Exclusive Art & Physical Collectibles
@@ -57,7 +57,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Showcase (Live from Directus CMS) */}
+      {/* Featured Showcase (Live from Payload CMS) */}
       {featuredProduct && (
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -92,7 +92,7 @@ export default async function HomePage() {
                   <span className="text-7xl">✨</span>
                   <p className="text-sm font-mono text-amber-400/80">Interactive Edition Preview</p>
                   <p className="text-xs text-slate-500 font-mono">
-                    Directus CMS: {featuredProduct.category?.name || 'Sculptures'}
+                    Payload CMS: {featuredProduct.category?.name || 'Sculptures'}
                   </p>
                 </div>
               )}

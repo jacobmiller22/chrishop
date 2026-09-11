@@ -80,7 +80,6 @@ describe('CI Security & Dependency Vulnerability Audit (Story 5.4)', () => {
     const requiredNpmWorkspaces = [
       '/',
       '/apps/web',
-      '/apps/cms',
       '/packages/config',
       '/packages/notifications',
       '/packages/types',
