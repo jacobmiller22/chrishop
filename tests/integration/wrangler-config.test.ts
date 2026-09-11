@@ -22,6 +22,10 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.match(content, /main\s*=\s*"\.open-next\/worker\.js"/, 'Main entrypoint must be .open-next/worker.js');
     assert.match(content, /compatibility_date\s*=\s*"2024-09-23"/, 'Compatibility date must be set');
     assert.ok(content.includes('"nodejs_compat"'), 'Compatibility flags must include nodejs_compat');
+    assert.ok(
+      content.includes('assets = { directory = ".open-next/assets", binding = "ASSETS" }'),
+      'Production must declare assets binding ASSETS'
+    );
 
     // Production Custom Domain Routes
     assert.ok(
@@ -47,7 +51,9 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Production Vars
     assert.match(content, /NODE_ENV\s*=\s*"production"/, 'NODE_ENV must be production');
+    assert.match(content, /SITE_URL\s*=\s*"https:\/\/chrishop\.jacobmiller22\.com"/, 'SITE_URL must be chrishop.jacobmiller22.com');
     assert.match(content, /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/chrishop\.jacobmiller22\.com"/, 'NEXT_PUBLIC_SITE_URL must be chrishop.jacobmiller22.com');
+    assert.match(content, /CMS_URL\s*=\s*"https:\/\/chrishop\.jacobmiller22\.com"/, 'CMS_URL must be chrishop.jacobmiller22.com');
   });
 
   it('should verify staging environment configuration, bindings, and routes', () => {
@@ -56,11 +62,20 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     // Staging block
     assert.ok(content.includes('[env.staging]'), 'Must declare [env.staging]');
     assert.match(content, /name\s*=\s*"chrishop-staging"/, 'Staging worker name must be chrishop-staging');
-
-    // Staging Custom Domain Routes
     assert.ok(
-      content.includes('pattern = "staging.chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
-      'Staging route staging.chrishop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
+      content.includes('[env.staging]\nname = "chrishop-staging"\nassets = { directory = ".open-next/assets", binding = "ASSETS" }') ||
+      (content.includes('[env.staging]') && content.includes('assets = { directory = ".open-next/assets", binding = "ASSETS" }')),
+      'Staging must configure assets binding'
+    );
+
+    // Staging Custom Domain Routes (2-tier subdomains)
+    assert.ok(
+      content.includes('pattern = "staging-chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Staging route staging-chrishop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
+    );
+    assert.ok(
+      content.includes('pattern = "staging-shop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Staging route staging-shop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
     );
 
     // Staging D1, KV, R2 Bindings
@@ -76,8 +91,13 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.match(content, /NODE_ENV\s*=\s*"staging"/, 'Staging NODE_ENV must be staging');
     assert.match(
       content,
-      /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/staging\.chrishop\.jacobmiller22\.com"/,
-      'Staging NEXT_PUBLIC_SITE_URL must be staging.chrishop.jacobmiller22.com'
+      /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/staging-chrishop\.jacobmiller22\.com"/,
+      'Staging NEXT_PUBLIC_SITE_URL must be staging-chrishop.jacobmiller22.com'
+    );
+    assert.match(
+      content,
+      /SITE_URL\s*=\s*"https:\/\/staging-chrishop\.jacobmiller22\.com"/,
+      'Staging SITE_URL must be staging-chrishop.jacobmiller22.com'
     );
   });
 

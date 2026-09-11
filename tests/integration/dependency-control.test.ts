@@ -240,13 +240,14 @@ describe('Dependency Control Integration Test Suite (DEP_*)', () => {
       // Check AllowedOrigins
       const origins = rule.AllowedOrigins;
       assert.ok(origins.includes('https://chrishop.jacobmiller22.com'));
-      assert.ok(origins.includes('https://staging.chrishop.jacobmiller22.com'));
-      assert.ok(origins.includes('https://admin.chrishop.jacobmiller22.com'));
+      assert.ok(origins.includes('https://staging-chrishop.jacobmiller22.com'));
+      assert.ok(origins.includes('https://admin-chrishop.jacobmiller22.com'));
       assert.ok(origins.includes('https://shop.jacobmiller22.com'));
+      assert.ok(origins.includes('https://staging-shop.jacobmiller22.com'));
+      assert.ok(origins.includes('https://admin-shop.jacobmiller22.com'));
       assert.ok(origins.includes('http://localhost:3000'));
       assert.ok(origins.includes('http://localhost:8055'));
       assert.ok(origins.some((o: string) => o.includes('*-chrishop.jacobmiller22.com')));
-      assert.ok(origins.some((o: string) => o.includes('preview.shop.jacobmiller22.com')));
 
       // Check ExposeHeaders and MaxAgeSeconds
       assert.ok(rule.ExposeHeaders.includes('ETag'));
@@ -273,7 +274,8 @@ describe('Dependency Control Integration Test Suite (DEP_*)', () => {
 
       // Valid requests
       assert.equal(evaluateCorsPreflight('https://chrishop.jacobmiller22.com', 'GET'), true);
-      assert.equal(evaluateCorsPreflight('https://admin.chrishop.jacobmiller22.com', 'PUT'), true);
+      assert.equal(evaluateCorsPreflight('https://admin-chrishop.jacobmiller22.com', 'PUT'), true);
+      assert.equal(evaluateCorsPreflight('https://staging-chrishop.jacobmiller22.com', 'GET'), true);
       assert.equal(evaluateCorsPreflight('https://pr-42-chrishop.jacobmiller22.com', 'GET'), true);
       assert.equal(evaluateCorsPreflight('http://localhost:3000', 'POST'), true);
 

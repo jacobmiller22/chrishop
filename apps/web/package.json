@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:opennext": "opennextjs-cloudflare build",
     "start": "next start",
     "lint": "next lint",
     "check": "tsc --noEmit",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@img/sharp-darwin-arm64": "^0.35.4",
     "@next/env": "^15.5.25",
+    "@opennextjs/cloudflare": "^1.20.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",

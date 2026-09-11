@@ -3,6 +3,7 @@ name = "chrishop"
 main = ".open-next/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 # Production Custom Domain Routes
 routes = [
@@ -29,15 +30,18 @@ bucket_name = "chrishop-media-prod"
 
 [vars]
 NODE_ENV = "production"
+SITE_URL = "https://chrishop.jacobmiller22.com"
 NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+CMS_URL = "https://chrishop.jacobmiller22.com"
 PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
 
 # Staging Environment Configuration
 [env.staging]
 name = "chrishop-staging"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
 routes = [
-  { pattern = "staging.chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
+  { pattern = "staging-chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "staging-shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 
 [[env.staging.d1_databases]]
@@ -56,12 +60,15 @@ bucket_name = "chrishop-media-staging"
 
 [env.staging.vars]
 NODE_ENV = "staging"
-NEXT_PUBLIC_SITE_URL = "https://staging.chrishop.jacobmiller22.com"
-PAYLOAD_PUBLIC_SERVER_URL = "https://staging.chrishop.jacobmiller22.com"
+SITE_URL = "https://staging-chrishop.jacobmiller22.com"
+NEXT_PUBLIC_SITE_URL = "https://staging-chrishop.jacobmiller22.com"
+CMS_URL = "https://staging-chrishop.jacobmiller22.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://staging-chrishop.jacobmiller22.com"
 
 # Production Environment Configuration
 [env.production]
 name = "chrishop"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
 routes = [
   { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
@@ -83,12 +90,15 @@ bucket_name = "chrishop-media-prod"
 
 [env.production.vars]
 NODE_ENV = "production"
+SITE_URL = "https://chrishop.jacobmiller22.com"
 NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+CMS_URL = "https://chrishop.jacobmiller22.com"
 PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
 
 # Ephemeral PR Preview Environment Configuration
 [env.preview]
 name = "chrishop-preview"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
 routes = [
   { pattern = "pr-*-chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
@@ -109,5 +119,8 @@ bucket_name = "chrishop-media-preview"
 
 [env.preview.vars]
 NODE_ENV = "preview"
+SITE_URL = "https://chrishop.jacobmiller22.com"
 NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+CMS_URL = "https://chrishop.jacobmiller22.com"
 PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
+

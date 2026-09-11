@@ -225,7 +225,7 @@ export class DiscordNotificationProvider implements NotificationProvider {
 
 1. **Local Development**: `wrangler dev` running on Miniflare, locally binding emulated D1 databases, KV namespaces, and local R2 buckets. Connects to a Shopify Development Store via `@shopify/cli`.
 2. **Cloudflare Preview Deployments**: Automated preview environments generated on every pull request via Cloudflare deployment previews.
-3. **Staging (`staging.chrishop.jacobmiller22.com`)**: Staging Workers deployment linked to `chrishop-staging-db` D1 database and staging Shopify environment.
+3. **Staging (`staging-chrishop.jacobmiller22.com`)**: Staging Workers deployment linked to `chrishop-staging-db` D1 database and staging Shopify environment.
 4. **Production (`chrishop.jacobmiller22.com`)**: Production Workers deployment linked to `chrishop-prod-db` D1 database and live Shopify production store.
 
 ### 8.2 CI/CD Deployment Flow (GitHub Actions)
