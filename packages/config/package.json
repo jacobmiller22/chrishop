@@ -24,7 +24,8 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "tsx --test"
   },
   "dependencies": {
     "zod": "^3.23.8"
@@ -34,6 +35,7 @@
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.70.0",
     "eslint-config-next": "^15.5.25",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.2"
   }
 }

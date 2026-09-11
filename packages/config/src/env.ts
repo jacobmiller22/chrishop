@@ -3,29 +3,64 @@ import { z } from 'zod';
 export const serverEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(3000),
-  // Payload CMS v3
-  PAYLOAD_SECRET: z.string().optional(),
-  PAYLOAD_PUBLIC_SERVER_URL: z.string().optional(),
-  // Shopify Headless
-  SHOPIFY_STORE_DOMAIN: z.string().optional(),
-  SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
-  SHOPIFY_ADMIN_TOKEN: z.string().optional(),
-  SHOPIFY_WEBHOOK_SECRET: z.string().optional(),
-  // Cloudflare R2 / Storage
-  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
-  R2_BUCKET_NAME: z.string().optional(),
-  R2_ACCESS_KEY_ID: z.string().optional(),
-  R2_SECRET_ACCESS_KEY: z.string().optional(),
-  R2_ENDPOINT: z.string().optional(),
+  // Shopify Headless Integration Credentials
+  SHOPIFY_STORE_DOMAIN: z
+    .string()
+    .min(1, 'SHOPIFY_STORE_DOMAIN is required')
+    .refine((val) => !val.startsWith('http://') && !val.startsWith('https://'), {
+      message:
+        'SHOPIFY_STORE_DOMAIN must be a hostname without protocol (e.g. your-store.myshopify.com)',
+    })
+    .default('chrishop-dev.myshopify.com'),
+  SHOPIFY_STOREFRONT_TOKEN: z
+    .string()
+    .min(1, 'SHOPIFY_STOREFRONT_TOKEN is required')
+    .default('shpat_dev_storefront_token_placeholder'),
+  SHOPIFY_ADMIN_TOKEN: z
+    .string()
+    .min(1, 'SHOPIFY_ADMIN_TOKEN is required')
+    .default('shpat_dev_admin_token_placeholder'),
+  SHOPIFY_WEBHOOK_SECRET: z
+    .string()
+    .min(1, 'SHOPIFY_WEBHOOK_SECRET is required')
+    .default('shpss_dev_webhook_secret_placeholder'),
+
+  // Payload CMS v3 Configuration
+  PAYLOAD_SECRET: z
+    .string()
+    .min(32, 'PAYLOAD_SECRET must be at least 32 characters long')
+    .default('development-secret-key-min-32-chars'),
+  PAYLOAD_PUBLIC_SERVER_URL: z
+    .string()
+    .url('PAYLOAD_PUBLIC_SERVER_URL must be a valid URL')
+    .default('http://localhost:3000'),
+
+  // Cloudflare R2 / Local S3 Storage Configuration
+  R2_BUCKET_NAME: z.string().min(1, 'R2_BUCKET_NAME is required').default('chrishop-media'),
+  R2_ENDPOINT: z.string().url('R2_ENDPOINT must be a valid URL').default('http://localhost:9000'),
+  R2_ACCESS_KEY_ID: z.string().min(1, 'R2_ACCESS_KEY_ID is required').default('minioadmin'),
+  R2_SECRET_ACCESS_KEY: z.string().min(1, 'R2_SECRET_ACCESS_KEY is required').default('minioadmin'),
   NEXT_PUBLIC_R2_PUBLIC_URL: z.string().optional(),
-  // Email & Notifications
-  RESEND_API_KEY: z.string().optional(),
+
+  // Cloudflare Platform Credentials (Optional in local dev, required in production edge)
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+
+  // Operational Notifications & Transactional Email (Optional in local dev)
+  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().optional(),
-  DISCORD_WEBHOOK_URL: z.string().optional(),
 });
 
 export const clientEnvSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().optional(),
+  NEXT_PUBLIC_SITE_URL: z
+    .string()
+    .url('NEXT_PUBLIC_SITE_URL must be a valid URL')
+    .default('http://localhost:3000'),
+  PAYLOAD_PUBLIC_SERVER_URL: z
+    .string()
+    .url('PAYLOAD_PUBLIC_SERVER_URL must be a valid URL')
+    .default('http://localhost:3000'),
   NEXT_PUBLIC_APP_URL: z.string().optional(),
   NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: z.string().optional(),
   NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
@@ -43,6 +78,28 @@ export function validateEnv(env: Record<string, string | undefined> = process.en
   if (!parsed.success) {
     console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
     throw new Error('Invalid environment variables');
+  }
+  return parsed.data;
+}
+
+export function validateServerEnv(
+  env: Record<string, string | undefined> = process.env
+): ServerEnv {
+  const parsed = serverEnvSchema.safeParse(env);
+  if (!parsed.success) {
+    console.error('❌ Invalid server environment variables:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid server environment variables');
+  }
+  return parsed.data;
+}
+
+export function validateClientEnv(
+  env: Record<string, string | undefined> = process.env
+): ClientEnv {
+  const parsed = clientEnvSchema.safeParse(env);
+  if (!parsed.success) {
+    console.error('❌ Invalid client environment variables:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid client environment variables');
   }
   return parsed.data;
 }
