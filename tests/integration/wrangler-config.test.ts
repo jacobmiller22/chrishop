@@ -9,6 +9,7 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
   const wranglerPath = path.join(rootDir, 'wrangler.toml');
   const deployWorkflowPath = path.join(rootDir, '.github/workflows/deploy.yml');
   const previewWorkflowPath = path.join(rootDir, '.github/workflows/preview-deploy.yml');
+  const ciWorkflowPath = path.join(rootDir, '.github/workflows/ci.yml');
 
   it('should verify wrangler.toml exists at monorepo root', () => {
     assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist at root');
@@ -138,17 +139,68 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     }
   });
 
-  it('should verify deploy workflow triggers and targets staging vs production', () => {
+  it('should verify deploy workflow triggers and declares 5-stage staged promotion pipeline', () => {
     assert.ok(fs.existsSync(deployWorkflowPath), 'deploy.yml must exist');
     const content = fs.readFileSync(deployWorkflowPath, 'utf-8');
 
     // Trigger branches
-    assert.match(content, /branches:\s*\n\s*-\s*main\s*\n\s*-\s*staging/, 'Deploy workflow must trigger on main and staging');
+    assert.ok(content.includes('staging'), 'Deploy workflow must trigger on staging');
+    assert.ok(content.includes('production'), 'Deploy workflow must trigger on production');
 
-    // Environment determination
-    assert.ok(content.includes('target=production'), 'Must target production on main branch');
-    assert.ok(content.includes('target=staging'), 'Must target staging on staging branch');
-    assert.ok(content.includes('deploy --env ${{ steps.env.outputs.target }}'), 'Must deploy with determined env');
+    // 5 orchestrated jobs
+    assert.ok(content.includes('build-and-validate:'), 'Must declare build-and-validate job');
+    assert.ok(content.includes('deploy-staging:'), 'Must declare deploy-staging job');
+    assert.ok(content.includes('test-staging:'), 'Must declare test-staging job');
+    assert.ok(content.includes('deploy-production:'), 'Must declare deploy-production job');
+    assert.ok(content.includes('verify-production:'), 'Must declare verify-production job');
+
+    // Dependency orchestration
+    assert.ok(content.includes('needs: [build-and-validate]'), 'deploy-staging must depend on build-and-validate');
+    assert.ok(content.includes('needs: [deploy-staging]'), 'test-staging must depend on deploy-staging');
+    assert.ok(
+      content.includes('needs: [build-and-validate, deploy-staging, test-staging]'),
+      'deploy-production must depend on build-and-validate, deploy-staging, and test-staging'
+    );
+    assert.ok(content.includes('needs: [deploy-production]'), 'verify-production must depend on deploy-production');
+  });
+
+  it('should verify staging edge health probe and production human approval gate in deploy workflow', () => {
+    const content = fs.readFileSync(deployWorkflowPath, 'utf-8');
+
+    // Staging health probe
+    assert.ok(
+      content.includes('staging-chrishop.jacobmiller22.com') || content.includes('staging.chrishop.jacobmiller22.com'),
+      'test-staging job must probe staging edge health URL'
+    );
+    assert.ok(content.includes('/api/health'), 'test-staging job must probe /api/health');
+
+    // Production environment human gate
+    assert.ok(content.includes('environment: production'), 'deploy-production must declare environment: production');
+    assert.ok(content.includes('deploy --env production'), 'deploy-production must deploy with --env production');
+
+    // Production post-deployment verification
+    assert.ok(
+      content.includes('chrishop.jacobmiller22.com') && content.includes('/api/health'),
+      'verify-production job must probe production health at chrishop.jacobmiller22.com/api/health'
+    );
+  });
+
+  it('should verify CI workflow enforces promotion rules for PRs targeting production', () => {
+    assert.ok(fs.existsSync(ciWorkflowPath), 'ci.yml must exist');
+    const content = fs.readFileSync(ciWorkflowPath, 'utf-8');
+
+    // Trigger branches
+    assert.ok(content.includes('production'), 'CI must trigger on production branch');
+    assert.ok(content.includes('staging'), 'CI must trigger on staging branch');
+
+    // Enforce promotion rules job
+    assert.ok(content.includes('enforce-promotion-rules:'), 'CI must declare enforce-promotion-rules job');
+    assert.ok(content.includes('base_ref }}" = "production"'), 'Must check if base branch is production');
+    assert.ok(content.includes('head_ref }}" != "staging"'), 'Must reject if head branch is not staging');
+    assert.ok(
+      content.includes('Only the \'staging\' branch is permitted to merge into \'production\''),
+      'Must output explanatory error message when non-staging branch targets production'
+    );
   });
 
   it('should verify ephemeral PR preview deploy workflow triggers and notifications', () => {
