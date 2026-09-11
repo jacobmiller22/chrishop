@@ -24,8 +24,8 @@ describe('Cloudflare Platform Provisioning & Wrangler CLI Configuration (Story 2
       'Production routes must include chrishop.jacobmiller22.com'
     );
     assert.ok(
-      content.includes('pattern = "staging.chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
-      'Staging routes must include staging.chrishop.jacobmiller22.com'
+      content.includes('pattern = "staging-chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Staging routes must include staging-chrishop.jacobmiller22.com'
     );
   });
 

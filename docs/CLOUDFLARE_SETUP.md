@@ -13,7 +13,7 @@ The platform provides three distinct environments with configuration-as-code por
 | Environment | Branch | Custom Domain / Route (`jacobmiller22.com`) | Alternative Route | D1 Database | KV Namespace | R2 Bucket |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Production** | `main` | `chrishop.jacobmiller22.com/*` | `shop.jacobmiller22.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
-| **Staging** | `staging` | `staging.chrishop.jacobmiller22.com/*` | `staging.shop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
+| **Staging** | `staging` | `staging-chrishop.jacobmiller22.com/*` | `staging-shop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
 | **Preview** | PR branches | `pr-<PR_NUMBER>-chrishop.jacobmiller22.com` | `workers.dev` preview URL | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
 
 ---
@@ -265,7 +265,8 @@ Ensure the following proxied (orange-clouded) DNS records exist in the Cloudflar
 | :--- | :--- | :--- | :--- | :--- |
 | `CNAME` | `chrishop` | `chrishop.workers.dev` (or Worker route) | Proxied | Production ChrisShop domain |
 | `CNAME` | `shop` | `chrishop.workers.dev` (or Worker route) | Proxied | Production shop alias |
-| `CNAME` | `staging.chrishop` | `chrishop-staging.workers.dev` | Proxied | Staging environment |
+| `CNAME` | `staging-chrishop` | `chrishop-staging.workers.dev` | Proxied | Staging environment (2-tier Universal SSL compliant) |
+| `CNAME` | `staging-shop` | `chrishop-staging.workers.dev` | Proxied | Staging alias (2-tier Universal SSL compliant) |
 | `CNAME` | `*-chrishop` | `chrishop-preview.workers.dev` | Proxied | Wildcard for PR previews (1-level Universal SSL compliant) |
 
 ### Route Definitions in `wrangler.toml`
@@ -282,8 +283,8 @@ routes = [
 # Staging Routes ([env.staging])
 [env.staging]
 routes = [
-  { pattern = "staging.chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
+  { pattern = "staging-chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "staging-shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 ```
 
@@ -346,7 +347,7 @@ Deployments are automated through `.github/workflows/deploy.yml`:
 - **Push to `staging` branch**:
   - Triggers automated quality validation (`check`, `test:unit`, `build`).
   - Deploys to staging environment via `pnpm exec wrangler deploy --env staging`.
-  - Routes traffic to `https://staging.chrishop.jacobmiller22.com`.
+  - Routes traffic to `https://staging-chrishop.jacobmiller22.com`.
 
 - **Push to `main` branch**:
   - Triggers automated quality validation.
@@ -356,7 +357,7 @@ Deployments are automated through `.github/workflows/deploy.yml`:
 - **Health Verification**:
   ```bash
   # Check Staging Health
-  curl -s -f https://staging.chrishop.jacobmiller22.com/api/health | jq .
+  curl -s -f https://staging-chrishop.jacobmiller22.com/api/health | jq .
 
   # Check Production Health
   curl -s -f https://chrishop.jacobmiller22.com/api/health | jq .

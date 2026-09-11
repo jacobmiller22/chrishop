@@ -115,6 +115,19 @@ function verifyArchitectureIntegrity() {
     throw new Error('wrangler.toml must configure R2 bucket binding BUCKET');
   }
 
+  // Assets binding check
+  if (
+    !wranglerContent.includes('binding = "ASSETS"') ||
+    !wranglerContent.includes('.open-next/assets')
+  ) {
+    throw new Error('wrangler.toml must configure Static Assets binding ASSETS with directory .open-next/assets');
+  }
+
+  // Site and CMS bindings check
+  if (!wranglerContent.includes('SITE_URL') || !wranglerContent.includes('CMS_URL')) {
+    throw new Error('wrangler.toml must configure SITE_URL and CMS_URL vars');
+  }
+
   // Verify Production and Staging Custom Domain Routes
   if (
     !wranglerContent.includes('pattern = "chrishop.jacobmiller22.com/*"') ||
@@ -124,9 +137,9 @@ function verifyArchitectureIntegrity() {
       'wrangler.toml must configure production route for chrishop.jacobmiller22.com/* with zone jacobmiller22.com'
     );
   }
-  if (!wranglerContent.includes('pattern = "staging.chrishop.jacobmiller22.com/*"')) {
+  if (!wranglerContent.includes('pattern = "staging-chrishop.jacobmiller22.com/*"')) {
     throw new Error(
-      'wrangler.toml must configure staging route for staging.chrishop.jacobmiller22.com/*'
+      'wrangler.toml must configure staging route for staging-chrishop.jacobmiller22.com/*'
     );
   }
 

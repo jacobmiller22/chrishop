@@ -505,6 +505,11 @@ export function runDryRunVerification(): FeasibilityReportData['previewDeploymen
   let createdTempWorker = false;
 
   try {
+    const assetsDir = path.join(openNextDir, 'assets');
+    if (!fs.existsSync(assetsDir)) {
+      fs.mkdirSync(assetsDir, { recursive: true });
+    }
+
     if (!fs.existsSync(workerJsPath)) {
       fs.mkdirSync(openNextDir, { recursive: true });
       fs.writeFileSync(
@@ -523,11 +528,12 @@ export function runDryRunVerification(): FeasibilityReportData['previewDeploymen
         'DB (Cloudflare D1)',
         'NEXT_CACHE_WORKERS_KV (Workers KV)',
         'BUCKET (Cloudflare R2)',
+        'ASSETS (Cloudflare Static Assets)',
       ],
       targetEnv: 'preview (chrishop-preview)',
     };
   } finally {
-    if (createdTempWorker && fs.existsSync(workerJsPath)) {
+    if (createdTempWorker && fs.existsSync(openNextDir)) {
       fs.rmSync(openNextDir, { recursive: true, force: true });
     }
   }
