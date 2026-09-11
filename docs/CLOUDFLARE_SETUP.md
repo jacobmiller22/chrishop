@@ -8,13 +8,13 @@ This runbook guides operators, platform engineers, and automated agents through 
 
 The ChrisShop platform runs on a serverless, zero-container edge deployment model using Cloudflare Workers and `@opennextjs/cloudflare` to co-locate the Next.js storefront and Payload CMS v3 under a single edge worker deployment.
 
-The platform provides three distinct environments:
+The platform provides three distinct environments with configuration-as-code portability between personal Cloudflare accounts and dedicated production accounts:
 
-| Environment | Branch | Custom Domain / Route | D1 Database | KV Namespace | R2 Bucket |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Production** | `main` | `chrishop.com/*`, `www.chrishop.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
-| **Staging** | `staging` | `staging.chrishop.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
-| **Preview** | PR branches | `pr-<PR_NUMBER>.preview.chrishop.com` | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
+| Environment | Branch | Primary Custom Domain / Route | Personal Account Route (`jacobmiller22.com`) | D1 Database | KV Namespace | R2 Bucket |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Production** | `main` | `chrishop.com/*`, `www.chrishop.com/*` | `chrishop.jacobmiller22.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
+| **Staging** | `staging` | `staging.chrishop.com/*` | `staging.chrishop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
+| **Preview** | PR branches | `pr-<PR_NUMBER>.preview.chrishop.com` | `pr-<PR_NUMBER>.preview.chrishop.jacobmiller22.com` | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
 
 ---
 
@@ -34,25 +34,34 @@ The platform provides three distinct environments:
    - Wrangler CLI v3+ (`pnpm exec wrangler`)
 
 ### Authenticate Locally
-
 ```bash
 pnpm exec wrangler login
 ```
 
-<<<<<<< HEAD
 Verify your authenticated account ID:
-=======
----
-
-## 2. D1 Relational Database Setup & Operations
-
-### 2.1 Remote D1 Database Provisioning
-
-Provision isolated D1 relational databases for staging and production:
->>>>>>> 4f09fa0 (feat(infra): Story 2.19 Cloudflare D1 Database Provisioning & Miniflare Setup (#90))
-
 ```bash
 pnpm exec wrangler whoami
+```
+
+### AI Agent & Antigravity MCP Integration
+
+To enable Antigravity (and other AI coding assistants) to manage Cloudflare infrastructure, register Cloudflare's official remote MCP servers in `~/.gemini/config/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "cloudflare": { "serverUrl": "https://mcp.cloudflare.com/mcp" },
+    "cloudflare-docs": { "serverUrl": "https://docs.mcp.cloudflare.com/mcp" },
+    "cloudflare-bindings": { "serverUrl": "https://bindings.mcp.cloudflare.com/mcp" },
+    "cloudflare-builds": { "serverUrl": "https://builds.mcp.cloudflare.com/mcp" },
+    "cloudflare-observability": { "serverUrl": "https://observability.mcp.cloudflare.com/mcp" }
+  }
+}
+```
+
+Install the official Cloudflare agent skills globally:
+```bash
+npx -y skills add cloudflare/skills --skill '*' --yes --global
 ```
 
 ---

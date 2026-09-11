@@ -6,6 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 
 # Production Custom Domain Routes
 routes = [
+  { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
   { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
 ]
@@ -36,6 +38,8 @@ PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.com"
 [env.staging]
 name = "chrishop-staging"
 routes = [
+  { pattern = "staging.chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "staging.chrishop.com/*", zone_name = "chrishop.com" }
 ]
 
@@ -62,6 +66,8 @@ PAYLOAD_PUBLIC_SERVER_URL = "https://staging.chrishop.com"
 [env.production]
 name = "chrishop"
 routes = [
+  { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
   { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
 ]
