@@ -72,9 +72,9 @@ In the event of a Shopify platform disruption:
 
 1. Verify edge health endpoint returns HTTP 200:
    ```bash
-   curl -f https://chrishop.com/api/health
+   curl -f https://chrishop.jacobmiller22.com/api/health
    ```
-2. Verify storefront product catalog and detail pages load cleanly (`https://chrishop.com/products`).
-3. Verify Payload CMS Admin UI access (`https://chrishop.com/admin`).
+2. Verify storefront product catalog and detail pages load cleanly (`https://chrishop.jacobmiller22.com/products`).
+3. Verify Payload CMS Admin UI access (`https://chrishop.jacobmiller22.com/admin`).
 4. Verify Shopify Storefront API cart creation mutation.
 5. Trigger test operational alert to Discord (`#dev-alerts`) to confirm telemetry.

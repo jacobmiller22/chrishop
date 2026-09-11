@@ -137,7 +137,7 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
         SHOPIFY_ADMIN_TOKEN: 'shpat_live_admin_token_123',
         SHOPIFY_WEBHOOK_SECRET: 'shpss_live_webhook_secret_123',
         PAYLOAD_SECRET: 'super-long-secure-production-payload-secret-key-64-bytes',
-        PAYLOAD_PUBLIC_SERVER_URL: 'https://admin.chrishop.com',
+        PAYLOAD_PUBLIC_SERVER_URL: 'https://admin.chrishop.jacobmiller22.com',
         R2_BUCKET_NAME: 'chrishop-prod-media',
         R2_ENDPOINT: 'https://0123456789abcdef.r2.cloudflarestorage.com',
         R2_ACCESS_KEY_ID: 'cf_r2_access_key_123',
@@ -146,7 +146,7 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
         CLOUDFLARE_API_TOKEN: 'cf_api_token_123',
         DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/123/abc',
         RESEND_API_KEY: 're_123456789',
-        NEXT_PUBLIC_SITE_URL: 'https://chrishop.com',
+        NEXT_PUBLIC_SITE_URL: 'https://chrishop.jacobmiller22.com',
       };
 
       const parsed = validateEnv(customEnv);
@@ -161,7 +161,7 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
         parsed.PAYLOAD_SECRET,
         'super-long-secure-production-payload-secret-key-64-bytes'
       );
-      assert.equal(parsed.PAYLOAD_PUBLIC_SERVER_URL, 'https://admin.chrishop.com');
+      assert.equal(parsed.PAYLOAD_PUBLIC_SERVER_URL, 'https://admin.chrishop.jacobmiller22.com');
       assert.equal(parsed.R2_BUCKET_NAME, 'chrishop-prod-media');
       assert.equal(parsed.R2_ENDPOINT, 'https://0123456789abcdef.r2.cloudflarestorage.com');
       assert.equal(parsed.R2_ACCESS_KEY_ID, 'cf_r2_access_key_123');
@@ -170,7 +170,7 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
       assert.equal(parsed.CLOUDFLARE_API_TOKEN, 'cf_api_token_123');
       assert.equal(parsed.DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/123/abc');
       assert.equal(parsed.RESEND_API_KEY, 're_123456789');
-      assert.equal(parsed.NEXT_PUBLIC_SITE_URL, 'https://chrishop.com');
+      assert.equal(parsed.NEXT_PUBLIC_SITE_URL, 'https://chrishop.jacobmiller22.com');
     });
   });
 

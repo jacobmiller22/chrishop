@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 
-describe('Cloudflare D1 Ephemeral Database Integration (DEP_CLOUDFLARE_D1)', () => {
+describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)', () => {
   let db: DatabaseSync;
 
   beforeEach(() => {

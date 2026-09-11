@@ -43,7 +43,7 @@ jobs:
       - name: Run Unit Tests
         run: pnpm run test:unit
 
-      - name: Run Ephemeral Integration Tests
+      - name: Run Local In-Memory Integration Tests
         run: pnpm run test:integration
 
       - name: Build Monorepo Workspaces

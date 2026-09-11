@@ -10,11 +10,11 @@ The ChrisShop platform runs on a serverless, zero-container edge deployment mode
 
 The platform provides three distinct environments with configuration-as-code portability between personal Cloudflare accounts and dedicated production accounts:
 
-| Environment | Branch | Primary Custom Domain / Route | Personal Account Route (`jacobmiller22.com`) | D1 Database | KV Namespace | R2 Bucket |
+| Environment | Branch | Custom Domain / Route (`jacobmiller22.com`) | Alternative Route | D1 Database | KV Namespace | R2 Bucket |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Production** | `main` | `chrishop.com/*`, `www.chrishop.com/*` | `chrishop.jacobmiller22.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
-| **Staging** | `staging` | `staging.chrishop.com/*` | `staging.chrishop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
-| **Preview** | PR branches | `pr-<PR_NUMBER>.preview.chrishop.com` | `pr-<PR_NUMBER>.preview.chrishop.jacobmiller22.com` | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
+| **Production** | `main` | `chrishop.jacobmiller22.com/*` | `shop.jacobmiller22.com/*` | `chrishop-prod-db` | `NEXT_CACHE_WORKERS_KV` (prod) | `chrishop-media-prod` |
+| **Staging** | `staging` | `staging.chrishop.jacobmiller22.com/*` | `staging.shop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
+| **Preview** | PR branches | `pr-<PR_NUMBER>-chrishop.jacobmiller22.com` | `workers.dev` preview URL | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
 
 ---
 
@@ -257,16 +257,16 @@ pnpm exec wrangler secret list --env production
 
 Cloudflare Workers routing connects custom domains directly to worker execution at Cloudflare's global edge without intermediate reverse proxies.
 
-### DNS Records in Cloudflare Zone (`chrishop.com`)
+### DNS Records in Cloudflare Zone (`jacobmiller22.com`)
 
 Ensure the following proxied (orange-clouded) DNS records exist in the Cloudflare Dashboard:
 
 | Type | Name | Content / Target | Proxy Status | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `A` / `AAAA` | `@` (`chrishop.com`) | `192.0.2.1` (or Cloudflare dummy target) | Proxied | Apex production domain |
-| `CNAME` | `www` | `chrishop.com` | Proxied | Production www alias |
-| `CNAME` | `staging` | `chrishop.com` | Proxied | Staging environment |
-| `CNAME` | `*.preview` | `chrishop.com` | Proxied | Wildcard for PR previews |
+| `CNAME` | `chrishop` | `chrishop.workers.dev` (or Worker route) | Proxied | Production ChrisShop domain |
+| `CNAME` | `shop` | `chrishop.workers.dev` (or Worker route) | Proxied | Production shop alias |
+| `CNAME` | `staging.chrishop` | `chrishop-staging.workers.dev` | Proxied | Staging environment |
+| `CNAME` | `*-chrishop` | `chrishop-preview.workers.dev` | Proxied | Wildcard for PR previews (1-level Universal SSL compliant) |
 
 ### Route Definitions in `wrangler.toml`
 
@@ -275,14 +275,15 @@ The routes are explicitly managed in `wrangler.toml`:
 ```toml
 # Production Routes (top-level and [env.production])
 routes = [
-  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
-  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
+  { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 
 # Staging Routes ([env.staging])
 [env.staging]
 routes = [
-  { pattern = "staging.chrishop.com/*", zone_name = "chrishop.com" }
+  { pattern = "staging.chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
+  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 ```
 
@@ -327,14 +328,14 @@ pnpm exec wrangler dev --port 3000
 Every pull request triggers an automated preview deployment via `.github/workflows/preview-deploy.yml`:
 
 1. **Trigger**: Pull requests targeting `main` or `staging` (`opened`, `synchronize`, `reopened`).
-2. **Quality Gates**: Runs `pnpm run check` (typecheck & lint) and `pnpm run test:all` (unit and ephemeral integration tests).
+2. **Quality Gates**: Runs `pnpm run check` (typecheck & lint) and `pnpm run test:all` (unit and local in-memory integration tests).
 3. **Build**: Builds production bundle using `@opennextjs/cloudflare`.
 4. **Deploy**: Deploys to Cloudflare Workers preview environment:
    ```bash
-   pnpm exec wrangler deploy --env preview
+   pnpm exec wrangler deploy --env preview --name chrishop-preview-pr-<PR_NUMBER>
    ```
-5. **PR Notification**: Posts a sticky comment with the preview URL (`https://pr-<PR_NUMBER>.preview.chrishop.com`).
-6. **Teardown**: When the PR is closed or merged, `.github/workflows/preview-teardown.yml` executes automated resource cleanup.
+5. **PR Notification & Verification**: Probes edge health (`/api/health`) and posts a sticky comment with the verified preview URL (`https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com`).
+6. **Teardown**: When the PR is closed or merged, `.github/workflows/preview-teardown.yml` executes automated resource cleanup via `wrangler delete`.
 
 ---
 
@@ -345,20 +346,20 @@ Deployments are automated through `.github/workflows/deploy.yml`:
 - **Push to `staging` branch**:
   - Triggers automated quality validation (`check`, `test:unit`, `build`).
   - Deploys to staging environment via `pnpm exec wrangler deploy --env staging`.
-  - Routes traffic to `https://staging.chrishop.com`.
+  - Routes traffic to `https://staging.chrishop.jacobmiller22.com`.
 
 - **Push to `main` branch**:
   - Triggers automated quality validation.
   - Deploys to production environment via `pnpm exec wrangler deploy --env production`.
-  - Routes traffic to `https://chrishop.com` and `https://www.chrishop.com`.
+  - Routes traffic to `https://chrishop.jacobmiller22.com` and `https://shop.jacobmiller22.com`.
 
 - **Health Verification**:
   ```bash
   # Check Staging Health
-  curl -s -f https://staging.chrishop.com/api/health | jq .
+  curl -s -f https://staging.chrishop.jacobmiller22.com/api/health | jq .
 
   # Check Production Health
-  curl -s -f https://chrishop.com/api/health | jq .
+  curl -s -f https://chrishop.jacobmiller22.com/api/health | jq .
   ```
 
 ---

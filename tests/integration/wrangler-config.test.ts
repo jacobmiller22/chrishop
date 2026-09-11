@@ -25,12 +25,12 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Production Custom Domain Routes
     assert.ok(
-      content.includes('pattern = "chrishop.com/*"') && content.includes('zone_name = "chrishop.com"'),
-      'Production route chrishop.com/* must be configured with zone chrishop.com'
+      content.includes('pattern = "chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Production route chrishop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
     );
     assert.ok(
-      content.includes('pattern = "www.chrishop.com/*"') && content.includes('zone_name = "chrishop.com"'),
-      'Production route www.chrishop.com/* must be configured with zone chrishop.com'
+      content.includes('pattern = "shop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Production route shop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
     );
 
     // Production D1, KV, R2 Bindings
@@ -47,7 +47,7 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Production Vars
     assert.match(content, /NODE_ENV\s*=\s*"production"/, 'NODE_ENV must be production');
-    assert.match(content, /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/chrishop\.com"/, 'NEXT_PUBLIC_SITE_URL must be chrishop.com');
+    assert.match(content, /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/chrishop\.jacobmiller22\.com"/, 'NEXT_PUBLIC_SITE_URL must be chrishop.jacobmiller22.com');
   });
 
   it('should verify staging environment configuration, bindings, and routes', () => {
@@ -59,8 +59,8 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Staging Custom Domain Routes
     assert.ok(
-      content.includes('pattern = "staging.chrishop.com/*"') && content.includes('zone_name = "chrishop.com"'),
-      'Staging route staging.chrishop.com/* must be configured with zone chrishop.com'
+      content.includes('pattern = "staging.chrishop.jacobmiller22.com/*"') && content.includes('zone_name = "jacobmiller22.com"'),
+      'Staging route staging.chrishop.jacobmiller22.com/* must be configured with zone jacobmiller22.com'
     );
 
     // Staging D1, KV, R2 Bindings
@@ -76,8 +76,8 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.match(content, /NODE_ENV\s*=\s*"staging"/, 'Staging NODE_ENV must be staging');
     assert.match(
       content,
-      /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/staging\.chrishop\.com"/,
-      'Staging NEXT_PUBLIC_SITE_URL must be staging.chrishop.com'
+      /NEXT_PUBLIC_SITE_URL\s*=\s*"https:\/\/staging\.chrishop\.jacobmiller22\.com"/,
+      'Staging NEXT_PUBLIC_SITE_URL must be staging.chrishop.jacobmiller22.com'
     );
   });
 
@@ -143,8 +143,8 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('deploy --env preview'), 'Must deploy with --env preview');
 
     // Preview URL comment
-    assert.ok(content.includes('Ephemeral PR Preview Ready!'), 'Must comment preview ready on PR');
-    assert.ok(content.includes('pr-${PR_NUM}.preview.chrishop.com'), 'Must construct preview URL');
+    assert.ok(content.includes('Ephemeral PR Preview'), 'Must comment preview status on PR');
+    assert.ok(content.includes('pr-${PR_NUM}-chrishop.jacobmiller22.com'), 'Must construct preview URL');
   });
 
   it('should verify wrangler CLI supports local emulation dev command', () => {

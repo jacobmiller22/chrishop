@@ -7,9 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 # Production Custom Domain Routes
 routes = [
   { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
-  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
+  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 
 # Production Cloudflare D1 Database Binding
@@ -31,16 +29,15 @@ bucket_name = "chrishop-media-prod"
 
 [vars]
 NODE_ENV = "production"
-NEXT_PUBLIC_SITE_URL = "https://chrishop.com"
-PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.com"
+NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
 
 # Staging Environment Configuration
 [env.staging]
 name = "chrishop-staging"
 routes = [
   { pattern = "staging.chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "staging.chrishop.com/*", zone_name = "chrishop.com" }
+  { pattern = "staging.shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 
 [[env.staging.d1_databases]]
@@ -59,17 +56,15 @@ bucket_name = "chrishop-media-staging"
 
 [env.staging.vars]
 NODE_ENV = "staging"
-NEXT_PUBLIC_SITE_URL = "https://staging.chrishop.com"
-PAYLOAD_PUBLIC_SERVER_URL = "https://staging.chrishop.com"
+NEXT_PUBLIC_SITE_URL = "https://staging.chrishop.jacobmiller22.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://staging.chrishop.jacobmiller22.com"
 
 # Production Environment Configuration
 [env.production]
 name = "chrishop"
 routes = [
   { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
-  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
-  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" }
+  { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
 
 [[env.production.d1_databases]]
@@ -88,8 +83,8 @@ bucket_name = "chrishop-media-prod"
 
 [env.production.vars]
 NODE_ENV = "production"
-NEXT_PUBLIC_SITE_URL = "https://chrishop.com"
-PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.com"
+NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
 
 # Ephemeral PR Preview Environment Configuration
 [env.preview]
@@ -103,7 +98,7 @@ migrations_dir = "migrations"
 
 [[env.preview.kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "00000000-0000-0000-0000-000000000003"
+id = "00000000000000000000000000000003"
 
 [[env.preview.r2_buckets]]
 binding = "BUCKET"
@@ -111,5 +106,5 @@ bucket_name = "chrishop-media-preview"
 
 [env.preview.vars]
 NODE_ENV = "preview"
-NEXT_PUBLIC_SITE_URL = "https://preview.chrishop.com"
-PAYLOAD_PUBLIC_SERVER_URL = "https://preview.chrishop.com"
+NEXT_PUBLIC_SITE_URL = "https://chrishop.jacobmiller22.com"
+PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"

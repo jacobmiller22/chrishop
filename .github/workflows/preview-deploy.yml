@@ -33,7 +33,7 @@ jobs:
       - name: Typecheck & Lint
         run: pnpm run check
 
-      - name: Run Unit & Ephemeral Integration Tests
+      - name: Run Unit & Local In-Memory Integration Tests
         run: pnpm run test:all
 
       - name: Build Application
@@ -44,26 +44,61 @@ jobs:
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
           echo "PR_NUM=${PR_NUM}" >> $GITHUB_ENV
-          echo "PREVIEW_URL=https://pr-${PR_NUM}.preview.chrishop.com" >> $GITHUB_ENV
+          echo "PREVIEW_URL=https://pr-${PR_NUM}-chrishop.jacobmiller22.com" >> $GITHUB_ENV
 
       - name: Deploy Ephemeral Preview to Cloudflare Workers
-        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        id: deploy
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env preview
+          command: deploy --env preview --name chrishop-preview-pr-${{ github.event.pull_request.number }}
 
-      - name: Comment Preview Link on PR
+      - name: Verify Edge Health Probe
+        id: verify_edge
+        if: steps.deploy.outcome == 'success'
+        run: |
+          echo "Verifying edge health probe at ${PREVIEW_URL}/api/health..."
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          SUCCESS=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Health probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            if HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${PREVIEW_URL}/api/health") && [ "$HTTP_STATUS" = "200" ]; then
+              echo "Edge health probe passed (HTTP 200)!"
+              SUCCESS=1
+              break
+            fi
+            sleep 5
+          done
+          if [ $SUCCESS -ne 1 ]; then
+            echo "Edge health probe failed to reach ${PREVIEW_URL}/api/health after $MAX_ATTEMPTS attempts."
+            exit 1
+          fi
+
+      - name: Comment Preview Status on PR
+        if: always() && steps.vars.outcome == 'success'
         uses: actions/github-script@v7
+        env:
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify_edge.outcome }}
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
             const previewUrl = process.env.PREVIEW_URL;
-            const body = `🚀 **Ephemeral PR Preview Ready!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Ephemeral Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is closed.*`;
+            const deployOutcome = process.env.DEPLOY_OUTCOME;
+            const verifyOutcome = process.env.VERIFY_OUTCOME;
+
+            let body = '';
+            if (deployOutcome === 'success' && verifyOutcome === 'success') {
+              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is closed.*`;
+            } else if (deployOutcome === 'skipped') {
+              body = `⚠️ **Ephemeral PR Preview Skipped**\n\n- **Reason**: Cloudflare credentials (\`CLOUDFLARE_API_TOKEN\`, \`CLOUDFLARE_ACCOUNT_ID\`) are not configured in repository secrets.\n- **Local Verification**: Passed (typecheck, lint, unit tests, in-memory integration tests, build)\n- **Preview Environment**: Skipped deployment to edge\n\n*Configure Cloudflare repository secrets to enable automated preview environments on pull requests.*`;
+            } else {
+              body = `❌ **Ephemeral PR Preview Deployment Failed**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Status**: Deployment or edge health verification failed.\n\n*Please inspect the GitHub Actions run logs for detailed diagnostic output.*`;
+            }
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -71,7 +106,7 @@ jobs:
               issue_number: prNumber,
             });
 
-            const botComment = comments.find(c => c.body.includes('Ephemeral PR Preview Ready!'));
+            const botComment = comments.find(c => c.body.includes('Ephemeral PR Preview'));
             if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -87,3 +122,9 @@ jobs:
                 body: body
               });
             }
+
+      - name: Fail Job on Deploy or Verification Failure
+        if: steps.deploy.outcome == 'failure' || steps.verify_edge.outcome == 'failure'
+        run: |
+          echo "Ephemeral preview deploy or edge verification probe failed."
+          exit 1

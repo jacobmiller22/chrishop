@@ -9,9 +9,15 @@ jobs:
     name: Destroy Ephemeral Preview Stack
     runs-on: ubuntu-latest
     steps:
-      - name: Teardown Isolated PR Stack
+      - name: Teardown Isolated PR Worker Stack
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: delete --name chrishop-preview-pr-${{ github.event.pull_request.number }} --force
+
+      - name: Log Teardown Summary
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          echo "Tearing down ephemeral Cloudflare preview for PR #${PR_NUM}..."
-          echo "Cleaning up ephemeral worker preview bindings (D1, KV, R2)..."
-          echo "Ephemeral PR preview destroyed successfully."
+          echo "Ephemeral PR preview stack teardown completed for PR #${PR_NUM}."

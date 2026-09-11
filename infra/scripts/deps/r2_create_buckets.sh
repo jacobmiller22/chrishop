@@ -202,11 +202,12 @@ if [[ ! -f "${CORS_CONFIG_FILE}" ]]; then
       "AllowedHeaders": ["*"],
       "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
       "AllowedOrigins": [
-        "https://chrishop.com",
-        "https://admin.chrishop.com",
+        "https://chrishop.jacobmiller22.com",
+        "https://staging.chrishop.jacobmiller22.com",
+        "https://admin.chrishop.jacobmiller22.com",
         "https://shop.jacobmiller22.com",
         "https://admin.shop.jacobmiller22.com",
-        "https://*.preview.chrishop.com",
+        "https://*-chrishop.jacobmiller22.com",
         "https://*.preview.shop.jacobmiller22.com",
         "http://localhost:3000",
         "http://localhost:8055"
