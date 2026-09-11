@@ -123,6 +123,11 @@ function verifyArchitectureIntegrity() {
     throw new Error('wrangler.toml must configure Static Assets binding ASSETS with directory .open-next/assets');
   }
 
+  // Payload CMS static CSS source check
+  if (!fs.existsSync('apps/web/src/styles/payload-admin.css')) {
+    throw new Error('apps/web/src/styles/payload-admin.css missing');
+  }
+
   // Site and CMS bindings check
   if (!wranglerContent.includes('SITE_URL') || !wranglerContent.includes('CMS_URL')) {
     throw new Error('wrangler.toml must configure SITE_URL and CMS_URL vars');
@@ -193,6 +198,20 @@ function verifySecurityAudit() {
 // Stage 6: Production Build Validation
 function verifyBuild() {
   execSync('pnpm run build', { stdio: 'pipe' });
+
+  // Verify compiled static CSS asset generation
+  const payloadCssPath = '.open-next/assets/_next/static/css/payload.css';
+  if (!fs.existsSync(payloadCssPath)) {
+    throw new Error(`.open-next/assets/_next/static/css/payload.css missing after production build`);
+  }
+  const payloadCss = fs.readFileSync(payloadCssPath, 'utf-8');
+  if (
+    payloadCss.length < 1000 ||
+    !payloadCss.includes('#020617') ||
+    !payloadCss.includes('#f59e0b')
+  ) {
+    throw new Error(`payload.css invalid or missing required design tokens (#020617, #f59e0b)`);
+  }
 }
 
 // Stage 6: Git Hygiene & Worktree Cleanliness

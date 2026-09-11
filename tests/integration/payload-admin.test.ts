@@ -79,4 +79,55 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     const gqlContent = fs.readFileSync(gqlPath, 'utf-8');
     assert.ok(gqlContent.includes('GRAPHQL_POST'), 'GraphQL route must export GRAPHQL_POST');
   });
+
+  it('should verify Payload CMS v3 admin static stylesheet pipeline and design tokens', () => {
+    const payloadCssSourcePath = path.join(
+      rootDir,
+      'apps/web/src/styles/payload-admin.css'
+    );
+    const compiledPayloadCssPath = path.join(
+      rootDir,
+      '.open-next/assets/_next/static/css/payload.css'
+    );
+
+    assert.ok(
+      fs.existsSync(payloadCssSourcePath),
+      'payload-admin.css source stylesheet must exist'
+    );
+
+    const sourceContent = fs.readFileSync(payloadCssSourcePath, 'utf-8');
+    assert.ok(
+      sourceContent.includes('#020617'),
+      'Source CSS must declare dark slate theme background #020617'
+    );
+    assert.ok(
+      sourceContent.includes('#f59e0b'),
+      'Source CSS must declare amber brand accent #f59e0b'
+    );
+    assert.ok(
+      sourceContent.includes('grid-cols-1') &&
+        (sourceContent.includes('md:grid-cols-2') ||
+          sourceContent.includes('md\\:grid-cols-2')) &&
+        (sourceContent.includes('lg:grid-cols-3') ||
+          sourceContent.includes('lg\\:grid-cols-3')),
+      'Source CSS must declare responsive collection cards grid rules'
+    );
+
+    // If build has executed, verify compiled static asset output
+    if (fs.existsSync(compiledPayloadCssPath)) {
+      const compiledContent = fs.readFileSync(compiledPayloadCssPath, 'utf-8');
+      assert.ok(
+        compiledContent.length > 1000,
+        'Compiled payload.css must have non-trivial size (>1000 bytes)'
+      );
+      assert.ok(
+        compiledContent.includes('#020617'),
+        'Compiled payload.css must include dark theme background #020617'
+      );
+      assert.ok(
+        compiledContent.includes('#f59e0b'),
+        'Compiled payload.css must include amber brand accent #f59e0b'
+      );
+    }
+  });
 });

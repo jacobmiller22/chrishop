@@ -29,9 +29,16 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       assert.ok(content.includes('app/(payload)/admin/**'), 'Must map payload admin routes');
     });
 
-    it('should verify .open-next/worker.js and .open-next/assets exist', () => {
+    it('should verify .open-next/worker.js and .open-next/assets exist with Payload CSS assets', () => {
       assert.ok(fs.existsSync(workerPath), '.open-next/worker.js must exist');
       assert.ok(fs.existsSync(assetsDir), '.open-next/assets directory must exist');
+
+      const payloadCssPath = path.join(assetsDir, '_next/static/css/payload.css');
+      assert.ok(fs.existsSync(payloadCssPath), 'payload.css must exist in .open-next/assets/_next/static/css/');
+      const payloadCssContent = fs.readFileSync(payloadCssPath, 'utf-8');
+      assert.ok(payloadCssContent.length > 1000, 'payload.css must have size > 1000 bytes');
+      assert.ok(payloadCssContent.includes('#020617'), 'payload.css must contain slate-950 dark theme background');
+      assert.ok(payloadCssContent.includes('#f59e0b'), 'payload.css must contain amber-500 accent color');
 
       const workerContent = fs.readFileSync(workerPath, 'utf-8');
       assert.ok(workerContent.includes('export default'), 'Worker must export default handler');
@@ -187,6 +194,106 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       );
     });
 
+    it('Route 3b: Admin CSS stylesheet (/_next/static/css/payload.css) must return HTTP 200 and text/css with dark theme and amber accents', async () => {
+      const request = new Request('https://chrishop.jacobmiller22.com/_next/static/css/payload.css');
+      const response = await worker.fetch(request, mockEnv, {});
+
+      assert.equal(response.status, 200, 'Payload CSS must return HTTP 200 OK');
+      assert.match(
+        response.headers.get('content-type') || '',
+        /text\/css/,
+        'Content-Type must be text/css'
+      );
+
+      const css = await response.text();
+      assert.ok(css.length > 1000, 'CSS body must have non-trivial size (>1000 bytes)');
+      assert.ok(css.includes('#020617'), 'Must define dark slate theme background #020617');
+      assert.ok(css.includes('#f59e0b'), 'Must define amber brand accent #f59e0b');
+      assert.ok(css.includes('grid-cols-1'), 'Must define grid-cols-1 responsive grid class');
+      assert.ok(css.includes('md:grid-cols-2') || css.includes('md\\:grid-cols-2'), 'Must define md:grid-cols-2');
+      assert.ok(css.includes('lg:grid-cols-3') || css.includes('lg\\:grid-cols-3'), 'Must define lg:grid-cols-3');
+      assert.ok(css.includes('collection-card'), 'Must define collection-card styles');
+    });
+
+    it('Route 3c: Deep probe of all stylesheet links on /admin must resolve successfully without 404', async () => {
+      const adminReq = new Request('https://chrishop.jacobmiller22.com/admin');
+      const adminRes = await worker.fetch(adminReq, mockEnv, {});
+      assert.equal(adminRes.status, 200);
+
+      const html = await adminRes.text();
+      const linkRegex = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["'][^>]*>/gi;
+      const links: string[] = [];
+      let match;
+      while ((match = linkRegex.exec(html)) !== null) {
+        links.push(match[1]);
+      }
+
+      // Also support href before rel
+      const linkRegexReverse = /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']stylesheet["'][^>]*>/gi;
+      while ((match = linkRegexReverse.exec(html)) !== null) {
+        if (!links.includes(match[1])) {
+          links.push(match[1]);
+        }
+      }
+
+      assert.ok(links.length > 0, 'Must find at least one <link rel="stylesheet"> on /admin');
+      assert.ok(
+        links.some((l) => l.includes('payload.css')),
+        'Extracted stylesheet links must include payload.css'
+      );
+
+      for (const linkHref of links) {
+        const fullUrl = linkHref.startsWith('http')
+          ? linkHref
+          : `https://chrishop.jacobmiller22.com${linkHref}`;
+        const cssReq = new Request(fullUrl);
+        const cssRes = await worker.fetch(cssReq, mockEnv, {});
+
+        assert.equal(
+          cssRes.status,
+          200,
+          `Stylesheet ${linkHref} linked from /admin must return HTTP 200, got ${cssRes.status}`
+        );
+        assert.match(
+          cssRes.headers.get('content-type') || '',
+          /text\/css/,
+          `Stylesheet ${linkHref} must have text/css Content-Type`
+        );
+        const body = await cssRes.text();
+        assert.ok(body.length > 0, `Stylesheet ${linkHref} must have non-empty content`);
+      }
+    });
+
+    it('Route 3d: Admin (/admin) HTML must include inline CSS fallback in <head> for zero-network resilience', async () => {
+      const request = new Request('https://chrishop.jacobmiller22.com/admin');
+      const response = await worker.fetch(request, mockEnv, {});
+      const html = await response.text();
+
+      assert.ok(html.includes('<style>'), '/admin HTML head must contain inline <style> fallback');
+      assert.ok(
+        html.includes('#020617') || html.includes('payload-admin-body'),
+        'Inline style fallback must contain dark theme or admin body rules'
+      );
+      assert.ok(
+        html.includes('collection-card'),
+        'Inline style fallback must contain collection-card rules'
+      );
+    });
+
+    it('Route 3e: Storefront CSS (/_next/static/css/storefront.css) must return HTTP 200 and text/css', async () => {
+      const request = new Request('https://chrishop.jacobmiller22.com/_next/static/css/storefront.css');
+      const response = await worker.fetch(request, mockEnv, {});
+
+      assert.equal(response.status, 200, 'Storefront CSS must return HTTP 200 OK');
+      assert.match(
+        response.headers.get('content-type') || '',
+        /text\/css/,
+        'Content-Type must be text/css'
+      );
+      const css = await response.text();
+      assert.ok(css.length > 0, 'Storefront CSS must have non-empty content');
+    });
+
     it('Route 4: Static assets bridge must delegate to env.ASSETS', async () => {
       let assetFetched = false;
       const customEnv = {
@@ -208,6 +315,36 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       assert.equal(assetFetched, true, 'env.ASSETS.fetch must have been invoked');
       assert.equal(response.status, 200, 'Asset response must be 200 OK');
       assert.match(response.headers.get('content-type') || '', /text\/css/);
+    });
+
+    it('Route 4b: Static assets bridge must serve payload.css via env.ASSETS when present on disk', async () => {
+      const diskAssetEnv = {
+        ...mockEnv,
+        ASSETS: {
+          fetch: async (req: Request) => {
+            const url = new URL(req.url);
+            const relativePath = url.pathname.replace(/^\//, '');
+            const filePath = path.join(assetsDir, relativePath);
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              const content = fs.readFileSync(filePath);
+              return new Response(content, {
+                status: 200,
+                headers: { 'content-type': 'text/css; charset=utf-8' },
+              });
+            }
+            return new Response('Asset Not Found', { status: 404 });
+          },
+        },
+      };
+
+      const request = new Request('https://chrishop.jacobmiller22.com/_next/static/css/payload.css');
+      const response = await worker.fetch(request, diskAssetEnv, {});
+
+      assert.equal(response.status, 200, 'Disk asset bridge must return HTTP 200');
+      assert.match(response.headers.get('content-type') || '', /text\/css/);
+      const css = await response.text();
+      assert.ok(css.length > 1000, 'Payload CSS served via ASSETS must be non-empty');
+      assert.ok(css.includes('#020617'), 'Must contain dark theme background #020617');
     });
 
     it('Route 5: Unmatched paths must return Next.js styled 404 page', async () => {
