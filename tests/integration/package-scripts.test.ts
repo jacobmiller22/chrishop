@@ -30,6 +30,8 @@ describe('Monorepo Scripts & GitHub Actions Coverage', () => {
       'test:all',
       'verify:local',
       'audit:security',
+      'audit:roadmap',
+      'pm:prioritize',
     ];
 
     for (const scriptName of requiredScripts) {
