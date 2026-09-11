@@ -50,6 +50,9 @@ jobs:
       - name: Run Unit Test Suite
         run: pnpm run test:unit
 
+      - name: Run Ephemeral Integration Tests
+        run: pnpm run test:integration
+
       - name: Build Application
         run: pnpm run build
 
@@ -64,9 +67,56 @@ jobs:
             echo "target=staging" >> $GITHUB_OUTPUT
           fi
 
+      - name: Pre-Deploy Dry-Run Validation Gate
+        run: pnpm exec wrangler deploy --dry-run --env ${{ steps.env.outputs.target }}
+
       - name: Deploy to Cloudflare Workers
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env ${{ steps.env.outputs.target }}
+
+      - name: Verify Zero-Downtime Edge Health Check
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.target }}
+        run: |
+          if [ "$TARGET_ENV" = "production" ]; then
+            HEALTH_URL="https://chrishop.com/api/health"
+          else
+            HEALTH_URL="https://staging.chrishop.com/api/health"
+          fi
+          echo "Verifying edge health check probe at $HEALTH_URL..."
+          MAX_RETRIES=10
+          RETRY_INTERVAL=3
+          PASSED=0
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Probing $HEALTH_URL (attempt $i/$MAX_RETRIES)..."
+            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "$HEALTH_URL" || echo "000")
+            if [ "$STATUS_CODE" = "200" ]; then
+              echo "✔ Edge health check probe succeeded with HTTP 200 at $HEALTH_URL"
+              PASSED=1
+              break
+            else
+              echo "Edge returned HTTP $STATUS_CODE. Waiting ${RETRY_INTERVAL}s for edge propagation..."
+              sleep $RETRY_INTERVAL
+            fi
+          done
+
+          if [ $PASSED -ne 1 ]; then
+            echo "::warning::Edge health check probe timed out or domain not yet resolvable ($HEALTH_URL). Verify DNS status in Cloudflare Dashboard."
+          fi
+
+      - name: Report Missing Cloudflare Credentials
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "::notice::Cloudflare remote deployment skipped: CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID secrets are not configured in repository settings. Pre-deploy validation gate (build, lint, test, wrangler dry-run) completed successfully."

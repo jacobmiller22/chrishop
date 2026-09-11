@@ -153,6 +153,11 @@ function verifyArchitectureIntegrity() {
   if (!fs.existsSync('.github/workflows/deploy.yml')) {
     throw new Error('.github/workflows/deploy.yml missing');
   }
+
+  // 5. Verify OpenNext configuration in apps/web
+  if (!fs.existsSync('apps/web/open-next.config.ts')) {
+    throw new Error('apps/web/open-next.config.ts missing');
+  }
 }
 
 // Stage 2: Monorepo Typecheck & Lint

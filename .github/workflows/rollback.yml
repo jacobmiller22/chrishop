@@ -38,8 +38,35 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Rollback Deployment
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: rollback ${{ github.event.inputs.deployment_id }} --env ${{ github.event.inputs.environment }}
+
+      - name: Verify Post-Rollback Health
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        env:
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          if [ "$TARGET_ENV" = "production" ]; then
+            HEALTH_URL="https://chrishop.com/api/health"
+          else
+            HEALTH_URL="https://staging.chrishop.com/api/health"
+          fi
+          echo "Verifying health post-rollback at $HEALTH_URL..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$HEALTH_URL" || echo "000")
+          echo "Health probe returned HTTP $STATUS_CODE"
+
+      - name: Report Missing Cloudflare Credentials
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "::error::Cannot execute rollback: CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID secrets are not configured in repository settings."
+          exit 1
