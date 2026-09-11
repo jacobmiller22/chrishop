@@ -4,31 +4,27 @@ import { withPayload } from '@payloadcms/next/withPayload';
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@chrishop/ui', '@chrishop/types', '@chrishop/notifications'],
-  serverExternalPackages: ['@libsql/client', 'drizzle-orm'],
+  serverExternalPackages: ['@libsql/client', 'drizzle-orm', 'node:sqlite'],
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8055',
-        pathname: '/assets/**',
+        protocol: 'https',
+        hostname: 'media.chrishop.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+        pathname: '/**',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '9000',
         pathname: '/**',
       },
       {
         protocol: 'http',
         hostname: '127.0.0.1',
-        port: '8055',
-        pathname: '/assets/**',
-      },
-      {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '9000',
         pathname: '/**',
       },
     ],

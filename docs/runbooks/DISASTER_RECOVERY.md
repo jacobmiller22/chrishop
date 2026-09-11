@@ -1,73 +1,80 @@
 # Operational Runbook: Disaster Recovery (`DISASTER_RECOVERY.md`)
 
-This runbook documents step-by-step procedures for recovering the **ChrisShop** platform following a host hardware failure, server outage, database corruption, or ransomware compromise.
+This runbook documents procedures for recovering the **ChrisShop** platform following edge service disruptions, accidental deployments, D1 database mutations, or media asset loss.
+
+Because ChrisShop is built on a **Cloudflare-Native serverless architecture** and **Shopify Headless SaaS**, there are zero single-point-of-failure virtual machines, container daemons, or self-hosted databases to rebuild from hardware failures.
 
 ---
 
 ## 1. Service Level Objectives (SLOs)
 
-- **Recovery Point Objective (RPO)**: **< 24 Hours** (Maximum data loss capped by daily automated backups at 02:00 UTC).
-- **Recovery Time Objective (RTO)**: **< 15 Minutes** (Complete environment rebuild and database restoration from offsite encrypted archive).
+- **Recovery Point Objective (RPO)**: **< 1 Minute** (Cloudflare D1 distributed edge replication & Shopify multi-tenant ledger).
+- **Recovery Time Objective (RTO)**: **< 5 Minutes** (Instant Cloudflare Workers deployment rollback or D1 time-travel restoration).
 
 ---
 
-## 2. Emergency Recovery Steps
+## 2. Recovery Scenarios & Procedures
 
-### Step 1: Provision Replacement VPS Host
+### Scenario A: Edge Deployment Regression or Bad Release
 
-If the original Hetzner VPS host is unreachable or destroyed, provision a new Hetzner CPX21 server:
-
-```bash
-# Provision new VPS host
-hcloud server create --name chrishop-prod-recovery --type cpx21 --image ubuntu-24.04 --ssh-key deploy_key
-```
-
-### Step 2: Run Ansible OS Hardening & Docker Stack Setup
-
-Apply host OS hardening and initialize container directories:
+If a newly deployed Cloudflare Worker release introduces fatal runtime exceptions or breaks storefront rendering:
 
 ```bash
-ansible-playbook -i infra/vps/inventory.ini infra/vps/playbook.yml
+# 1. View recent deployment history
+pnpm exec wrangler deployments list
+
+# 2. Instantly rollback to the previous known good deployment ID
+pnpm exec wrangler rollback <deployment-id>
+
+# 3. Or trigger the GitHub Actions rollback workflow via GitHub CLI
+gh workflow run rollback.yml -f environment=production
 ```
 
-### Step 3: Fetch Master Age Decryption Key
+### Scenario B: Database Corruption or Accidental D1 Deletion
 
-Retrieve the master `age` decryption key from GitHub Encrypted Secrets or offsite password manager:
+Cloudflare D1 provides automated time-travel and point-in-time recovery (PITR) allowing rollback to any minute within the retention window:
 
 ```bash
-mkdir -p /etc/age
-echo "${AGE_SECRET_KEY}" > /etc/age/chrishop_backup.key
-chmod 600 /etc/age/chrishop_backup.key
+# 1. Retrieve current D1 database state and time bookmark
+pnpm exec wrangler d1 info chrishop-db-prod
+
+# 2. Restore D1 database to a specific point-in-time timestamp
+pnpm exec wrangler d1 time-travel restore chrishop-db-prod --timestamp="2026-09-11T12:00:00Z"
+
+# 3. Or restore from a designated SQL backup snapshot
+pnpm exec wrangler d1 execute chrishop-db-prod --file=./backups/backup-snapshot.sql
 ```
 
-### Step 4: Run Restore Script
+### Scenario C: Accidental R2 Media Deletion
 
-List available backups in offsite R2 archive and execute system restoration:
+Media assets in `chrishop-media` are protected by R2 bucket versioning:
 
 ```bash
-# List available backups
-aws --endpoint-url https://... s3 ls s3://chrishop-backups/database/
+# 1. List object versions in Cloudflare R2
+aws --endpoint-url https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com \
+  s3api list-object-versions --bucket chrishop-media --prefix "products/"
 
-# Execute restoration
-./infra/scripts/restore.sh db_chrishop_prod_20260909_020000.sql.gz.age
+# 2. Restore deleted object by deleting the delete marker
+aws --endpoint-url https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com \
+  s3api delete-object --bucket chrishop-media --key "products/artwork.jpg" --version-id "<version-id>"
 ```
 
-### Step 5: Start Container Stack & Verify Health Check
+### Scenario D: Shopify Service Degradation
 
-Start production containers and verify `/api/health`:
-
-```bash
-docker compose -f infra/docker/docker-compose.prod.yml up -d
-
-# Verify health endpoint
-curl -f https://chrishop.com/api/health
-```
+In the event of a Shopify platform disruption:
+1. Product catalog browsing remains fully operational via Cloudflare D1 and Workers KV ISR caching.
+2. Storefront gracefully displays high-traffic drop queue messaging if checkout initiation is temporarily unavailable.
+3. Check status at [Shopify Status](https://status.shopify.com).
 
 ---
 
-## 3. Post-Recovery Checklist
+## 3. Post-Recovery Verification Checklist
 
-1. Verify storefront product catalog loads cleanly (`https://chrishop.com`).
-2. Verify Directus Admin UI login with 2FA (`https://admin.chrishop.com`).
-3. Verify Redis connection and stock reservation key expiry (`redis-cli ping`).
-4. Trigger test Discord alert to confirm `#dev-alerts` communication channel.
+1. Verify edge health endpoint returns HTTP 200:
+   ```bash
+   curl -f https://chrishop.com/api/health
+   ```
+2. Verify storefront product catalog and detail pages load cleanly (`https://chrishop.com/products`).
+3. Verify Payload CMS Admin UI access (`https://chrishop.com/admin`).
+4. Verify Shopify Storefront API cart creation mutation.
+5. Trigger test operational alert to Discord (`#dev-alerts`) to confirm telemetry.

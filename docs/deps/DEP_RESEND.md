@@ -10,8 +10,8 @@ This document specifies the integration architecture, sender domain authenticati
 - **SDK**: `resend` Node.js SDK (`pnpm add resend`)
 - **Integration Layer**: `packages/notifications`
 - **Primary Use Cases**:
-  1. **Order Confirmation Receipts**: Dispatched immediately upon Stripe payment completion (`orders@shop.jacobmiller22.com`).
-  2. **Shipping & Carrier Tracking Notifications**: Dispatched via Directus action hook when Chris fulfills an order (`fulfillment@shop.jacobmiller22.com`).
+  1. **Order Confirmation Receipts**: Dispatched immediately upon Shopify checkout completion (`orders@shop.jacobmiller22.com`).
+  2. **Shipping & Carrier Tracking Notifications**: Dispatched when an order is fulfilled (`fulfillment@shop.jacobmiller22.com`).
 - **Local Dev Mock**: When `RESEND_API_KEY` is undefined, `packages/notifications` outputs formatted emails to `stdout` via `ConsoleNotificationProvider` without network calls.
 
 ---

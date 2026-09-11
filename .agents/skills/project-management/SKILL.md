@@ -111,3 +111,43 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Switch back to the main monorepo worktree: `wt switch main`.
    - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.
    - Prune git metadata: `git worktree prune` and confirm with `wt list`.
+
+---
+
+## 6. Priority-First Governance & Mandatory Priority Labeling
+
+Every issue across the ChrisShop monorepo **MUST** carry an explicit priority label before it can be considered shovel-ready or dispatched to autonomous agents:
+
+- `priority:critical`: Showstopper / production-down / zero-day security flaw. Preempts all other work immediately across all agents.
+- `priority:high`: Critical path milestone deliverable, active phase blocker, or immediate Creator review dependency. Prioritized first by autonomous dispatchers.
+- `priority:medium`: Standard phase feature or infrastructure task with no immediate downstream blockers.
+- `priority:low`: Nice-to-have visual polish, deferred scope, or post-launch enhancement.
+
+### Priority Labeling Commands:
+```bash
+# Add or update priority
+gh issue edit <IssueNumber> --add-label "priority:high"
+
+# Remove lower priority when escalating
+gh issue edit <IssueNumber> --remove-label "priority:medium" --add-label "priority:high"
+```
+
+When creating follow-up stories from completed tasks or adversarial audits, agents **MUST** evaluate criticality and assign an explicit priority label immediately upon issue creation.
+
+---
+
+## 7. Adversarial Roadmap & Milestone Audit Protocol
+
+Technical Project Managers and autonomous agents must periodically verify that GitHub Milestones, Backlog Epics, and local architecture remain synchronized and free of architectural drift.
+
+### Audit Command:
+```bash
+pnpm run audit:roadmap
+```
+
+### Verification Checks Enforced:
+1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`) in milestone titles and descriptions.
+2. **Orphaned Issues**: Detects open issues with no assigned milestone (`milestone == null`).
+3. **Priority Health**: Flags any open issue missing an explicit `priority:*` label.
+4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label that remains open on GitHub.
+5. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.

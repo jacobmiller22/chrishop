@@ -52,7 +52,7 @@ describe('Notification Providers (@chrishop/notifications)', () => {
           shipping_name: 'Jane Collector',
           amount_total: 495.0,
           currency: 'usd',
-          stripe_payment_intent_id: 'pi_test123',
+          shopify_order_id: 'gid://shopify/Order/1234567890',
           order_status: 'paid',
           shipping_status: 'pending',
           shipping_address: {
@@ -428,7 +428,7 @@ describe('Notification Providers (@chrishop/notifications)', () => {
         shipping_name: 'Console User',
         amount_total: 100,
         currency: 'usd',
-        stripe_payment_intent_id: 'pi_test',
+        shopify_order_id: 'gid://shopify/Order/9876543210',
         order_status: 'paid',
         shipping_status: 'pending',
         shipping_address: {

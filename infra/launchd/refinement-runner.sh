@@ -73,6 +73,12 @@ PYTHON_BIN="$(command -v python3 || echo "python3")"
   --output "${REPORT_FILE}" \
   --model "${REFINEMENT_MODEL}"
 
+# 6. Execute Adversarial Roadmap & Milestone Audit
+echo "🗺️ Executing Adversarial Roadmap & Milestone Audit..."
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm run audit:roadmap || true
+fi
+
 # Link latest report
 ln -sf "${REPORT_FILE}" "${LATEST_REPORT}"
 

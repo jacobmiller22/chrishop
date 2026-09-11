@@ -375,8 +375,8 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
 
 ### 🚀 Follow-Up Actions & Next Steps
 - **Follow-Up Stories Created**:
-  - #<NewIssue1>: <Title of deferred scope item>
-  - #<NewIssue2>: <Title of deferred scope item>
+  - #<NewIssue1>: <Title of deferred scope item> (MUST include explicit `priority:*` label and milestone)
+  - #<NewIssue2>: <Title of deferred scope item> (MUST include explicit `priority:*` label and milestone)
 - **Unblocked Next Stories**:
   - Story <X>.<Y+1>: <Title of next ready story>
 - **Reviewer Instructions**:

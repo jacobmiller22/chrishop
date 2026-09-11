@@ -4,7 +4,7 @@
 
 This security audit and vulnerability assessment was conducted to establish continuous automated dependency scanning and vulnerability mitigation across the ChrisShop monorepo per `docs/HIGH_LEVEL_DESIGN.md` Section 7.
 
-As of this audit, the ChrisShop monorepo has achieved **zero high-severity** and **zero critical-severity** vulnerabilities across all 7 workspace packages and their transitive dependencies.
+As of this audit, the ChrisShop monorepo has achieved **zero high-severity** and **zero critical-severity** vulnerabilities across all 6 workspace packages and their transitive dependencies.
 
 ### Summary Metrics
 
@@ -12,11 +12,11 @@ As of this audit, the ChrisShop monorepo has achieved **zero high-severity** and
 | :--- | :--- | :--- |
 | **Critical Vulnerabilities** | **0** | 0 (Zero Tolerance) |
 | **High Vulnerabilities** | **0** | 0 (Blocks CI/CD) |
-| **Moderate Vulnerabilities** | **3** (Development-only isolated dependencies) | Review & patch |
-| **Low Vulnerabilities** | **1** (Development-only isolated dependency) | Review & patch |
+| **Moderate Vulnerabilities** | **1** (Development-only isolated dependency) | Review & patch |
+| **Low Vulnerabilities** | **0** | Review & patch |
 | **Automated CI Enforcement** | Active (`pnpm audit --audit-level=high`) | Mandatory Gate |
 | **PR Dependency Review** | Active (`actions/dependency-review-action@v4`) | Mandatory Gate |
-| **Dependabot Monorepo Coverage** | 100% (7 npm workspaces + GitHub Actions) | Weekly Automated |
+| **Dependabot Monorepo Coverage** | 100% (6 npm workspaces + GitHub Actions) | Weekly Automated |
 
 ---
 
@@ -27,8 +27,7 @@ The ChrisShop codebase operates as a pnpm workspace monorepo consisting of the f
 | Workspace Path | Package Identifier | Purpose | Runtime Target |
 | :--- | :--- | :--- | :--- |
 | `/` | `chrishop-monorepo` | Root orchestrator, build scripts, verification pipelines | Node.js 22+ / pnpm 9+ |
-| `apps/web` | `@chrishop/web` | Next.js App Router Headless Storefront | Cloudflare Workers (Edge) |
-| `apps/cms` | `@chrishop/cms` | Content Management System & Extension SDK | Cloudflare Workers / D1 |
+| `apps/web` | `@chrishop/web` | Next.js App Router Headless Storefront & Embedded Payload CMS | Cloudflare Workers (Edge) |
 | `packages/config` | `@chrishop/config` | Shared TypeScript, Tailwind, and ESLint configurations | Build-time |
 | `packages/notifications` | `@chrishop/notifications` | Customer notification dispatch and templating | Cloudflare Workers (Edge) |
 | `packages/types` | `@chrishop/types` | Centralized domain models and D1 SQLite schemas | Universal |
@@ -61,7 +60,6 @@ Residual findings are restricted to build-time / development-time utilities and 
 | Module | Severity | Advisory Title | Context & Threat Modeling | Risk Assessment |
 | :--- | :--- | :--- | :--- | :--- |
 | `esbuild@0.17.19` | Moderate | Dev server CORS bypass | Transitive dependency of `wrangler@3.100.0`. Only used during local development server binds; never bundled or exposed in edge production. | **Negligible Risk**. Controlled developer workstation environment. |
-| `unhead@1.11.20` | Low / Moderate | `useHeadSafe` attribute and protocol sanitization bypass | Transitive dependency of `@directus/extensions-sdk`. Build-time metadata tooling; not utilized in edge workers or storefront SSR/RSC pipeline. | **Negligible Risk**. No user-generated head tags processed by build tooling. |
 
 ---
 
@@ -87,7 +85,7 @@ To guarantee that new dependencies or version bumps never reintroduce high or cr
 
 ### 5.3 Dependabot Automated Monorepo Coverage
 - **Configuration**: `.github/dependabot.yml`
-  - Configured for weekly scanning (Monday 00:00 UTC) across all 7 workspace packages (`/`, `/apps/web`, `/apps/cms`, `/packages/config`, `/packages/notifications`, `/packages/types`, `/packages/ui`) and `.github/workflows` (`github-actions`).
+  - Configured for weekly scanning (Monday 00:00 UTC) across all 6 workspace packages (`/`, `/apps/web`, `/packages/config`, `/packages/notifications`, `/packages/types`, `/packages/ui`) and `.github/workflows` (`github-actions`).
   - Automated security advisories alert maintainers immediately upon CVE publication.
 
 ### 5.4 Automated Ephemeral Integration Testing

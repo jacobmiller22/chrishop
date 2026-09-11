@@ -1,8 +1,0 @@
-{{ backup_log_file }} {
-    weekly
-    rotate {{ backup_log_retention_days }}
-    compress
-    missingok
-    notifempty
-    create 0640 root root
-}

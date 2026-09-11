@@ -16,7 +16,7 @@ The ChrisShop platform operates on a **zero-container, Cloudflare-native archite
 Activate or consult this skill whenever you need to:
 
 - Set up and verify the local development environment using Node.js 22+, pnpm 9+, and Wrangler CLI.
-- Run local development servers (`apps/web`, `apps/cms`) with Turborepo and Wrangler.
+- Run local development server (`apps/web`) with Turborepo and Wrangler.
 - Execute the local verification harness (`pnpm run verify:local`) before committing or submitting pull requests.
 - Run ephemeral integration tests (`pnpm run test:integration`) against in-memory D1 SQLite, Workers KV, and Shopify webhook HMAC validation.
 - Execute local Cloudflare D1 migrations and database operations (`pnpm exec wrangler d1 execute`).
@@ -32,7 +32,7 @@ The ChrisShop platform comprises the following workspace packages and services:
 | Component          | Path / Service           | Local Port | URL / Interface               | Purpose                                          |
 | :----------------- | :----------------------- | :--------- | :---------------------------- | :----------------------------------------------- |
 | **Storefront**     | `apps/web`               | `3000`     | `http://localhost:3000`       | Next.js 15 App Router customer storefront        |
-| **CMS**            | `apps/cms`               | `3000`     | `http://localhost:3000/admin` | Payload CMS v3 Headless CMS & D1 schema bindings |
+| **CMS**            | `apps/web` (embedded)    | `3000`     | `http://localhost:3000/admin` | Payload CMS v3 Headless CMS & D1 schema bindings |
 | **UI Components**  | `packages/ui`            | N/A        | Shared package                | React UI component library                       |
 | **Domain Types**   | `packages/types`         | N/A        | Shared package                | Shared TypeScript interfaces & types             |
 | **Notifications**  | `packages/notifications` | N/A        | Shared package                | Transactional email & Discord alert utilities    |

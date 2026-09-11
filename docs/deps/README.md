@@ -20,18 +20,6 @@ Each specification defines connection parameters, authentication, security contr
 
 ---
 
-## Archived Specifications (`docs/deps/archive/`)
-
-The following legacy infrastructure specifications have been superseded as part of Story 0.2 (Architecture Migration to Cloudflare-Native & Shopify Headless):
-
-- [`archive/DEP_STRIPE.md`](archive/DEP_STRIPE.md) — Replaced by [`DEP_SHOPIFY.md`](DEP_SHOPIFY.md).
-- [`archive/DEP_HETZNER.md`](archive/DEP_HETZNER.md) — Replaced by Cloudflare Workers.
-- [`archive/DEP_DIRECTUS.md`](archive/DEP_DIRECTUS.md) — Replaced by [`DEP_PAYLOAD_CMS.md`](DEP_PAYLOAD_CMS.md).
-- [`archive/DEP_REDIS.md`](archive/DEP_REDIS.md) — Replaced by Shopify native inventory & Workers KV.
-- [`archive/DEP_CADDY.md`](archive/DEP_CADDY.md) — Replaced by Cloudflare native TLS and routing.
-
----
-
 ## Status Taxonomy for Referenced Paths
 
 Across all dependency specifications, referenced file paths are annotated using this explicit status taxonomy:

@@ -1,9 +1,0 @@
----
-# ==============================================================================
-# ChrisShop Ansible Role: Docker (Handlers)
-# ==============================================================================
-
-- name: Restart docker
-  ansible.builtin.service:
-    name: docker
-    state: restarted
