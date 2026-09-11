@@ -14,13 +14,13 @@ routes = [
 [[d1_databases]]
 binding = "DB"
 database_name = "chrishop-prod-db"
-database_id = "00000000-0000-0000-0000-000000000001"
+database_id = "7e6d708d-a5c5-4ea5-b4d2-11bd637844ec"
 migrations_dir = "migrations"
 
 # Production Workers KV Namespace Binding (Cache / ISR)
 [[kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "00000000000000000000000000000001"
+id = "8e448bf8d94d4d8ea2cba989f193343d"
 
 # Production Cloudflare R2 Bucket Binding (Artwork & Media)
 [[r2_buckets]]
@@ -43,12 +43,12 @@ routes = [
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "chrishop-staging-db"
-database_id = "00000000-0000-0000-0000-000000000002"
+database_id = "c49a7e32-455c-4e2a-9b04-163870368d82"
 migrations_dir = "migrations"
 
 [[env.staging.kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "00000000000000000000000000000002"
+id = "0f39e4af03e344eaa160d11b047d09b6"
 
 [[env.staging.r2_buckets]]
 binding = "BUCKET"
@@ -70,12 +70,12 @@ routes = [
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "chrishop-prod-db"
-database_id = "00000000-0000-0000-0000-000000000001"
+database_id = "7e6d708d-a5c5-4ea5-b4d2-11bd637844ec"
 migrations_dir = "migrations"
 
 [[env.production.kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "00000000000000000000000000000001"
+id = "8e448bf8d94d4d8ea2cba989f193343d"
 
 [[env.production.r2_buckets]]
 binding = "BUCKET"
@@ -89,16 +89,19 @@ PAYLOAD_PUBLIC_SERVER_URL = "https://chrishop.jacobmiller22.com"
 # Ephemeral PR Preview Environment Configuration
 [env.preview]
 name = "chrishop-preview"
+routes = [
+  { pattern = "pr-*-chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
+]
 
 [[env.preview.d1_databases]]
 binding = "DB"
 database_name = "chrishop-preview-db"
-database_id = "00000000-0000-0000-0000-000000000003"
+database_id = "fc1867ef-a54d-41fb-b51b-92522b192a8e"
 migrations_dir = "migrations"
 
 [[env.preview.kv_namespaces]]
 binding = "NEXT_CACHE_WORKERS_KV"
-id = "00000000000000000000000000000003"
+id = "71a3223ebcda4e03a4b79bd5df7311c5"
 
 [[env.preview.r2_buckets]]
 binding = "BUCKET"

@@ -49,6 +49,32 @@ jobs:
           echo "PR_NUM=${PR_NUM}" >> $GITHUB_ENV
           echo "PREVIEW_URL=https://pr-${PR_NUM}-chrishop.jacobmiller22.com" >> $GITHUB_ENV
 
+          # Configure dynamic worker name and route in wrangler.toml for isolated per-PR deployment
+          sed -i -e "s/name = \"chrishop-preview\"/name = \"chrishop-preview-pr-${PR_NUM}\"/g" wrangler.toml
+          sed -i -e "s/pr-\*-chrishop/pr-${PR_NUM}-chrishop/g" wrangler.toml
+
+          # If R2 bucket does not exist or R2 is disabled, gracefully omit r2_buckets binding for preview
+          if ! pnpm exec wrangler r2 bucket list 2>/dev/null | grep -q "chrishop-media-preview"; then
+            echo "R2 bucket chrishop-media-preview not provisioned on Cloudflare account. Omitting R2 binding for preview."
+            python3 -c '
+with open("wrangler.toml", "r") as f:
+    lines = f.readlines()
+with open("wrangler.toml", "w") as f:
+    skip = False
+    for line in lines:
+        if "[[env.preview.r2_buckets]]" in line:
+            skip = True
+            f.write("# " + line)
+            continue
+        if skip and line.startswith("["):
+            skip = False
+        if skip:
+            f.write("# " + line)
+        else:
+            f.write(line)
+'
+          fi
+
       - name: Deploy Ephemeral Preview to Cloudflare Workers
         id: deploy
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
@@ -56,7 +82,7 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env preview --name chrishop-preview-pr-${{ github.event.pull_request.number }}
+          command: deploy --env preview
 
       - name: Verify Edge Health Probe
         id: verify_edge
