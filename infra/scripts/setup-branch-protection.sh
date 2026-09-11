@@ -6,35 +6,36 @@ set -euo pipefail
 # ==============================================================================
 # Configures GitHub branch protection rules using the GitHub CLI (gh api).
 #
-# Default Guardrails:
-#   - Required status check: "Lint, Typecheck, Test & Build"
-#   - Strict status checks: Up-to-date branch required before merging
-#   - Linear history: Merge commits blocked (squash or rebase required)
-#   - Enforce on administrators: True
-#   - Force pushes: Disabled
-#   - Deletions: Disabled
-#   - Conversation resolution: Required
-#   - PR Review approval requirement: Optional (default: false for solo workflows)
+# Supported Branch Profiles:
+#   - production: Strict status checks, 1 required review approval, linear history,
+#                 enforce admins, no force pushes, no deletions.
+#   - staging:    Strict status checks, linear history, enforce admins, no force
+#                 pushes, no deletions.
+#   - main:       Strict status checks, linear history, enforce admins, no force
+#                 pushes, no deletions.
+#   - all:        Applies protection sequentially to staging, production, and main.
 # ==============================================================================
 
+TIER=""
 BRANCH="main"
 REPO=""
 ENFORCE_ADMINS="true"
-REQUIRE_REVIEWS="false"
+REQUIRE_REVIEWS=""
 MIN_APPROVALS="1"
-STATUS_CHECK="Lint, Typecheck, Test & Build"
+STATUS_CHECKS=()
 
 print_usage() {
   cat <<HELP_EOF
 Usage: $(basename "$0") [options]
 
 Options:
-  --branch <name>             Target branch to protect (default: main)
+  --tier <name>               Target tier preset: all | production | staging | main
+  --branch <name>             Explicit target branch to protect (default: main)
   --repo <owner/repo>         GitHub repository name (default: auto-detected)
   --enforce-admins <bool>     Enforce rules on repository administrators (default: true)
-  --require-reviews <bool>    Require pull request review approvals (default: false)
+  --require-reviews <bool>    Require pull request review approvals (default: based on tier)
   --min-approvals <num>       Number of required approving reviews if enabled (default: 1)
-  --status-check <name>       Required status check context (default: "Lint, Typecheck, Test & Build")
+  --status-check <name>       Required status check context (can be specified multiple times)
   -h, --help                  Display this help message
 HELP_EOF
 }
@@ -42,6 +43,10 @@ HELP_EOF
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --tier)
+      TIER="$2"
+      shift 2
+      ;;
     --branch)
       BRANCH="$2"
       shift 2
@@ -63,7 +68,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --status-check)
-      STATUS_CHECK="$2"
+      STATUS_CHECKS+=("$2")
       shift 2
       ;;
     -h|--help)
@@ -109,43 +114,47 @@ if [[ -z "$REPO" ]]; then
   REPO="jacobmiller22/chrishop"
 fi
 
-echo "Repository: $REPO"
-echo "Target Branch: $BRANCH"
-echo "Enforce Admins: $ENFORCE_ADMINS"
-echo "Require Reviews: $REQUIRE_REVIEWS"
-echo "Required Check: $STATUS_CHECK"
-echo ""
+protect_branch() {
+  local target_branch="$1"
+  local req_reviews="$2"
+  local min_appr="$3"
+  shift 3
+  local checks=("$@")
 
-# Step 3: Construct branch protection JSON payload
-PAYLOAD_FILE=$(mktemp)
-trap 'rm -f "$PAYLOAD_FILE"' EXIT
+  echo "--------------------------------------------------"
+  echo "Applying protection to branch: '$target_branch'"
+  echo "Repository: $REPO"
+  echo "Require Reviews: $req_reviews (Approvals: $min_appr)"
+  echo "Enforce Admins: $ENFORCE_ADMINS"
+  echo "Required Checks: ${checks[*]}"
+  echo "--------------------------------------------------"
 
-if [[ "$REQUIRE_REVIEWS" == "true" ]]; then
-  REVIEWS_PAYLOAD=$(cat <<JSON_EOF
-  "required_pull_request_reviews": {
-    "dismiss_stale_reviews": true,
-    "require_code_owner_reviews": false,
-    "required_approving_review_count": ${MIN_APPROVALS}
-  },
-JSON_EOF
-)
-else
-  REVIEWS_PAYLOAD=$(cat <<JSON_EOF
-  "required_pull_request_reviews": null,
-JSON_EOF
-)
-fi
+  # Construct JSON checks array
+  local checks_json="["
+  for i in "${!checks[@]}"; do
+    checks_json+="\"${checks[$i]}\""
+    if [[ $i -lt $((${#checks[@]} - 1)) ]]; then
+      checks_json+=", "
+    fi
+  done
+  checks_json+="]"
 
-cat > "$PAYLOAD_FILE" <<JSON_EOF
+  local payload_file
+  payload_file=$(mktemp)
+
+  if [[ "$req_reviews" == "true" ]]; then
+    cat > "$payload_file" <<JSON_EOF
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": [
-      "${STATUS_CHECK}"
-    ]
+    "contexts": ${checks_json}
   },
   "enforce_admins": ${ENFORCE_ADMINS},
-${REVIEWS_PAYLOAD}
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false,
+    "required_approving_review_count": ${min_appr}
+  },
   "restrictions": null,
   "required_linear_history": true,
   "allow_force_pushes": false,
@@ -153,28 +162,70 @@ ${REVIEWS_PAYLOAD}
   "required_conversation_resolution": true
 }
 JSON_EOF
+  else
+    cat > "$payload_file" <<JSON_EOF
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ${checks_json}
+  },
+  "enforce_admins": ${ENFORCE_ADMINS},
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": true
+}
+JSON_EOF
+  fi
 
-echo "Applying protection rules to '$BRANCH' on '$REPO'..."
+  gh api --method PUT \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "repos/${REPO}/branches/${target_branch}/protection" \
+    --input "$payload_file" >/dev/null
 
-# Step 4: Apply branch protection via GitHub API
-HTTP_RESPONSE=$(gh api --method PUT \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "repos/${REPO}/branches/${BRANCH}/protection" \
-  --input "$PAYLOAD_FILE" 2>&1)
+  rm -f "$payload_file"
+  echo "✅ Protection applied to '${target_branch}'."
+}
 
-echo "✅ Branch protection successfully applied to '${BRANCH}'!"
+# Determine default checks if none provided
+if [[ ${#STATUS_CHECKS[@]} -eq 0 ]]; then
+  STATUS_CHECKS=("Lint, Typecheck, Test & Build" "Enforce Staged Promotion Rules")
+fi
 
-# Step 5: Query and display applied protection summary
+if [[ "$TIER" == "all" ]]; then
+  protect_branch "staging" "${REQUIRE_REVIEWS:-false}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+  protect_branch "production" "${REQUIRE_REVIEWS:-true}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+  protect_branch "main" "${REQUIRE_REVIEWS:-false}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+elif [[ "$TIER" == "production" ]]; then
+  protect_branch "production" "${REQUIRE_REVIEWS:-true}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+elif [[ "$TIER" == "staging" ]]; then
+  protect_branch "staging" "${REQUIRE_REVIEWS:-false}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+elif [[ "$TIER" == "main" ]]; then
+  protect_branch "main" "${REQUIRE_REVIEWS:-false}" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+else
+  # Default to single branch execution
+  reviews_flag="${REQUIRE_REVIEWS:-false}"
+  if [[ "$BRANCH" == "production" && -z "$REQUIRE_REVIEWS" ]]; then
+    reviews_flag="true"
+  fi
+  protect_branch "$BRANCH" "$reviews_flag" "$MIN_APPROVALS" "${STATUS_CHECKS[@]}"
+fi
+
 echo ""
-echo "Current Branch Protection Summary:"
-gh api "repos/${REPO}/branches/${BRANCH}/protection" --jq '{
-  url: .url,
-  required_status_checks: .required_status_checks.contexts,
-  strict_checks: .required_status_checks.strict,
-  enforce_admins: .enforce_admins.enabled,
-  required_linear_history: .required_linear_history.enabled,
-  allow_force_pushes: .allow_force_pushes.enabled,
-  allow_deletions: .allow_deletions.enabled,
-  required_reviews: (if .required_pull_request_reviews then .required_pull_request_reviews.required_approving_review_count else "disabled" end)
-}'
+echo "Current Branch Protection Summary across Key Branches:"
+for b in staging production main; do
+  echo "==> Branch: $b"
+  gh api "repos/${REPO}/branches/${b}/protection" --jq '{
+    branch: "'"$b"'",
+    required_status_checks: .required_status_checks.contexts,
+    strict_checks: .required_status_checks.strict,
+    enforce_admins: .enforce_admins.enabled,
+    required_linear_history: .required_linear_history.enabled,
+    allow_force_pushes: .allow_force_pushes.enabled,
+    allow_deletions: .allow_deletions.enabled,
+    required_reviews: (if .required_pull_request_reviews then .required_pull_request_reviews.required_approving_review_count else "disabled" end)
+  }' 2>/dev/null || echo "Branch '$b' protection not set."
+done

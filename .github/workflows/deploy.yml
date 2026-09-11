@@ -3,8 +3,9 @@ name: Cloudflare Workers CI/CD Deployment
 on:
   push:
     branches:
-      - main
       - staging
+      - production
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -21,8 +22,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate-and-deploy:
-    name: Validate & Deploy to Cloudflare Workers
+  build-and-validate:
+    name: Build & Validate Application
     runs-on: ubuntu-latest
 
     steps:
@@ -53,20 +54,147 @@ jobs:
       - name: Build Application
         run: pnpm run build
 
-      - name: Determine Target Environment
-        id: env
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "target=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "target=production" >> $GITHUB_OUTPUT
-          else
-            echo "target=staging" >> $GITHUB_OUTPUT
-          fi
+  deploy-staging:
+    name: Deploy to Staging Edge
+    runs-on: ubuntu-latest
+    needs: [build-and-validate]
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Deploy to Cloudflare Workers
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Application
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env ${{ steps.env.outputs.target }}
+          command: deploy --env staging
+
+  test-staging:
+    name: Verify Staging Integration & Edge Health
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+
+    steps:
+      - name: Staging Edge Health Probe Loop
+        run: |
+          STAGING_URL="https://staging-chrishop.jacobmiller22.com"
+          FALLBACK_URL="https://staging.chrishop.jacobmiller22.com"
+          echo "Probing staging edge health at ${STAGING_URL}/api/health..."
+
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          SUCCESS=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Staging health probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_STATUS=$(curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 5 "${STAGING_URL}/api/health" || curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 5 "${FALLBACK_URL}/api/health" || true)
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Staging edge health probe succeeded with HTTP 200!"
+              cat /tmp/health_res.json
+              SUCCESS=1
+              break
+            fi
+
+            echo "Probe returned HTTP status: ${HTTP_STATUS}. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ $SUCCESS -ne 1 ]; then
+            echo "❌ Staging edge health probe failed after $MAX_ATTEMPTS attempts."
+            exit 1
+          fi
+
+  deploy-production:
+    name: Deploy to Production Edge (Gated)
+    runs-on: ubuntu-latest
+    needs: [build-and-validate, deploy-staging, test-staging]
+    if: github.ref == 'refs/heads/production' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Application
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production
+
+  verify-production:
+    name: Verify Production Edge Health
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+
+    steps:
+      - name: Production Edge Health Probe Loop
+        run: |
+          PROD_URL="https://chrishop.jacobmiller22.com"
+          echo "Probing production edge health at ${PROD_URL}/api/health..."
+
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          SUCCESS=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Production health probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            HTTP_STATUS=$(curl -s -o /tmp/prod_res.json -w "%{http_code}" --max-time 5 "${PROD_URL}/api/health" || true)
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Production edge health probe succeeded with HTTP 200!"
+              cat /tmp/prod_res.json
+              SUCCESS=1
+              break
+            fi
+
+            echo "Probe returned HTTP status: ${HTTP_STATUS}. Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ $SUCCESS -ne 1 ]; then
+            echo "❌ Production edge health probe failed after $MAX_ATTEMPTS attempts."
+            exit 1
+          fi
