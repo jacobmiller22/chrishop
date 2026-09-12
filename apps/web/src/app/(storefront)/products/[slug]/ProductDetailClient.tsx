@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button } from '@chrishop/ui';
+import { Badge, Button, CartDrawer, type CartItem } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/assets';
 import { shopify } from '@/lib/shopify';
@@ -105,12 +105,45 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const isComingSoon = selectedVariation?.status === 'coming_soon';
   const isAvailable = !isSoldOut && !isComingSoon;
 
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const handleSelectVariation = (varId: string) => {
     setSelectedVariationId(varId);
     setSelectedImageIndex(0);
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedVariation || !isAvailable) return;
+    const itemPrice = selectedVariation
+      ? Number(selectedVariation.effective_price)
+      : Number(product.base_price);
+    const itemId = `${product.id}-${selectedVariation.id}`;
+
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === itemId);
+      if (existing) {
+        return prev.map((i) => (i.id === itemId ? { ...i, quantity: i.quantity + 1 } : i));
+      }
+      return [
+        ...prev,
+        {
+          id: itemId,
+          variantId:
+            selectedVariation.shopify_variant_id ||
+            `gid://shopify/ProductVariant/${selectedVariation.id}`,
+          title: product.title,
+          variantName: selectedVariation.variation_name,
+          editionBadge: selectedVariation.edition_badge,
+          price: itemPrice,
+          quantity: 1,
+          imageUrl: activeMedia?.url,
+        },
+      ];
+    });
+    setIsCartOpen(true);
   };
 
   const handleCheckout = async () => {
@@ -457,6 +490,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       key={v.id}
                       type="button"
                       role="radio"
+                      data-testid="variation-radio"
+                      data-variation-id={v.id}
+                      data-variation-name={v.variation_name}
                       aria-checked={isSelected}
                       onClick={() => handleSelectVariation(v.id)}
                       className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-4 ${
@@ -534,9 +570,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <Button
               variant="primary"
               size="lg"
+              data-testid="deploy-gear-button"
               className="w-full font-bold shadow-lg shadow-orange-500/20 py-3.5 text-base bg-[#E55B24] hover:bg-[#d04f1d] text-stone-900 border-none"
               disabled={!isAvailable || isCheckingOut}
-              onClick={handleCheckout}
+              onClick={handleAddToCart}
             >
               {isCheckingOut
                 ? 'Preparing Gear Roll...'
@@ -544,7 +581,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   ? 'Batch Depleted'
                   : isComingSoon
                     ? 'Releases Soon'
-                    : `Deploy Gear • $${Number(currentPrice).toFixed(2)}`}
+                    : `Deploy to Gear Roll • $${Number(currentPrice).toFixed(2)}`}
             </Button>
 
             {checkoutError && (
@@ -565,6 +602,24 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           </div>
         </div>
       </div>
+
+      {/* Slide-over Cart Drawer */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onUpdateQuantity={(id, qty) =>
+          setCartItems((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, quantity: qty } : item))
+          )
+        }
+        onRemoveItem={(id) =>
+          setCartItems((prev) => prev.filter((item) => item.id !== id))
+        }
+        onCheckout={handleCheckout}
+        isCheckingOut={isCheckingOut}
+        checkoutError={checkoutError}
+      />
     </div>
   );
 }

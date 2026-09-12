@@ -106,6 +106,12 @@ export function getDatabase(customPath?: string): DatabaseSync {
     if (fs.existsSync(dbPath)) {
       const db = new DatabaseSync(dbPath);
       db.exec('PRAGMA foreign_keys = ON;');
+      try {
+        db.exec('ALTER TABLE categories ADD COLUMN image TEXT;');
+      } catch {
+        // Column may already exist in existing SQLite databases
+      }
+      ensureSchemaAndBaselineData(db);
       if (!customPath) singletonDb = db;
       return db;
     }
@@ -126,6 +132,11 @@ export function resetDatabase(): void {
 }
 
 function ensureSchemaAndBaselineData(db: DatabaseSync): void {
+  try {
+    db.exec('ALTER TABLE categories ADD COLUMN image TEXT;');
+  } catch {
+    // Column may already exist in existing SQLite databases
+  }
   db.exec(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,

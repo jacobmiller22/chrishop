@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button, Card, Badge } from '@chrishop/ui';
+import { Button, Card, Badge, DropCountdown } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 
 export const revalidate = 60;
@@ -26,6 +26,10 @@ export default async function HomePage() {
     <div className="space-y-20">
       {/* Hero Banner with BankBeaters Manifesto */}
       <section className="text-center py-16 space-y-6 max-w-4xl mx-auto">
+        <div className="flex justify-center">
+          <DropCountdown title="Workshop Drop Countdown" />
+        </div>
+
         <div className="flex flex-wrap items-center justify-center gap-2.5">
           <Badge variant="warning" className="uppercase tracking-wider font-mono text-[11px]">
             ⚡ Small-Batch Drop Live

@@ -5,6 +5,7 @@ export interface HeaderProps {
   subtitle?: string;
   navItems?: Array<{ label: string; href: string }>;
   cartCount?: number;
+  onOpenCart?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
     { label: 'The Maker’s Bench', href: '/#makers-bench' },
   ],
   cartCount = 0,
+  onOpenCart,
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-stone-800/80 bg-[#15191E]/95 backdrop-blur-md">
@@ -45,18 +47,36 @@ export const Header: React.FC<HeaderProps> = ({
               {item.label}
             </a>
           ))}
-          <a
-            href="/cart"
-            className="relative group block"
-            aria-label={`View Gear Roll cart with ${cartCount} items`}
-          >
-            <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors">
-              <span>🎒 Gear Roll</span>
-              <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1 rounded-full text-xs inline-flex items-center justify-center">
-                {cartCount}
+          {onOpenCart ? (
+            <button
+              type="button"
+              onClick={onOpenCart}
+              data-testid="header-cart-button"
+              className="relative group block"
+              aria-label={`View Gear Roll cart with ${cartCount} items`}
+            >
+              <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors">
+                <span>🎒 Gear Roll</span>
+                <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1 rounded-full text-xs inline-flex items-center justify-center">
+                  {cartCount}
+                </span>
               </span>
-            </span>
-          </a>
+            </button>
+          ) : (
+            <a
+              href="/cart"
+              data-testid="header-cart-button"
+              className="relative group block"
+              aria-label={`View Gear Roll cart with ${cartCount} items`}
+            >
+              <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors">
+                <span>🎒 Gear Roll</span>
+                <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1 rounded-full text-xs inline-flex items-center justify-center">
+                  {cartCount}
+                </span>
+              </span>
+            </a>
+          )}
         </nav>
       </div>
     </header>

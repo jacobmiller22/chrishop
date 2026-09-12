@@ -197,16 +197,50 @@ pnpm run test:unit
 # 3. Ephemeral Integration Tests (In-memory D1 SQLite & Shopify Client)
 pnpm run test:integration
 
-# 4. Run All Tests
+# 4. Playwright UI & Integration Test Suites
+pnpm run test:ui              # Run headless Playwright UI tests
+pnpm run test:ui:interactive  # Open interactive Playwright UI mode with time-travel debugger
+pnpm run test:ui:headed       # Run headed browser tests
+pnpm run test:ui:mobile       # Target mobile viewports (iPhone 14, iPhone SE, Pixel 7)
+pnpm run test:ui:report       # Open HTML test execution report
+
+# 5. Run All Tests
 pnpm run test:all
 
-# 5. Production Build Validation (All Workspaces & Cloudflare Worker)
+# 6. Production Build Validation (All Workspaces & Cloudflare Worker)
 pnpm run build
 # Or explicitly build only apps or only worker bundle:
 pnpm run build:apps
 pnpm run build:worker
 pnpm run build:prod
 
-# 6. Turnkey Pre-PR Verification Pipeline (All 7 Stages)
+# 7. Turnkey Pre-PR Verification Pipeline (All 7 Stages)
 pnpm run verify:local
 ```
+
+### 7.1 Playwright UI & Integration Test Suite (`test:ui`)
+
+ChrisShop standardizes on `test:ui` rather than ambiguous `test:e2e` naming to clearly distinguish browser/DOM rendering and user flow validation from backend integration tests (`test:integration`).
+
+#### Supported Test Scenarios
+- **Storefront Critical Paths (`tests/ui/storefront-journey.spec.ts`)**:
+  - Hero drop countdown timer with authentic BankBeaters badge & ticking intervals
+  - Product catalog navigation and PDP inspection
+  - Edition variation selection dynamically updating price and SKU badge
+  - Accessible slide-over cart drawer opening and line items
+  - Checkout redirect API route intercept
+- **Payload CMS Admin (`tests/ui/payload-admin.spec.ts`)**:
+  - Unauthenticated `/admin` redirection to authentication screen
+  - Accessibility attributes and keyboard interaction on email/password inputs
+  - Form validation on empty or malformed credentials
+
+#### Worktree Collision-Free Port Isolation
+When developing across multiple `wt` (worktrunk) branches simultaneously, use `PLAYWRIGHT_PORT` to bind Playwright's Next.js webserver to a dedicated non-conflicting port:
+
+```bash
+PLAYWRIGHT_PORT=3012 pnpm run test:ui
+```
+
+#### GitHub Actions Intelligent Binary Caching
+CI (`.github/workflows/ci.yml`) caches Playwright browser binaries in `~/.cache/ms-playwright` keyed by lockfile hash (`${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}`), achieving setup times under 20 seconds.
+

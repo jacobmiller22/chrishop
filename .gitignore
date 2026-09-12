@@ -40,6 +40,8 @@ pnpm-debug.log*
 
 # Testing / Coverage
 coverage
+playwright-report/
+test-results/
 
 # Cloudflare & Wrangler
 .wrangler/
