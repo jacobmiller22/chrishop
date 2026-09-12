@@ -24,6 +24,9 @@ describe('Cloudflare Worker Bundle Size Budgeting & PR Verification Gate', () =>
       fs.rmSync(tempFixturesDir, { recursive: true, force: true });
     }
     fs.mkdirSync(tempFixturesDir, { recursive: true });
+
+    // Ensure production worker bundle exists before profiling
+    execSync('pnpm run build:worker', { cwd: rootDir, stdio: 'pipe' });
   });
 
   after(() => {
