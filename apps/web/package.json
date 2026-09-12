@@ -20,7 +20,7 @@
     "@payloadcms/db-d1-sqlite": "^3.89.0",
     "@payloadcms/next": "^3.89.0",
     "@payloadcms/richtext-lexical": "^3.89.0",
-    "graphql": "^16.8.1",
+    "graphql": "^17.0.2",
     "next": "^15.1.0",
     "payload": "^3.89.0",
     "react": "^19.0.0",
