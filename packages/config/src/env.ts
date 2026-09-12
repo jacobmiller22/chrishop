@@ -63,6 +63,17 @@ export const serverEnvSchema = z.object({
   DISCORD_WEBHOOK_ORDERS: z.string().url('DISCORD_WEBHOOK_ORDERS must be a valid URL').optional(),
   /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
   DISCORD_WEBHOOK_ALERTS: z.string().url('DISCORD_WEBHOOK_ALERTS must be a valid URL').optional(),
+
+  // Feature Flag Configurations (ADR-001)
+  FLAG_IS_DROP_ACTIVE: z.coerce.boolean().optional(),
+  FLAG_ENABLE_WIREMOCK: z.coerce.boolean().optional(),
+  FLAG_MAINTENANCE_MODE: z.coerce.boolean().optional(),
+  FLAG_EMERGENCY_KILL_SWITCH: z.coerce.boolean().optional(),
+  FLAG_DISABLE_CHECKOUT: z.coerce.boolean().optional(),
+  FLAG_VIP_EARLY_ACCESS: z.coerce.boolean().optional(),
+  FLAG_VERBOSE_DEBUG_HEADERS: z.coerce.boolean().optional(),
+  FLAG_PHASE_6_CANARY_PERCENT: z.coerce.number().min(0).max(100).optional(),
+  FLAG_VIP_SECRET_TOKEN: z.string().optional(),
 });
 
 export const clientEnvSchema = z.object({
@@ -79,6 +90,8 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
   NEXT_PUBLIC_R2_PUBLIC_URL: z.string().optional(),
   NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
+  NEXT_PUBLIC_FLAG_IS_DROP_ACTIVE: z.coerce.boolean().optional(),
+  NEXT_PUBLIC_FLAG_MAINTENANCE_MODE: z.coerce.boolean().optional(),
 });
 
 export const envSchema = serverEnvSchema.merge(clientEnvSchema);
