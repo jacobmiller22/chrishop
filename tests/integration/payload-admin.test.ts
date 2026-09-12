@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import payloadConfigPromise from '../../apps/web/payload.config';
 
 describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
@@ -97,6 +98,9 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
       rootDir,
       '.open-next/assets/_next/static/css/payload.css'
     );
+    if (!fs.existsSync(payloadCssPath)) {
+      execSync('pnpm run build:worker', { cwd: rootDir, stdio: 'pipe' });
+    }
     assert.ok(fs.existsSync(payloadCssPath), 'payload.css must exist in .open-next/assets');
     const content = fs.readFileSync(payloadCssPath, 'utf-8');
     assert.ok(content.length > 50000, `payload.css must be substantial (>50KB), got ${content.length}`);

@@ -51,8 +51,14 @@ export function buildWorker(): void {
   }
 
   // 2. Synchronize Next.js static assets into .open-next/assets
+  const targetStaticDir = path.join(assetsDir, '_next/static');
+  const targetCssDir = path.join(targetStaticDir, 'css');
+  if (!fs.existsSync(targetCssDir)) {
+    fs.mkdirSync(targetCssDir, { recursive: true });
+  }
+
+  let payloadCssGenerated = false;
   if (fs.existsSync(webNextStaticDir)) {
-    const targetStaticDir = path.join(assetsDir, '_next/static');
     copyRecursiveSync(webNextStaticDir, targetStaticDir);
     console.log('  ✔ Synced Next.js static assets (_next/static) to .open-next/assets/_next/static');
 
@@ -73,14 +79,26 @@ export function buildWorker(): void {
         payloadChunks.sort((a, b) => b.size - a.size);
         const combinedCss = payloadChunks.map(c => c.content).join('\n');
         fs.writeFileSync(path.join(cssDir, 'payload.css'), combinedCss, 'utf-8');
+        payloadCssGenerated = true;
         console.log(`  ✔ Combined ${payloadChunks.length} authentic Payload CMS native stylesheets into payload.css (${combinedCss.length} bytes)`);
       }
     }
-  } else {
-    // Scaffold minimal asset directory structure if Next.js has not been built yet
-    const placeholderDir = path.join(assetsDir, '_next/static');
-    if (!fs.existsSync(placeholderDir)) {
-      fs.mkdirSync(placeholderDir, { recursive: true });
+  }
+
+  // If payload.css was not compiled from Next.js chunks yet (e.g. running build:worker or integration tests before full build),
+  // extract authentic production styles directly from @payloadcms/next/css
+  const destPayloadCss = path.join(targetCssDir, 'payload.css');
+  if (!payloadCssGenerated || !fs.existsSync(destPayloadCss)) {
+    try {
+      const payloadCssSource = require.resolve('@payloadcms/next/css', {
+        paths: [process.cwd(), path.join(process.cwd(), 'apps/web'), path.join(__dirname, '../apps/web'), __dirname]
+      });
+      if (fs.existsSync(payloadCssSource)) {
+        fs.copyFileSync(payloadCssSource, destPayloadCss);
+        console.log(`  ✔ Extracted authentic Payload CMS stylesheet from @payloadcms/next/css into ${destPayloadCss} (${fs.statSync(destPayloadCss).size} bytes)`);
+      }
+    } catch (err) {
+      console.warn('  ⚠️ Could not resolve @payloadcms/next/css:', (err as Error).message);
     }
   }
 
