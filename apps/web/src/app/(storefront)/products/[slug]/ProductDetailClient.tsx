@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge, Button } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
@@ -36,20 +36,36 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
 
-  const prefetchFullImage = (url: string) => {
-    if (typeof window !== 'undefined' && !loadedImages.has(url)) {
-      const img = new window.Image();
-      img.src = buildCloudflareImageUrl(url, {
-        width: 1024,
-        quality: 80,
-        format: 'auto',
-        onerror: 'redirect',
-      });
-      img.onload = () => {
-        setLoadedImages((prev) => new Set(prev).add(url));
-      };
-    }
-  };
+  const markImageLoaded = useCallback((url: string) => {
+    if (!url) return;
+    setLoadedImages((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+  }, []);
+
+  const prefetchFullImage = useCallback(
+    (url: string) => {
+      if (typeof window !== 'undefined' && url && !loadedImages.has(url)) {
+        const img = new window.Image();
+        img.src = buildCloudflareImageUrl(url, {
+          width: 1024,
+          quality: 80,
+          format: 'auto',
+          onerror: 'redirect',
+        });
+        if (img.complete && img.naturalWidth > 0) {
+          markImageLoaded(url);
+        } else {
+          img.onload = () => markImageLoaded(url);
+          img.onerror = () => markImageLoaded(url);
+        }
+      }
+    },
+    [loadedImages, markImageLoaded]
+  );
 
   const selectedVariation = variations.find((v) => v.id === selectedVariationId) || variations[0];
 
@@ -110,6 +126,40 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const activeMedia = mediaList[selectedImageIndex] || mediaList[0];
   const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🌲';
+
+  const heroImageRef = useRef<HTMLImageElement | null>(null);
+
+  const handleHeroImageRef = useCallback(
+    (el: HTMLImageElement | null) => {
+      heroImageRef.current = el;
+      if (el && el.complete && el.naturalWidth > 0 && activeMedia?.url) {
+        markImageLoaded(activeMedia.url);
+      }
+    },
+    [activeMedia?.url, markImageLoaded]
+  );
+
+  useEffect(() => {
+    const el = heroImageRef.current;
+    if (!el || !activeMedia?.url) return;
+
+    if (el.complete && el.naturalWidth > 0) {
+      markImageLoaded(activeMedia.url);
+      return;
+    }
+
+    if ('decode' in el && typeof el.decode === 'function') {
+      el.decode()
+        .then(() => {
+          if (activeMedia?.url) {
+            markImageLoaded(activeMedia.url);
+          }
+        })
+        .catch(() => {
+          // Ignore cancellation when switching images
+        });
+    }
+  }, [activeMedia?.url, markImageLoaded]);
 
   // Price resolution
   const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
@@ -216,13 +266,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   src={buildCloudflareImageUrl(activeMedia.url, {
                     width: 32,
                     quality: 30,
-                    blur: 20,
+                    blur: 50,
                     format: 'auto',
                     onerror: 'redirect',
                   })}
                   alt=""
                   aria-hidden="true"
-                  className={`absolute inset-0 w-full h-full object-cover filter blur-lg scale-105 transition-opacity duration-700 pointer-events-none ${
+                  className={`absolute inset-0 w-full h-full object-cover filter blur-lg scale-105 transition-opacity duration-700 pointer-events-none z-0 ${
                     loadedImages.has(activeMedia.url) ? 'opacity-0' : 'opacity-100'
                   }`}
                 />
@@ -230,6 +280,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 {/* Prioritized High-Fidelity Active Hero Image with Responsive Srcset */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  ref={handleHeroImageRef}
                   key={activeMedia.url}
                   src={buildCloudflareImageUrl(activeMedia.url, {
                     width: 1024,
@@ -244,9 +295,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   loading="eager"
                   decoding="async"
                   onLoad={() => {
-                    setLoadedImages((prev) => new Set(prev).add(activeMedia.url));
+                    markImageLoaded(activeMedia.url);
                   }}
-                  className={`w-full h-full object-cover transition-opacity duration-500 ease-out ${
+                  onError={() => {
+                    markImageLoaded(activeMedia.url);
+                  }}
+                  className={`relative z-10 w-full h-full object-cover transition-opacity duration-500 ease-out ${
                     loadedImages.has(activeMedia.url) ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
