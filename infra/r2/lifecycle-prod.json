@@ -1,0 +1,47 @@
+{
+  "rules": [
+    {
+      "id": "transition-archive-infrequent-access",
+      "enabled": true,
+      "conditions": {
+        "prefix": "archive/"
+      },
+      "storageClassTransitions": [
+        {
+          "condition": {
+            "maxAge": 7776000,
+            "type": "Age"
+          },
+          "storageClass": "InfrequentAccess"
+        }
+      ]
+    },
+    {
+      "id": "transition-past-drops-infrequent-access",
+      "enabled": true,
+      "conditions": {
+        "prefix": "drops/past/"
+      },
+      "storageClassTransitions": [
+        {
+          "condition": {
+            "maxAge": 15552000,
+            "type": "Age"
+          },
+          "storageClass": "InfrequentAccess"
+        }
+      ]
+    },
+    {
+      "id": "abort-incomplete-multipart-uploads",
+      "enabled": true,
+      "conditions": {},
+      "abortMultipartUploadsTransition": {
+        "condition": {
+          "maxAge": 604800,
+          "type": "Age"
+        }
+      }
+    }
+  ]
+}
