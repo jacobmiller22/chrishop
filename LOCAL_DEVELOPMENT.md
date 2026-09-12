@@ -98,9 +98,12 @@ R2_ACCESS_KEY_ID=mock_r2_key
 R2_SECRET_ACCESS_KEY=mock_r2_secret
 R2_ENDPOINT=http://localhost:3000/mock-r2
 
-# Pluggable Notifications
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/mock/dev-channel
+# Event Notifications & Alerts (Channel-Agnostic)
 RESEND_API_KEY=mock_resend_api_key
+RESEND_FROM_EMAIL=orders@shop.jacobmiller22.com
+MERCHANT_ALERT_EMAIL=orders@shop.jacobmiller22.com
+OPS_ALERT_WEBHOOK_URL=https://webhook.site/mock-ops-webhook
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/mock/dev-channel # Optional / Legacy
 ```
 
 ---
