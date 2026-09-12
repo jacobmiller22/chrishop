@@ -85,36 +85,56 @@ Before spawning subagents, the Orchestrator MUST verify that the selected batch 
 
 The Orchestrator dispatches worker subagents concurrently using a single `invoke_subagent` tool call.
 
-### 3.1 Worker Configuration Standard
+### 3.1 Worker Configuration Standard & Model Selection
 
-For each selected story, define an entry in `Subagents`:
+Before dispatching, the Orchestrator MUST inspect the candidate's recommended thinking level (extracted via `python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --json` or parsed from the issue body `> **Thinking Level**: <Low | Medium | High>`):
 
-- **Role**: `Worker: Story <X.Y> <Short Title>`
-- **TypeName**: `self` (inherits tool capabilities to create files, run git, and manage issues)
-- **Model**: `inherit` (or `flash` for pure documentation stories like Story 2.1)
-- **Workspace**: `inherit` (the worker creates its own isolated worktree using `wt`)
+1. **Low Thinking Stories** (Docs, simple UI tweaks, static metadata, review walkthroughs):
+   - **Role**: `Worker: Story <X.Y> <Short Title>`
+   - **TypeName**: `self`
+   - **Model**: `flash`
+   - **Workspace**: `inherit`
+   - **Thinking Directives**: Prompt worker to prioritize swift, concise execution of acceptance criteria, avoiding unnecessary speculative design or excessive token expenditure.
+
+2. **Medium Thinking Stories** (Standard features, UI state machines, typical API integrations, standard CI/CD workflows, migrations):
+   - **Role**: `Worker: Story <X.Y> <Short Title>`
+   - **TypeName**: `self`
+   - **Model**: `inherit` (defaults to Gemini 3.8 Flash Medium)
+   - **Workspace**: `inherit`
+   - **Thinking Directives**: Prompt worker to ensure balanced architectural modularity, ephemeral D1/KV integration tests, and standard error handling.
+
+3. **High Thinking Stories** (High-concurrency drops, raw HMAC verification, idempotency pipelines, rollback harnesses, deep App Router bugs, Terraform IaC):
+   - **Role**: `Worker: Story <X.Y> <Short Title>`
+   - **TypeName**: `self`
+   - **Model**: `inherit` (or `pro` if deep multi-step planning/refactoring is required)
+   - **Workspace**: `inherit`
+   - **Thinking Directives**: Explicitly instruct worker to operate with maximum analytical rigor, stress-testing edge cases, verifying cryptographic integrity, and validating rollback backward-compatibility.
 
 ### 3.2 Standard Worker System Prompt Template
 
-Every subagent prompt MUST explicitly mandate execution of [story-feedback-loop](../story-feedback-loop/SKILL.md):
+Every subagent prompt MUST explicitly declare its assigned model tier and mandate execution of [story-feedback-loop](../story-feedback-loop/SKILL.md):
 
 ```text
 You are assigned to implement and verify GitHub Issue #<ISSUE_NUMBER>: "<ISSUE_TITLE>".
+
+Assigned Model Tier: Gemini 3.8 Flash (<LEVEL> Thinking)
+Execution Directives:
+<Directives matching Low / Medium / High thinking budget as specified in Section 3.1>
 
 Issue Details:
 <PASTE FULL ISSUE BODY>
 
 You MUST strictly follow the protocol defined in `.agents/skills/story-feedback-loop/SKILL.md`:
-1. Transition Issue Status: Apply label "status:in-progress" and post an initial start-of-work comment on GitHub.
+1. Transition Issue Status: Apply label "status:in-progress" and post an initial start-of-work comment on GitHub (including assigned model and thinking level).
 2. Provision Worktree: Create an isolated worktree using `wt switch --create feature/story-<X>-<Y>-<slug>`.
 3. Implementation: Develop all deliverables matching the sub-tasks checklist.
 4. Local Verification: Run `pnpm run verify:local` (validating container health, check, test:unit, live dependency probes, and build). Post local verification comment on the issue.
 5. Dual-Role Adversarial Review: Evaluate your implementation against high-level architectural intent. Fix gaps immediately.
-6. Pull Request & Linking: Push branch, create PR targeting `main` with `Fixes #<ISSUE_NUMBER>` in the PR body. Post PR link comment on the issue.
+6. Pull Request & Linking: Push branch, create PR targeting `staging` (`gh pr create --base staging`) with `Fixes #<ISSUE_NUMBER>` in the PR body. Post PR link comment on the issue.
 7. CI Verification: Verify automated checks pass via `gh pr checks <PR_NUMBER>`.
 8. High-Detail Completion Documentation: Post a comprehensive completion comment on GitHub Issue #<ISSUE_NUMBER> detailing deliverables, file list, verification outputs, and PR link.
 9. Finalize Status: Remove "status:in-progress", apply "status:completed", and close the issue via `gh issue close <ISSUE_NUMBER> --reason "completed"`.
-10. Worktree Teardown: Switch back (`wt switch main`), reap background processes, and remove the worktree via `wt remove --reap feature/story-<X>-<Y>-<slug>`. Run `git worktree prune`.
+10. Worktree Teardown: Switch back (`wt switch staging` or `wt switch main`), reap background processes, and remove the worktree via `wt remove --reap feature/story-<X>-<Y>-<slug>`. Run `git worktree prune`.
 
 When complete, message the Orchestrator with:
 - PR URL and Commit SHA
