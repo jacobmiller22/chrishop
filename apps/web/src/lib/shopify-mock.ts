@@ -27,6 +27,8 @@ export interface MockCart {
 
 export class ShopifyStorefrontMockEngine {
   private carts = new Map<string, MockCart>();
+  public lastBuyerIp: string | null = null;
+  public requestHistory: Array<{ query: string; variables: any; buyerIp?: string }> = [];
 
   constructor(public domain: string = 'chrishop-dev.myshopify.com') {}
 
@@ -57,7 +59,10 @@ export class ShopifyStorefrontMockEngine {
     return this.carts.get(cartId) || null;
   }
 
-  async handleGraphQLRequest(query: string, variables: any = {}): Promise<any> {
+  async handleGraphQLRequest(query: string, variables: any = {}, buyerIp?: string): Promise<any> {
+    this.lastBuyerIp = buyerIp || null;
+    this.requestHistory.push({ query, variables, buyerIp });
+
     // 1. cartCreate mutation
     if (query.includes('cartCreate')) {
       const lines = variables?.input?.lines || [];

@@ -34,6 +34,44 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/products',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+        ],
+      },
+      {
+        source: '/products/:slug*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default withPayload(nextConfig);

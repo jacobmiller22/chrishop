@@ -18,8 +18,10 @@ import type {
   VariationStatus,
 } from '@chrishop/types';
 import { getEffectivePrice } from '@chrishop/types';
+import { catalogSingleFlight } from './singleflight';
 
 export type { Category, Product, ProductVariation, ProductStatus, VariationStatus };
+export { catalogSingleFlight };
 
 export interface StorefrontVariation {
   id: string;
@@ -58,6 +60,7 @@ export interface GetProductsOptions {
   status?: ProductStatus[];
   limit?: number;
   db?: DatabaseSync;
+  bypassSingleFlight?: boolean;
 }
 
 // ============================================================================
@@ -237,6 +240,18 @@ export async function getProductVariations(
 
 export async function getProductBySlug(
   slug: string,
+  options?: { db?: DatabaseSync; bypassSingleFlight?: boolean }
+): Promise<StorefrontProduct | null> {
+  if (options?.bypassSingleFlight) {
+    return fetchProductBySlugDirect(slug, options);
+  }
+  return catalogSingleFlight.do(`product:${slug}`, () =>
+    fetchProductBySlugDirect(slug, options)
+  );
+}
+
+async function fetchProductBySlugDirect(
+  slug: string,
   options?: { db?: DatabaseSync }
 ): Promise<StorefrontProduct | null> {
   try {
@@ -300,6 +315,18 @@ export async function getProductBySlug(
 }
 
 export async function getProducts(options?: GetProductsOptions): Promise<StorefrontProduct[]> {
+  if (options?.bypassSingleFlight) {
+    return fetchProductsDirect(options);
+  }
+  const catKey = options?.category || 'all';
+  const statusKey = (options?.status || ['published']).join(',');
+  const limitKey = options?.limit ?? 'all';
+  const key = `products:${catKey}:${statusKey}:${limitKey}`;
+
+  return catalogSingleFlight.do(key, () => fetchProductsDirect(options));
+}
+
+async function fetchProductsDirect(options?: GetProductsOptions): Promise<StorefrontProduct[]> {
   try {
     const db = options?.db || getDatabase();
 
