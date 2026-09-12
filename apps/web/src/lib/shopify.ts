@@ -113,8 +113,34 @@ export class ShopifyStorefrontClient {
     variables?: Record<string, any>,
     buyerIp?: string
   ): Promise<{ data: T; errors?: any[] }> {
-    // If running in development or test without live Shopify credentials, route through mock engine
+    // Check operational kill switches / circuit breakers (ADR-001)
+    const isKilled =
+      process.env.FLAG_EMERGENCY_KILL_SWITCH === 'true' ||
+      process.env.FLAG_EMERGENCY_KILL_SWITCH === '1';
+    const isCheckoutDisabled =
+      process.env.FLAG_DISABLE_CHECKOUT === 'true' ||
+      process.env.FLAG_DISABLE_CHECKOUT === '1';
+
+    if ((isKilled || isCheckoutDisabled) && (query.includes('cartCreate') || query.includes('checkout'))) {
+      return {
+        data: null as any,
+        errors: [
+          {
+            message:
+              'Checkout and cart creation are temporarily disabled by operational circuit breaker (FLAG_EMERGENCY_KILL_SWITCH).',
+            code: 'CIRCUIT_BREAKER_ACTIVE',
+          },
+        ],
+      };
+    }
+
+    // If running in development, test, or if FLAG_ENABLE_WIREMOCK is active, route through mock engine
+    const isWireMock =
+      process.env.FLAG_ENABLE_WIREMOCK === 'true' ||
+      process.env.FLAG_ENABLE_WIREMOCK === '1';
+
     const isMock =
+      isWireMock ||
       !process.env.SHOPIFY_STOREFRONT_TOKEN ||
       process.env.SHOPIFY_STOREFRONT_TOKEN.includes('mock') ||
       process.env.NODE_ENV === 'test';
