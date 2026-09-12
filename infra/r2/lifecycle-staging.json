@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "id": "transition-staging-infrequent-access",
+      "enabled": true,
+      "conditions": {},
+      "storageClassTransitions": [
+        {
+          "condition": {
+            "maxAge": 2592000,
+            "type": "Age"
+          },
+          "storageClass": "InfrequentAccess"
+        }
+      ]
+    },
+    {
+      "id": "expire-staging-objects",
+      "enabled": true,
+      "conditions": {},
+      "deleteObjectsTransition": {
+        "condition": {
+          "maxAge": 7776000,
+          "type": "Age"
+        }
+      }
+    },
+    {
+      "id": "abort-incomplete-multipart-uploads",
+      "enabled": true,
+      "conditions": {},
+      "abortMultipartUploadsTransition": {
+        "condition": {
+          "maxAge": 259200,
+          "type": "Age"
+        }
+      }
+    }
+  ]
+}
