@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "pnpm --filter @chrishop/web run postinstall",
+    "postinstall": "node scripts/patch-dependencies.js && pnpm --filter @chrishop/web run postinstall",
     "build": "turbo run build && tsx scripts/build-worker.ts",
     "build:apps": "turbo run build",
     "build:worker": "tsx scripts/build-worker.ts",

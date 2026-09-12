@@ -10,7 +10,7 @@
     "lint": "next lint",
     "check": "tsc --noEmit",
     "test": "tsx --test",
-    "postinstall": "node -e \"const fs = require('fs'); try { const f = require.resolve('@next/env'); let c = fs.readFileSync(f, 'utf8'); if (!c.includes('n.default=n;')) { fs.writeFileSync(f, c.replace('module.exports=n', 'n.default=n;module.exports=n')); } } catch {}\""
+    "postinstall": "node ../../scripts/patch-dependencies.js"
   },
   "dependencies": {
     "@chrishop/config": "workspace:*",

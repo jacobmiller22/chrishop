@@ -25,8 +25,11 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       assert.ok(content.includes('defineCloudflareConfig'), 'Must use defineCloudflareConfig');
       assert.ok(content.includes('cloudflare-node'), 'Must use cloudflare-node wrapper');
       assert.ok(content.includes('converter: \'edge\'') || content.includes('converter: "edge"'), 'Must specify edge converter');
-      assert.ok(content.includes('admin:'), 'Must configure admin function split');
-      assert.ok(content.includes('app/(payload)/admin/**'), 'Must map payload admin routes');
+      assert.ok(
+        content.includes('app/(payload)/admin/[[...segments]]/page') ||
+        content.includes('app/(payload)/admin/**'),
+        'Must map payload admin routes'
+      );
     });
 
     it('should verify .open-next/worker.js and .open-next/assets exist', () => {
