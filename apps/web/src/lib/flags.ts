@@ -8,11 +8,8 @@
 
 import {
   type EvaluationContext,
-  type KVNamespaceLike,
   isFeatureEnabled,
-  getFeatureFlag,
   evaluateAllFlags,
-  evaluateCanaryRollout,
   evaluateVipAccess,
   generateFlagDebugHeaders,
   resolveEnvironmentTier,
@@ -59,6 +56,7 @@ export function extractEvaluationContext(request?: Request): EvaluationContext {
     undefined;
 
   return {
+    userId: sessionId,
     sessionId,
     vipToken,
     customerTags,
@@ -72,9 +70,9 @@ export function extractEvaluationContext(request?: Request): EvaluationContext {
  */
 export async function isDropActive(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<boolean> {
-  return isFeatureEnabled('FLAG_IS_DROP_ACTIVE', context, process.env, kvBinding);
+  return isFeatureEnabled('FLAG_IS_DROP_ACTIVE', context, env);
 }
 
 /**
@@ -82,9 +80,9 @@ export async function isDropActive(
  */
 export async function isWireMockEnabled(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<boolean> {
-  return isFeatureEnabled('FLAG_ENABLE_WIREMOCK', context, process.env, kvBinding);
+  return isFeatureEnabled('FLAG_ENABLE_WIREMOCK', context, env);
 }
 
 /**
@@ -92,9 +90,9 @@ export async function isWireMockEnabled(
  */
 export async function isMaintenanceMode(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<boolean> {
-  return isFeatureEnabled('FLAG_MAINTENANCE_MODE', context, process.env, kvBinding);
+  return isFeatureEnabled('FLAG_MAINTENANCE_MODE', context, env);
 }
 
 /**
@@ -102,9 +100,9 @@ export async function isMaintenanceMode(
  */
 export async function isEmergencyKillSwitchActive(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<boolean> {
-  return isFeatureEnabled('FLAG_EMERGENCY_KILL_SWITCH', context, process.env, kvBinding);
+  return isFeatureEnabled('FLAG_EMERGENCY_KILL_SWITCH', context, env);
 }
 
 /**
@@ -112,11 +110,11 @@ export async function isEmergencyKillSwitchActive(
  */
 export async function isCheckoutDisabled(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<boolean> {
-  const isKilled = await isEmergencyKillSwitchActive(context, kvBinding);
+  const isKilled = await isEmergencyKillSwitchActive(context, env);
   if (isKilled) return true;
-  return isFeatureEnabled('FLAG_DISABLE_CHECKOUT', context, process.env, kvBinding);
+  return isFeatureEnabled('FLAG_DISABLE_CHECKOUT', context, env);
 }
 
 /**
@@ -124,22 +122,22 @@ export async function isCheckoutDisabled(
  */
 export async function canAccessDrop(
   context: EvaluationContext = {},
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<{ canAccess: boolean; isVip: boolean; isPublic: boolean }> {
   // Check maintenance mode first: maintenance blocks all shopping
-  const maintenance = await isMaintenanceMode(context, kvBinding);
+  const maintenance = await isMaintenanceMode(context, env);
   if (maintenance) {
     return { canAccess: false, isVip: false, isPublic: false };
   }
 
   // Check if public drop is active
-  const publicActive = await isDropActive(context, kvBinding);
+  const publicActive = await isDropActive(context, env);
   if (publicActive) {
     return { canAccess: true, isVip: false, isPublic: true };
   }
 
   // Check if VIP Early Access is enabled
-  const vipGatingEnabled = await isFeatureEnabled('FLAG_VIP_EARLY_ACCESS', context, process.env, kvBinding);
+  const vipGatingEnabled = await isFeatureEnabled('FLAG_VIP_EARLY_ACCESS', context, env);
   if (!vipGatingEnabled) {
     return { canAccess: false, isVip: false, isPublic: false };
   }
@@ -150,30 +148,13 @@ export async function canAccessDrop(
 }
 
 /**
- * Checks if a session qualifies for Phase 6 canary feature rollout.
- */
-export async function isSessionInCanary(
-  sessionId: string,
-  context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
-): Promise<boolean> {
-  const canaryPercent = await getFeatureFlag(
-    'FLAG_PHASE_6_CANARY_PERCENT',
-    context,
-    process.env,
-    kvBinding
-  );
-  return evaluateCanaryRollout(sessionId, canaryPercent);
-}
-
-/**
  * Evaluates all flags and returns diagnostic headers if verbose debug headers are enabled.
  */
 export async function getFlagResponseHeaders(
   context?: EvaluationContext,
-  kvBinding?: KVNamespaceLike
+  env?: Record<string, unknown>
 ): Promise<Record<string, string>> {
-  const flags = await evaluateAllFlags(context, process.env, kvBinding);
+  const flags = await evaluateAllFlags(context, env);
   if (flags.FLAG_VERBOSE_DEBUG_HEADERS) {
     const tier = resolveEnvironmentTier(process.env, context);
     return generateFlagDebugHeaders(flags, tier);
