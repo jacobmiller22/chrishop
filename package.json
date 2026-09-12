@@ -21,6 +21,7 @@
     "test:spike": "tsx --test tests/spike/**/*.test.ts",
     "test:all": "pnpm run test:unit && pnpm run test:integration",
     "benchmark": "tsx scripts/benchmark-bundle.ts",
+    "verify:images": "tsx scripts/verify-image-pipeline.ts",
     "verify:local": "tsx scripts/verify-local.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
