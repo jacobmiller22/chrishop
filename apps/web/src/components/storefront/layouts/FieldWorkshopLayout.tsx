@@ -16,16 +16,16 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
       {/* 1. Bespoke Field Workshop Header */}
       <header className="sticky top-0 z-40 w-full bg-[#101311]/95 backdrop-blur-md border-b border-[#2A342D]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-[#E55B24] flex items-center justify-center font-display-workshop text-base sm:text-lg font-black text-black tracking-tighter shrink-0">
                 BB
               </span>
-              <div className="flex flex-col">
-                <span className="font-display-workshop text-xl sm:text-2xl uppercase tracking-wider text-[#F5EFEB] group-hover:text-[#E55B24] transition-colors leading-none font-bold">
+              <div className="flex flex-col min-w-0">
+                <span className="font-display-workshop text-base sm:text-2xl uppercase tracking-wider text-[#F5EFEB] group-hover:text-[#E55B24] transition-colors leading-none font-bold truncate">
                   BANKBEATERS
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.2em] text-[#8C9A8E] uppercase font-mono-workshop pt-1 truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-wider sm:tracking-[0.2em] text-[#8C9A8E] uppercase font-mono-workshop pt-1 truncate">
                   Adventure Gear · Field Workshop
                 </span>
               </div>
@@ -35,7 +35,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-mono-workshop text-[#A2B1A4]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-mono-workshop text-[#A2B1A4] shrink-0">
             <a href="#bench-builds" className="hover:text-[#E55B24] transition-colors hidden xs:inline">
               Bench Builds
             </a>
@@ -60,14 +60,14 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
       </header>
 
       {/* 2. Asymmetric Craftsman Hero */}
-      <section className="relative w-full border-b border-[#2A342D] bg-[#121614] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b border-[#2A342D] bg-[#121614] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left Hero Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#1C241F] border border-[#354338] px-3 sm:px-3.5 py-1.5 rounded-sm">
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#1C241F] border border-[#354338] px-2.5 py-1 sm:px-3.5 py-1.5 rounded-sm max-w-full">
               <span className="w-2 h-2 rounded-full bg-[#E55B24] animate-pulse shrink-0" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[#D4A373] font-bold">
-                Small-Batch Drop Live // 3 to 6 Units Per Silhouette
+              <span className="text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#D4A373] font-bold break-words">
+                Small-Batch Drop Live // 3 to 6 Units
               </span>
             </div>
 

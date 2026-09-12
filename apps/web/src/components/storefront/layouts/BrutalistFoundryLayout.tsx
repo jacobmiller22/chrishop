@@ -14,13 +14,13 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
       {/* 1. Bespoke Heavy Industrial Foundry Header */}
       <header className="sticky top-0 z-40 w-full bg-[#111315]/95 backdrop-blur-md border-b-2 border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#FACC15] text-black font-display-brutalist text-lg sm:text-xl flex items-center justify-center font-bold tracking-tighter shrink-0">
                 BF
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-display-brutalist text-lg sm:text-2xl uppercase tracking-wider text-white group-hover:text-[#FACC15] transition-colors leading-none truncate">
+                <span className="font-display-brutalist text-base sm:text-2xl uppercase tracking-wider text-white group-hover:text-[#FACC15] transition-colors leading-none truncate">
                   BANKBEATERS // FOUNDRY
                 </span>
                 <span className="text-[9px] sm:text-[10px] tracking-widest text-[#94A3B8] uppercase pt-0.5 sm:pt-1 truncate">
@@ -34,14 +34,14 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
             </div>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-wider text-[#CBD5E1]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-wider text-[#CBD5E1] shrink-0">
             <a href="#equipment-spec" className="hover:text-[#FACC15] transition-colors hidden sm:inline">
               [SPECS]
             </a>
             <Link href="/products?category=outerwear" className="hover:text-[#FACC15] transition-colors hidden md:inline">
               [OUTERWEAR]
             </Link>
-            <Link href="/about" className="hover:text-[#FACC15] transition-colors">
+            <Link href="/about" className="hover:text-[#FACC15] transition-colors hidden sm:inline">
               [FOUNDRY_LOG]
             </Link>
             <Link
@@ -56,21 +56,21 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
       </header>
 
       {/* 2. Wall-to-Wall Brutalist Hero */}
-      <section className="relative w-full border-b-2 border-white/20 bg-[#16191D] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b-2 border-white/20 bg-[#16191D] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
           {/* Left Foundry Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#20252C] border-2 border-[#374151] px-3 py-1 sm:px-3.5 sm:py-1.5">
-              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[#FACC15] font-bold">
-                HEAVY INDUSTRIAL TOOLING // RATED FOR ABRASION
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#20252C] border-2 border-[#374151] px-2.5 py-1 sm:px-3.5 sm:py-1.5 max-w-full">
+              <span className="text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#FACC15] font-bold break-words">
+                HEAVY INDUSTRIAL TOOLING // ABRASION RATED
               </span>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-xs uppercase tracking-[0.25em] text-[#94A3B8] block font-semibold">
+            <div className="space-y-2.5 sm:space-y-4">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#94A3B8] block font-semibold">
                 Option F · The Brutalist Foundry Archetype
               </span>
-              <h1 className="font-display-brutalist text-4xl sm:text-7xl lg:text-9xl uppercase tracking-tight text-white leading-none break-words">
+              <h1 className="font-display-brutalist text-3xl sm:text-6xl lg:text-9xl uppercase tracking-tight text-white leading-none break-words">
                 CURIOSITY &gt; FEAR.
               </h1>
               <p className="text-xs sm:text-base text-[#CBD5E1] leading-relaxed max-w-xl pt-1 sm:pt-2">
@@ -83,48 +83,42 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-5">
               <a
                 href="#equipment-spec"
-                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-display-brutalist text-base sm:text-lg uppercase tracking-wider transition-all duration-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 bg-[#FACC15] hover:bg-yellow-400 text-black font-display-brutalist text-sm sm:text-lg uppercase tracking-wider transition-all duration-200 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]"
               >
                 Explore Gear Roster ({products.length})
               </a>
               <Link
                 href="/about"
-                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-white/40 hover:border-[#FACC15] bg-[#111315] hover:bg-[#1A1D22] text-white font-display-brutalist text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-white/40 hover:border-[#FACC15] bg-[#111315] hover:bg-[#1A1D22] text-white font-display-brutalist text-sm sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]"
               >
                 Foundry Dossier (/about)
               </Link>
             </div>
 
             {/* Industrial Stamped Ratings */}
-            <div className="pt-6 border-t-2 border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-xs text-[#94A3B8]">
-              <div className="border-b sm:border-b-0 border-white/10 pb-3 sm:pb-0">
-                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">
-                  140 LBF
-                </span>
+            <div className="pt-5 sm:pt-6 border-t-2 border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-6 text-xs text-[#94A3B8]">
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-white/10 pb-2 sm:pb-0">
                 <span className="text-[11px]">Tear Resistance</span>
+                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">140 LBF</span>
               </div>
-              <div className="border-b sm:border-b-0 border-white/10 pb-3 sm:pb-0">
-                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">
-                  85 PSI
-                </span>
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-white/10 pb-2 sm:pb-0">
                 <span className="text-[11px]">Seam Burst Rating</span>
+                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">85 PSI</span>
               </div>
-              <div>
-                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">
-                  10,152 FT
-                </span>
+              <div className="flex items-center justify-between sm:block">
                 <span className="text-[11px]">Leadville Assembly</span>
+                <span className="block text-[#FACC15] font-bold text-sm font-display-brutalist uppercase">10,152 FT</span>
               </div>
             </div>
           </div>
 
           {/* Right Heavy Frame: Authentic Cloudflare R2 Hero Photo with Stamped Steel Border */}
-          <div className="lg:col-span-5">
-            <div className="relative bg-[#111315] border-2 border-white p-3 shadow-2xl group">
+          <div className="lg:col-span-5 w-full">
+            <div className="relative bg-[#111315] border-2 border-white p-2.5 sm:p-3 shadow-2xl group w-full">
               {/* Corner Industrial Crosshairs */}
-              <div className="flex items-center justify-between text-[10px] text-[#94A3B8] border-b-2 border-white/20 pb-2 mb-3">
-                <span className="text-[#FACC15] font-bold">+ HEAVY_PROOF_SPECIMEN 01 +</span>
-                <span>ELEV 10,152&apos;</span>
+              <div className="flex items-center justify-between text-[10px] text-[#94A3B8] border-b-2 border-white/20 pb-2 mb-2 sm:mb-3">
+                <span className="text-[#FACC15] font-bold truncate">+ HEAVY_PROOF_01 +</span>
+                <span className="shrink-0">ELEV 10,152&apos;</span>
               </div>
 
               <div className="aspect-[4/5] relative overflow-hidden bg-black border-2 border-white/20">
@@ -140,12 +134,12 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
               </div>
 
               {/* Stamped Metal Spec Tag */}
-              <div className="mt-3 p-3 bg-[#1C2026] border-2 border-white/20 flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-white font-bold block text-[11px]">LEADVILLE BENCH // LOT 01/24</span>
-                  <span className="text-[10px] text-[#94A3B8]">Toray 3L + 500D Cordura Shield</span>
+              <div className="mt-2.5 sm:mt-3 p-2.5 sm:p-3 bg-[#1C2026] border-2 border-white/20 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  <span className="text-white font-bold block text-[11px] truncate">LEADVILLE BENCH // LOT 01/24</span>
+                  <span className="text-[10px] text-[#94A3B8] block truncate">Toray 3L + 500D Cordura Shield</span>
                 </div>
-                <span className="text-[10px] font-bold bg-[#FACC15] text-black px-2 py-1">
+                <span className="text-[10px] font-bold bg-[#FACC15] text-black px-2 py-0.5 sm:py-1 shrink-0">
                   VERIFIED
                 </span>
               </div>

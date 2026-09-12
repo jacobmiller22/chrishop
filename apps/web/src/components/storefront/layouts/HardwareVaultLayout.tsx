@@ -14,16 +14,16 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
       {/* 1. Bespoke Tactical Terminal Header */}
       <header className="sticky top-0 z-40 w-full bg-[#08090B]/95 backdrop-blur-md border-b border-[#1E232A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#181B20] border border-[#F59E0B]/50 flex items-center justify-center text-[#F59E0B] font-bold text-xs shrink-0">
                 &gt;_
               </div>
-              <div className="flex flex-col">
-                <span className="font-cypher-vault text-lg sm:text-xl uppercase font-bold tracking-wider text-white group-hover:text-[#F59E0B] transition-colors leading-none">
+              <div className="flex flex-col min-w-0">
+                <span className="font-cypher-vault text-base sm:text-xl uppercase font-bold tracking-wider text-white group-hover:text-[#F59E0B] transition-colors leading-none truncate">
                   BANKBEATERS // VAULT
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-widest text-[#64748B] uppercase pt-1 truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#64748B] uppercase pt-1 truncate">
                   SYS_VER: 2.4.0 · D2C PROTOCOL
                 </span>
               </div>
@@ -36,7 +36,7 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
             </div>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider text-[#94A3B8]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider text-[#94A3B8] shrink-0">
             <a href="#schematics" className="hover:text-[#F59E0B] transition-colors hidden xs:inline">
               [SCHEMATICS]
             </a>
@@ -80,20 +80,20 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
             </div>
           </div>
 
-          <div className="text-[10px] sm:text-xs text-[#64748B]">
+          <div className="text-[10px] sm:text-xs text-[#64748B] break-all sm:break-normal">
             <span>LOC: 39.2508° N, 106.2925° W // ELEV 10,152 FT</span>
           </div>
         </div>
       </section>
 
       {/* 3. Tactical Reconnaissance Hero (HUD + Authentic R2 Image Recon) */}
-      <section className="relative w-full border-b border-[#1E232A] bg-[#0A0D12] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b border-[#1E232A] bg-[#0A0D12] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left HUD Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131822] border border-[#1E283A] px-3 sm:px-3.5 py-1.5">
-              <span className="text-[#06B6D4] font-bold text-[10px] sm:text-xs uppercase tracking-widest">
-                OPTION C // HARDWARE VAULT &amp; DENSE BOM ARCHITECTURE
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131822] border border-[#1E283A] px-2.5 py-1 sm:px-3.5 sm:py-1.5 max-w-full">
+              <span className="text-[#06B6D4] font-bold text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-widest break-words">
+                OPTION B // HARDWARE VAULT &amp; DENSE BOM
               </span>
             </div>
 

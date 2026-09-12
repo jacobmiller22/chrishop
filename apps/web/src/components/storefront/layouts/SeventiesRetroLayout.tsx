@@ -21,16 +21,16 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E5A93C] flex items-center justify-center font-display-retro font-black text-[#0F1A13] text-base sm:text-lg shadow-md shrink-0">
                 74
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-display-retro text-lg sm:text-2xl uppercase tracking-wider text-[#F8F2E4] group-hover:text-[#E5A93C] transition-colors leading-none font-black truncate">
+                <span className="font-display-retro text-base sm:text-2xl uppercase tracking-wider text-[#F8F2E4] group-hover:text-[#E5A93C] transition-colors leading-none font-black truncate">
                   BANKBEATERS
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-widest text-[#93A89A] uppercase pt-0.5 sm:pt-1 truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#93A89A] uppercase pt-0.5 sm:pt-1 truncate">
                   Adventure Gear · Leadville Backcountry Catalog
                 </span>
               </div>
@@ -40,14 +40,14 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-widest text-[#BDCEBF]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-widest text-[#BDCEBF] shrink-0">
             <a href="#catalog-items" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
               The Catalog
             </a>
             <Link href="/products?category=outerwear" className="hover:text-[#E5A93C] transition-colors hidden md:inline">
               Outerwear
             </Link>
-            <Link href="/about" className="hover:text-[#E5A93C] transition-colors">
+            <Link href="/about" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
               Mountain Ethic
             </Link>
             <Link
@@ -62,22 +62,22 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
       </header>
 
       {/* 2. 1974 Vintage Mountain Catalog Cover Hero */}
-      <section className="relative w-full border-b-2 border-[#203426] bg-[#122017] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b-2 border-[#203426] bg-[#122017] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
           {/* Left Vintage Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#1A2E22] border border-[#2B4A37] px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-sm">
-              <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#E5A93C] animate-pulse" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[#E5A93C] font-bold">
-                DIRT-BAG MOUNTAIN ETHIC // SMALL-BATCH RUN NO. 74
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#1A2E22] border border-[#2B4A37] px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-sm max-w-full">
+              <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#E5A93C] animate-pulse shrink-0" />
+              <span className="text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#E5A93C] font-bold break-words">
+                DIRT-BAG MOUNTAIN ETHIC // RUN NO. 74
               </span>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-xs uppercase tracking-[0.25em] text-[#93A89A] block font-bold">
+            <div className="space-y-2.5 sm:space-y-4">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#93A89A] block font-bold">
                 Option I · 1970s Golden Era Backcountry
               </span>
-              <h1 className="font-display-retro text-4xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tight text-[#FAF4E8] leading-[0.95] break-words">
+              <h1 className="font-display-retro text-3xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tight text-[#FAF4E8] leading-[0.95] break-words">
                 Curiosity &gt; Fear.
               </h1>
               <p className="text-xs sm:text-base text-[#C6D5C8] leading-relaxed max-w-xl pt-1 sm:pt-2">
@@ -90,48 +90,42 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-5">
               <a
                 href="#catalog-items"
-                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 bg-[#E5A93C] hover:bg-[#F2B94D] text-[#0F1A13] font-display-retro text-sm sm:text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm shadow-lg shadow-[#E5A93C]/20 border-2 border-[#C99026]"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 bg-[#E5A93C] hover:bg-[#F2B94D] text-[#0F1A13] font-display-retro text-xs sm:text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm shadow-lg shadow-[#E5A93C]/20 border-2 border-[#C99026]"
               >
                 Explore Gear Roster ({products.length})
               </a>
               <Link
                 href="/about"
-                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-[#B84A28] hover:border-[#E5A93C] bg-[#16271D] hover:bg-[#1E3326] text-[#F3EAD7] font-display-retro text-sm sm:text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-[#B84A28] hover:border-[#E5A93C] bg-[#16271D] hover:bg-[#1E3326] text-[#F3EAD7] font-display-retro text-xs sm:text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm"
               >
                 The Dirtbag Manifesto
               </Link>
             </div>
 
             {/* Vintage Tri-Spec Ledger */}
-            <div className="pt-6 border-t border-[#1D3325] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-xs text-[#93A89A]">
-              <div className="border-b sm:border-b-0 border-[#1D3325] pb-3 sm:pb-0">
-                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
-                  10,152 FT
-                </span>
+            <div className="pt-5 sm:pt-6 border-t border-[#1D3325] grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-6 text-xs text-[#93A89A]">
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#1D3325] pb-2 sm:pb-0">
                 <span className="text-[11px]">Sawatch Pass Station</span>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">10,152 FT</span>
               </div>
-              <div className="border-b sm:border-b-0 border-[#1D3325] pb-3 sm:pb-0">
-                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
-                  Toray 3-Layer
-                </span>
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#1D3325] pb-2 sm:pb-0">
                 <span className="text-[11px]">20,000mm High Water</span>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">Toray 3-Layer</span>
               </div>
-              <div>
-                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
-                  Perpetual
-                </span>
+              <div className="flex items-center justify-between sm:block">
                 <span className="text-[11px]">Free Stitched Repairs</span>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">Perpetual</span>
               </div>
             </div>
           </div>
 
           {/* Right Vintage Kodachrome Plate: Authentic Cloudflare R2 Hero Photo with 70s Styling */}
-          <div className="lg:col-span-5">
-            <div className="relative bg-[#172A1F] border-2 border-[#2E4D39] p-4 shadow-2xl rounded-sm group">
+          <div className="lg:col-span-5 w-full">
+            <div className="relative bg-[#172A1F] border-2 border-[#2E4D39] p-2.5 sm:p-4 shadow-2xl rounded-sm group w-full">
               {/* Retro Header Tag */}
-              <div className="flex items-center justify-between text-[11px] text-[#93A89A] border-b border-[#243F2E] pb-2 mb-3 font-bold">
-                <span className="text-[#E5A93C]">KODACHROME EXP. 01 // 1974</span>
-                <span className="text-[#B84A28]">COLORADO ROCKIES</span>
+              <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-[#93A89A] border-b border-[#243F2E] pb-2 mb-2 sm:mb-3 font-bold">
+                <span className="text-[#E5A93C] truncate">KODACHROME 01 // 1974</span>
+                <span className="text-[#B84A28] shrink-0">CO ROCKIES</span>
               </div>
 
               <div className="aspect-[4/5] relative overflow-hidden bg-[#0A120D] border border-[#2B4734]">
@@ -143,20 +137,20 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
                 />
 
                 {/* Vintage Circular Mountain Badge */}
-                <div className="absolute top-4 right-4 w-14 h-14 rounded-full bg-[#E5A93C] border-2 border-[#0F1A13] flex flex-col items-center justify-center text-[#0F1A13] shadow-lg">
-                  <span className="text-[9px] font-black leading-none">TESTED</span>
-                  <span className="text-[11px] font-display-retro font-black leading-none">100%</span>
-                  <span className="text-[8px] font-bold leading-none">COLO.</span>
+                <div className="absolute top-4 right-4 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#E5A93C] border-2 border-[#0F1A13] flex flex-col items-center justify-center text-[#0F1A13] shadow-lg">
+                  <span className="text-[8px] sm:text-[9px] font-black leading-none">TESTED</span>
+                  <span className="text-[10px] sm:text-[11px] font-display-retro font-black leading-none">100%</span>
+                  <span className="text-[7px] sm:text-[8px] font-bold leading-none">COLO.</span>
                 </div>
               </div>
 
               {/* Retro Caption Bar */}
-              <div className="mt-3 p-3 bg-[#132219] border border-[#243F2E] flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[#F8F2E4] font-bold block text-[11px]">LEADVILLE BENCH SPECIMEN</span>
-                  <span className="text-[10px] text-[#849B8B]">Single-Needle Bonded Nylon Seams</span>
+              <div className="mt-2.5 sm:mt-3 p-2.5 sm:p-3 bg-[#132219] border border-[#243F2E] flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  <span className="text-[#F8F2E4] font-bold block text-[11px] truncate">LEADVILLE BENCH SPECIMEN</span>
+                  <span className="text-[10px] text-[#849B8B] block truncate">Single-Needle Bonded Nylon Seams</span>
                 </div>
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 bg-[#B84A28] text-white">
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 bg-[#B84A28] text-white shrink-0">
                   AUTHENTIC
                 </span>
               </div>

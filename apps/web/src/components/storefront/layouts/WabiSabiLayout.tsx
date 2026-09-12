@@ -14,16 +14,16 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
       {/* 1. Bespoke Wabi-Sabi Indigo Header */}
       <header className="sticky top-0 z-40 w-full bg-[#09111C]/90 backdrop-blur-md border-b border-[#1C293A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="font-serif-wabisabi text-lg sm:text-xl text-[#C95D3B] font-bold shrink-0">
                 山
               </span>
               <div className="flex flex-col min-w-0">
-                <span className="font-serif-wabisabi text-lg sm:text-2xl uppercase tracking-[0.2em] text-white group-hover:text-[#C95D3B] transition-colors leading-none truncate">
+                <span className="font-serif-wabisabi text-base sm:text-2xl uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white group-hover:text-[#C95D3B] transition-colors leading-none truncate">
                   BANKBEATERS
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-[0.25em] text-[#8696A8] uppercase pt-0.5 sm:pt-1 font-light truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-[0.18em] sm:tracking-[0.25em] text-[#8696A8] uppercase pt-0.5 sm:pt-1 font-light truncate">
                   Adventure Gear · Leadville Mountain Sanctuary
                 </span>
               </div>
@@ -33,14 +33,14 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-[0.25em] text-[#A5B5C6] font-light">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase tracking-[0.25em] text-[#A5B5C6] font-light shrink-0">
             <a href="#equipment-archive" className="hover:text-white transition-colors hidden sm:inline">
               The Collection
             </a>
             <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden md:inline">
               Outerwear
             </Link>
-            <Link href="/about" className="hover:text-white transition-colors">
+            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
               Mountain Notes
             </Link>
             <Link
@@ -55,22 +55,22 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
       </header>
 
       {/* 2. Contemplative Mountain Sanctuary Hero */}
-      <section className="relative w-full border-b border-[#1C293A] bg-[#0D1623] py-10 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b border-[#1C293A] bg-[#0D1623] py-8 sm:py-20 lg:py-28 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
           {/* Left Contemplative Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131F2E] border border-[#223347] px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#C95D3B]" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#C95D3B] font-light">
-                One-of-a-Kind Small Batch Output · Leadville, Colorado
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131F2E] border border-[#223347] px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-sm max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C95D3B] shrink-0" />
+              <span className="text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-[0.25em] text-[#C95D3B] font-light break-words">
+                Small Batch Output · Leadville, Colorado
               </span>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-xs uppercase tracking-[0.3em] text-[#8696A8] block font-light">
+            <div className="space-y-2.5 sm:space-y-4">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[#8696A8] block font-light">
                 Option G · Wabi-Sabi Mountain Sanctuary
               </span>
-              <h1 className="font-serif-wabisabi text-4xl sm:text-6xl lg:text-8xl tracking-tight text-white leading-[1.05] break-words">
+              <h1 className="font-serif-wabisabi text-3xl sm:text-6xl lg:text-8xl tracking-tight text-white leading-[1.05] break-words">
                 Curiosity &gt; Fear.
               </h1>
               <p className="text-xs sm:text-base text-[#B3C3D4] leading-relaxed max-w-xl pt-1 sm:pt-2 font-light">
@@ -96,31 +96,25 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
             </div>
 
             {/* Poetic Craft Pillars */}
-            <div className="pt-6 border-t border-[#1C293A] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-xs text-[#8696A8] font-light">
-              <div className="border-b sm:border-b-0 border-[#1C293A] pb-3 sm:pb-0">
-                <span className="block text-white font-medium text-sm font-serif-wabisabi">
-                  10,152 FT
-                </span>
+            <div className="pt-5 sm:pt-6 border-t border-[#1C293A] grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-6 text-xs text-[#8696A8] font-light">
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#1C293A] pb-2 sm:pb-0">
                 <span className="text-[11px] tracking-wider">Leadville Solitude</span>
+                <span className="block text-white font-medium text-sm font-serif-wabisabi">10,152 FT</span>
               </div>
-              <div className="border-b sm:border-b-0 border-[#1C293A] pb-3 sm:pb-0">
-                <span className="block text-white font-medium text-sm font-serif-wabisabi">
-                  Toray 3L
-                </span>
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#1C293A] pb-2 sm:pb-0">
                 <span className="text-[11px] tracking-wider">Japanese Membrane</span>
+                <span className="block text-white font-medium text-sm font-serif-wabisabi">Toray 3L</span>
               </div>
-              <div>
-                <span className="block text-white font-medium text-sm font-serif-wabisabi">
-                  Perpetual
-                </span>
-                <span className="text-[11px] tracking-wider">Sashiko Bench Mending</span>
+              <div className="flex items-center justify-between sm:block">
+                <span className="text-[11px] tracking-wider">Bench Mending</span>
+                <span className="block text-white font-medium text-sm font-serif-wabisabi">Perpetual</span>
               </div>
             </div>
           </div>
 
           {/* Right Serene Visual: Authentic Cloudflare R2 Hero Photo with Indigo Tone */}
-          <div className="lg:col-span-5">
-            <div className="relative bg-[#111C2B] border border-[#26374D] p-3 shadow-2xl rounded-sm group">
+          <div className="lg:col-span-5 w-full">
+            <div className="relative bg-[#111C2B] border border-[#26374D] p-2.5 sm:p-3 shadow-2xl rounded-sm group w-full">
               <div className="aspect-[4/5] relative overflow-hidden bg-[#070D14]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -132,11 +126,11 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
               </div>
 
               {/* Minimalist Indigo Caption Bar */}
-              <div className="mt-3 p-3 bg-[#0D1724] border border-[#1F2F43] flex items-center justify-between text-xs font-light">
-                <span className="text-[#B3C3D4] tracking-widest text-[11px]">
-                  ARCHIVAL SPECIMEN 01 · ARKANSAS RIVER
+              <div className="mt-2.5 sm:mt-3 p-2.5 sm:p-3 bg-[#0D1724] border border-[#1F2F43] flex flex-col xs:flex-row items-start xs:items-center justify-between gap-1.5 text-xs font-light">
+                <span className="text-[#B3C3D4] tracking-wider sm:tracking-widest text-[10px] sm:text-[11px] truncate">
+                  ARCHIVAL SPECIMEN 01 · ARKANSAS
                 </span>
-                <span className="text-[10px] text-[#C95D3B] uppercase tracking-widest">
+                <span className="text-[10px] text-[#C95D3B] uppercase tracking-wider sm:tracking-widest shrink-0">
                   HAND-CRAFTED
                 </span>
               </div>

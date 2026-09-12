@@ -14,16 +14,16 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
       {/* 1. Bespoke Swiss International Grid Header */}
       <header className="sticky top-0 z-40 w-full bg-[#0A0B0E]/95 backdrop-blur-md border-b border-[#20242C]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="w-6 h-6 sm:w-7 sm:h-7 bg-[#002FA7] text-white font-bold flex items-center justify-center text-xs shrink-0">
                 CH
               </span>
               <div className="flex flex-col min-w-0">
-                <span className="font-sans-alpine text-lg sm:text-xl font-bold uppercase tracking-wider text-white group-hover:text-[#3B82F6] transition-colors leading-none truncate">
+                <span className="font-sans-alpine text-base sm:text-xl font-bold uppercase tracking-wider text-white group-hover:text-[#3B82F6] transition-colors leading-none truncate">
                   BANKBEATERS
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-widest text-[#64748B] uppercase font-mono-swiss pt-0.5 sm:pt-1 truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#64748B] uppercase font-mono-swiss pt-0.5 sm:pt-1 truncate">
                   Adventure Gear · System 10,152&apos;
                 </span>
               </div>
@@ -33,14 +33,14 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase font-mono-swiss tracking-wider text-[#94A3B8]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-xs uppercase font-mono-swiss tracking-wider text-[#94A3B8] shrink-0">
             <a href="#system-matrix" className="hover:text-white transition-colors hidden sm:inline">
               [01 / MATRIX]
             </a>
             <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden md:inline">
               [02 / OUTERWEAR]
             </Link>
-            <Link href="/about" className="hover:text-white transition-colors">
+            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
               [04 / ABOUT]
             </Link>
             <Link
@@ -55,22 +55,22 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
       </header>
 
       {/* 2. Strict 8-Column Mathematical Poster Hero */}
-      <section className="relative w-full border-b border-[#20242C] bg-[#0E1015] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b border-[#20242C] bg-[#0E1015] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
           {/* Left Rationalist Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131720] border border-[#232936] px-3 py-1 sm:px-3.5 sm:py-1.5">
-              <span className="w-2 h-2 rounded-none bg-[#002FA7]" />
-              <span className="text-[10px] sm:text-xs uppercase font-mono-swiss tracking-wider text-[#38BDF8]">
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#131720] border border-[#232936] px-2.5 py-1 sm:px-3.5 sm:py-1.5 max-w-full">
+              <span className="w-2 h-2 rounded-none bg-[#002FA7] shrink-0" />
+              <span className="text-[9px] sm:text-xs uppercase font-mono-swiss tracking-wider text-[#38BDF8] break-words">
                 OPTION H // SWISS INTERNATIONAL SYSTEMATICS
               </span>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-xs uppercase tracking-[0.25em] text-[#64748B] font-mono-swiss block">
+            <div className="space-y-2.5 sm:space-y-4">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#64748B] font-mono-swiss block">
                 Rational High-Altitude Equipment
               </span>
-              <h1 className="font-sans-alpine text-4xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tight text-white leading-none break-words">
+              <h1 className="font-sans-alpine text-3xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tight text-white leading-none break-words">
                 Curiosity &gt; Fear.
               </h1>
               <p className="text-xs sm:text-base text-[#CBD5E1] leading-relaxed max-w-xl pt-1 sm:pt-2 font-light">
@@ -96,29 +96,29 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
             </div>
 
             {/* Strict Tabular Specifications */}
-            <div className="pt-6 border-t border-[#20242C] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-xs font-mono-swiss text-[#64748B]">
-              <div className="border-b sm:border-b-0 border-[#20242C] pb-3 sm:pb-0">
-                <span className="block text-white font-bold text-sm uppercase">20,000 MM</span>
+            <div className="pt-5 sm:pt-6 border-t border-[#20242C] grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-6 text-xs font-mono-swiss text-[#64748B]">
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#20242C] pb-2 sm:pb-0">
                 <span className="text-[11px]">Hydrostatic Head</span>
+                <span className="block text-white font-bold text-sm uppercase">20,000 MM</span>
               </div>
-              <div className="border-b sm:border-b-0 border-[#20242C] pb-3 sm:pb-0">
-                <span className="block text-white font-bold text-sm uppercase">500D CORDURA</span>
+              <div className="flex items-center justify-between sm:block border-b sm:border-b-0 border-[#20242C] pb-2 sm:pb-0">
                 <span className="text-[11px]">Mil-Spec Scuff</span>
+                <span className="block text-white font-bold text-sm uppercase">500D CORDURA</span>
               </div>
-              <div>
-                <span className="block text-white font-bold text-sm uppercase">10,152 FT</span>
+              <div className="flex items-center justify-between sm:block">
                 <span className="text-[11px]">Datum Elevation</span>
+                <span className="block text-white font-bold text-sm uppercase">10,152 FT</span>
               </div>
             </div>
           </div>
 
           {/* Right Modular Ratio Block: Authentic Cloudflare R2 Hero Photo with Technical Typography */}
-          <div className="lg:col-span-5">
-            <div className="relative bg-[#11141A] border border-[#252B37] p-3 sm:p-4 shadow-2xl group">
+          <div className="lg:col-span-5 w-full">
+            <div className="relative bg-[#11141A] border border-[#252B37] p-2.5 sm:p-4 shadow-2xl group w-full">
               {/* Technical Ratio Header */}
-              <div className="flex items-center justify-between text-[10px] font-mono-swiss text-[#64748B] border-b border-[#202632] pb-2 mb-3">
-                <span className="text-[#38BDF8]">FIG 01.1 // HIGH ALPINE CANYON</span>
-                <span>ASPECT 7:5</span>
+              <div className="flex items-center justify-between text-[10px] font-mono-swiss text-[#64748B] border-b border-[#202632] pb-2 mb-2 sm:mb-3">
+                <span className="text-[#38BDF8] truncate">FIG 01.1 // CANYON SPEC</span>
+                <span className="shrink-0">ASPECT 7:5</span>
               </div>
 
               <div className="aspect-[7/5] relative overflow-hidden bg-black border border-[#202632]">
@@ -131,14 +131,14 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
               </div>
 
               {/* Functional Caption Ledger */}
-              <div className="mt-3 p-3 bg-[#141820] border border-[#202632] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-[11px] font-mono-swiss text-[#94A3B8]">
-                <div>
+              <div className="mt-2.5 sm:mt-3 p-2.5 sm:p-3 bg-[#141820] border border-[#202632] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-[11px] font-mono-swiss text-[#94A3B8]">
+                <div className="min-w-0">
                   <span className="text-[#64748B] block text-[10px]">SUBJECT:</span>
-                  <span className="text-white">Bushwhack Anorak Specimen</span>
+                  <span className="text-white truncate block">Bushwhack Anorak Specimen</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-[#64748B] block text-[10px]">COORDINATES:</span>
-                  <span className="text-[#38BDF8]">39.2508° N, 106.2925° W</span>
+                  <span className="text-[#38BDF8] truncate block">39.25° N, 106.29° W</span>
                 </div>
               </div>
             </div>

@@ -14,16 +14,16 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       {/* 1. Bespoke Cartographer Survey Header */}
       <header className="sticky top-0 z-40 w-full bg-[#151311]/95 backdrop-blur-md border-b border-[#2C2621]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-[#C85A32] flex items-center justify-center font-serif-cartographer text-base sm:text-lg font-bold text-[#151311] shrink-0">
                 🧭
               </span>
-              <div className="flex flex-col">
-                <span className="font-serif-cartographer text-xl sm:text-2xl uppercase tracking-wider text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors leading-none font-bold">
+              <div className="flex flex-col min-w-0">
+                <span className="font-serif-cartographer text-base sm:text-2xl uppercase tracking-wider text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors leading-none font-bold truncate">
                   BANKBEATERS
                 </span>
-                <span className="text-[9px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.2em] text-[#9E9484] uppercase font-mono-dispatch pt-1 truncate">
+                <span className="text-[9px] sm:text-[10px] tracking-wider sm:tracking-[0.2em] text-[#9E9484] uppercase font-mono-dispatch pt-1 truncate">
                   Adventure Gear · Field Survey 10,152&apos;
                 </span>
               </div>
@@ -33,7 +33,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             </span>
           </div>
 
-          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#B5ABA0]">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#B5ABA0] shrink-0">
             <a href="#survey-plates" className="hover:text-[#C85A32] transition-colors hidden xs:inline">
               Survey Plates
             </a>
@@ -58,13 +58,13 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       </header>
 
       {/* 2. Split-Page Expedition Dispatch Hero */}
-      <section className="relative w-full border-b border-[#2C2621] bg-[#171512] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+      <section className="relative w-full border-b border-[#2C2621] bg-[#171512] py-8 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left Expedition Journal Narrative */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
-            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#201D19] border border-[#3E352C] px-3 sm:px-3.5 py-1.5 rounded-xs">
+          <div className="lg:col-span-7 space-y-5 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#201D19] border border-[#3E352C] px-2.5 py-1 sm:px-3.5 py-1.5 rounded-xs max-w-full">
               <span className="w-2 h-2 rounded-full bg-[#C85A32] animate-pulse shrink-0" />
-              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[#D4A373] font-bold">
+              <span className="text-[9px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#D4A373] font-bold break-words">
                 EXPEDITION DISPATCH // LOG ENTRY NO. 104
               </span>
             </div>
