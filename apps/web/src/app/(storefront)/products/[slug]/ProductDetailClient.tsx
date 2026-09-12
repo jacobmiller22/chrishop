@@ -77,6 +77,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     }
   }
 
+  if (product.gallery && product.gallery.length > 0) {
+    product.gallery.forEach((rawKey, idx) => {
+      const url = getAssetUrl(rawKey);
+      if (url && !mediaList.some((m) => m.url === url)) {
+        mediaList.push({
+          id: `gallery-${idx}`,
+          url,
+          label: `${product.title} Detail ${idx + 1}`,
+          tag: 'Field & Bench',
+        });
+      }
+    });
+  }
+
   const activeMedia = mediaList[selectedImageIndex] || mediaList[0];
   const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🌲';
 

@@ -228,8 +228,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-storm-shells',
       shopify_product_id: 'gid://shopify/Product/101',
-      featured_image: 'bushwhack-anorak-olive.webp',
-      gallery: JSON.stringify(['bushwhack-anorak-front.webp', 'bushwhack-anorak-pocket.webp', 'bushwhack-anorak-cuff.webp']),
+      featured_image: '/media/bushwhack-storm-anorak/hero.jpeg',
+      gallery: JSON.stringify(['/media/bushwhack-storm-anorak/field-action.jpeg', '/media/bushwhack-storm-anorak/workbench-detail.jpeg', '/media/bushwhack-storm-anorak/camo-variation.jpeg']),
     },
     {
       id: 'prod-bramble-buster-pant',
@@ -245,8 +245,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-brush-pants',
       shopify_product_id: 'gid://shopify/Product/102',
-      featured_image: 'bramble-pant-featured.webp',
-      gallery: JSON.stringify(['bramble-pant-knees.webp', 'bramble-pant-cuff.webp']),
+      featured_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
+      gallery: JSON.stringify(['/media/bramble-buster-technical-guide-pant/field-action.jpeg', '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg', '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg']),
     },
     {
       id: 'prod-cutbank-sling-pack',
@@ -262,8 +262,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-sling-packs',
       shopify_product_id: 'gid://shopify/Product/103',
-      featured_image: 'cutbank-sling-featured.webp',
-      gallery: JSON.stringify(['cutbank-sling-net.webp', 'cutbank-sling-internal.webp']),
+      featured_image: '/media/the-cutbank-lumbar-sling-pack/hero.jpeg',
+      gallery: JSON.stringify(['/media/the-cutbank-lumbar-sling-pack/field-action.jpeg', '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg', '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg']),
     },
     {
       id: 'prod-minimalist-chest-rig',
@@ -279,8 +279,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-chest-rigs',
       shopify_product_id: 'gid://shopify/Product/104',
-      featured_image: 'chest-rig-featured.webp',
-      gallery: JSON.stringify(['chest-rig-open.webp', 'chest-rig-harness.webp']),
+      featured_image: '/media/minimalist-bank-chest-rig/hero.jpeg',
+      gallery: JSON.stringify(['/media/minimalist-bank-chest-rig/field-action.jpeg', '/media/minimalist-bank-chest-rig/workbench-detail.jpeg', '/media/minimalist-bank-chest-rig/prototype-variation.jpeg']),
     },
     {
       id: 'prod-waxed-tool-roll',
@@ -296,8 +296,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-tool-rolls',
       shopify_product_id: 'gid://shopify/Product/105',
-      featured_image: 'tool-roll-featured.webp',
-      gallery: JSON.stringify(['tool-roll-open.webp', 'tool-roll-snaps.webp']),
+      featured_image: '/media/waxed-canvas-cordura-tool-roll/hero.jpeg',
+      gallery: JSON.stringify(['/media/waxed-canvas-cordura-tool-roll/field-action.jpeg', '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg', '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg']),
     },
     {
       id: 'prod-5panel-guide-cap',
@@ -313,8 +313,8 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       status: 'published',
       category_id: 'cat-headwear',
       shopify_product_id: 'gid://shopify/Product/106',
-      featured_image: 'guide-cap-featured.webp',
-      gallery: JSON.stringify(['guide-cap-side.webp', 'guide-cap-brim.webp']),
+      featured_image: '/media/the-bankbeaters-5-panel-guide-cap/hero.jpeg',
+      gallery: JSON.stringify(['/media/the-bankbeaters-5-panel-guide-cap/field-action.jpeg', '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg', '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg']),
     },
   ];
 
@@ -370,7 +370,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'micro_batch',
       edition_badge: 'Only 3 Crafted',
       variation_notes: 'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch.',
-      variation_images: '[{"image":"camo-pocket-bench-1.webp","caption":"Bench shot: Deadstock 500D duck camo chest pouch under machine needle"}]',
+      variation_images: JSON.stringify([
+        {
+          image: '/media/bushwhack-storm-anorak/camo-variation.jpeg',
+          caption: 'Bench shot: Deadstock 500D duck camo chest pouch under machine needle',
+        },
+        {
+          image: '/media/bushwhack-storm-anorak/workbench-detail.jpeg',
+          caption: 'Bench shot: AquaGuard zipper bar-tacking and hand-stamped edition tag',
+        },
+      ]),
       price_override: 385.0,
       is_limited_edition: 1,
       total_edition_count: 3,
@@ -386,7 +395,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'standard',
       edition_badge: 'Batch of 30',
       variation_notes: 'Field olive stretch ripstop with black 1000D Cordura knees and cuffs.',
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg',
+          caption: 'Bench shot: Triple-stitched camo knee overlay with bonded nylon thread',
+        },
+        {
+          image: '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg',
+          caption: 'Bench shot: Heavyweight DWR ripstop scuff guard seam detail',
+        },
+      ]),
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 30,
@@ -402,7 +420,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'micro_batch',
       edition_badge: 'Only 5 Crafted',
       variation_notes: 'Laser-cut MultiCam Alpine laminated sailcloth with safety orange high-vis lining.',
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg',
+          caption: 'Bench shot: Coyote Tan sailcloth assembly with blaze orange interior bind',
+        },
+        {
+          image: '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg',
+          caption: 'Bench shot: Magnetic net dock and Hypalon plier sheath testing',
+        },
+      ]),
       price_override: 225.0,
       is_limited_edition: 1,
       total_edition_count: 5,
@@ -418,7 +445,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'standard',
       edition_badge: 'Batch of 40',
       variation_notes: '500D Mil-Spec Cordura with dual front zip pockets and high-vis blaze tabs.',
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/minimalist-bank-chest-rig/prototype-variation.jpeg',
+          caption: 'Bench shot: Hand-numbered 01/01 prototype label with custom hook shear dock',
+        },
+        {
+          image: '/media/minimalist-bank-chest-rig/workbench-detail.jpeg',
+          caption: 'Bench shot: High-density EVA fly foam bench testing with bar-tacked webbing',
+        },
+      ]),
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 40,
@@ -434,7 +470,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'standard',
       edition_badge: 'Standard Run',
       variation_notes: '12oz Martexin waxed canvas in Field Tan with blaze orange liner.',
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg',
+          caption: 'Bench shot: Dark Charcoal Martexin waxed canvas opened with hi-vis blaze orange interior slots',
+        },
+        {
+          image: '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg',
+          caption: 'Bench shot: Solid antiqued brass snaps pressed into 12oz waxed canvas',
+        },
+      ]),
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 50,
@@ -450,7 +495,16 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       variation_type: 'micro_batch',
       edition_badge: 'Only 12 Crafted',
       variation_notes: 'Vintage duck camo canvas with buoyant closed-cell EVA brim.',
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg',
+          caption: 'Bench shot: Waxed Bark Brown cotton canvas 5-panel guide cap profile',
+        },
+        {
+          image: '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg',
+          caption: 'Bench shot: Floatable EVA foam brim shaping and antiqued brass mesh eyelet',
+        },
+      ]),
       price_override: 52.0,
       is_limited_edition: 1,
       total_edition_count: 12,

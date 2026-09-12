@@ -28,19 +28,12 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
 
   db.exec('PRAGMA foreign_keys = ON;');
 
-  // Apply schema migration
-  const migrationPath = path.resolve(process.cwd(), 'migrations/0001_initial.sql');
-  if (fs.existsSync(migrationPath)) {
-    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-    db.exec(migrationSql);
-  }
-
   // Resilient column migrations for existing local sqlite databases
   const addColumnIfNotExists = (table: string, colDef: string) => {
     try {
       db!.exec(`ALTER TABLE ${table} ADD COLUMN ${colDef};`);
     } catch {
-      // Column already exists
+      // Column already exists or table doesn't exist yet
     }
   };
   addColumnIfNotExists('categories', 'parent_id TEXT');
@@ -54,6 +47,13 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   addColumnIfNotExists('product_variations', 'variation_notes TEXT');
   addColumnIfNotExists('product_variations', 'variation_images TEXT');
   addColumnIfNotExists('product_variations', 'stock_quantity INTEGER NOT NULL DEFAULT 1');
+
+  // Apply schema migration
+  const migrationPath = path.resolve(process.cwd(), 'migrations/0001_initial.sql');
+  if (fs.existsSync(migrationPath)) {
+    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+    db.exec(migrationSql);
+  }
 
   console.log('🌱 [Seed] Seeding BankBeaters Categories (Depth 2)...');
   const categories = [
@@ -219,11 +219,11 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-storm-shells',
       shopify_product_id: 'gid://shopify/Product/101',
-      featured_image: 'bushwhack-anorak-olive.webp',
+      featured_image: '/media/bushwhack-storm-anorak/hero.jpeg',
       gallery: JSON.stringify([
-        'bushwhack-anorak-front.webp',
-        'bushwhack-anorak-pocket.webp',
-        'bushwhack-anorak-cuff.webp',
+        '/media/bushwhack-storm-anorak/field-action.jpeg',
+        '/media/bushwhack-storm-anorak/workbench-detail.jpeg',
+        '/media/bushwhack-storm-anorak/camo-variation.jpeg',
       ]),
     },
 
@@ -246,10 +246,11 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-brush-pants',
       shopify_product_id: 'gid://shopify/Product/102',
-      featured_image: 'bramble-pant-featured.webp',
+      featured_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
       gallery: JSON.stringify([
-        'bramble-pant-knees.webp',
-        'bramble-pant-cuff.webp',
+        '/media/bramble-buster-technical-guide-pant/field-action.jpeg',
+        '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg',
+        '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg',
       ]),
     },
 
@@ -272,10 +273,11 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-sling-packs',
       shopify_product_id: 'gid://shopify/Product/103',
-      featured_image: 'cutbank-sling-featured.webp',
+      featured_image: '/media/the-cutbank-lumbar-sling-pack/hero.jpeg',
       gallery: JSON.stringify([
-        'cutbank-sling-net.webp',
-        'cutbank-sling-internal.webp',
+        '/media/the-cutbank-lumbar-sling-pack/field-action.jpeg',
+        '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg',
+        '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg',
       ]),
     },
 
@@ -298,10 +300,11 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-chest-rigs',
       shopify_product_id: 'gid://shopify/Product/104',
-      featured_image: 'chest-rig-featured.webp',
+      featured_image: '/media/minimalist-bank-chest-rig/hero.jpeg',
       gallery: JSON.stringify([
-        'chest-rig-open.webp',
-        'chest-rig-harness.webp',
+        '/media/minimalist-bank-chest-rig/field-action.jpeg',
+        '/media/minimalist-bank-chest-rig/workbench-detail.jpeg',
+        '/media/minimalist-bank-chest-rig/prototype-variation.jpeg',
       ]),
     },
 
@@ -324,10 +327,11 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-tool-rolls',
       shopify_product_id: 'gid://shopify/Product/105',
-      featured_image: 'tool-roll-featured.webp',
+      featured_image: '/media/waxed-canvas-cordura-tool-roll/hero.jpeg',
       gallery: JSON.stringify([
-        'tool-roll-open.webp',
-        'tool-roll-snaps.webp',
+        '/media/waxed-canvas-cordura-tool-roll/field-action.jpeg',
+        '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg',
+        '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg',
       ]),
     },
 
@@ -350,13 +354,24 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       status: 'published',
       category_id: 'cat-headwear',
       shopify_product_id: 'gid://shopify/Product/106',
-      featured_image: 'guide-cap-featured.webp',
+      featured_image: '/media/the-bankbeaters-5-panel-guide-cap/hero.jpeg',
       gallery: JSON.stringify([
-        'guide-cap-side.webp',
-        'guide-cap-brim.webp',
+        '/media/the-bankbeaters-5-panel-guide-cap/field-action.jpeg',
+        '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg',
+        '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg',
       ]),
     },
   ];
+
+  // Purge legacy mock products (e.g. Midnight Obsidian Beast, Solar Flare) to prevent unique constraint conflicts
+  const validProductIds = products.map((p) => p.id);
+  const prodPlaceholders = validProductIds.map(() => '?').join(', ');
+  try {
+    db.prepare(`DELETE FROM product_variations WHERE product_id NOT IN (${prodPlaceholders});`).run(...validProductIds);
+    db.prepare(`DELETE FROM products WHERE id NOT IN (${prodPlaceholders});`).run(...validProductIds);
+  } catch {
+    // Ignore if tables are empty or newly initialized
+  }
 
   const insertProd = db.prepare(`
     INSERT INTO products (
@@ -438,12 +453,12 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch. Only 3 jackets crafted in this micro-batch run. Signed and numbered interior label.',
       variation_images: JSON.stringify([
         {
-          image: 'camo-pocket-bench-1.webp',
+          image: '/media/bushwhack-storm-anorak/camo-variation.jpeg',
           caption:
             'Bench shot: Deadstock 500D duck camo chest pouch under machine needle',
         },
         {
-          image: 'camo-pocket-bench-2.webp',
+          image: '/media/bushwhack-storm-anorak/workbench-detail.jpeg',
           caption:
             'Bench shot: AquaGuard zipper bar-tacking and hand-stamped edition tag',
         },
@@ -503,9 +518,14 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Workbench micro-batch built with rare deadstock Mil-Spec camo Cordura knee reinforcements and high-tensile orange bar-tacks.',
       variation_images: JSON.stringify([
         {
-          image: 'bramble-camo-knee-bench.webp',
+          image: '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg',
           caption:
             'Bench shot: Triple-stitched camo knee overlay with bonded nylon thread',
+        },
+        {
+          image: '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg',
+          caption:
+            'Bench shot: Heavyweight DWR ripstop scuff guard seam detail',
         },
       ]),
       price_override: 245.0,
@@ -546,9 +566,14 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Micro-batch crafted with Coyote Tan X-Pac VX21 exterior shell and high-visibility blaze orange internal packcloth liner for quick tackle identification.',
       variation_images: JSON.stringify([
         {
-          image: 'cutbank-coyote-bench.webp',
+          image: '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg',
           caption:
             'Bench shot: Coyote Tan sailcloth assembly with blaze orange interior bind',
+        },
+        {
+          image: '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg',
+          caption:
+            'Bench shot: Magnetic net dock and Hypalon plier sheath testing',
         },
       ]),
       price_override: 225.0,
@@ -589,9 +614,14 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Chris personal workshop prototype used during spring cutthroat testing on the North Umpqua River. Signed and dated 01/01 inside the fold-down fly station.',
       variation_images: JSON.stringify([
         {
-          image: 'chest-rig-proto-bench.webp',
+          image: '/media/minimalist-bank-chest-rig/prototype-variation.jpeg',
           caption:
             'Bench shot: Hand-numbered 01/01 prototype label with custom hook shear dock',
+        },
+        {
+          image: '/media/minimalist-bank-chest-rig/workbench-detail.jpeg',
+          caption:
+            'Bench shot: High-density EVA fly foam bench testing with bar-tacked webbing',
         },
       ]),
       price_override: 175.0,
@@ -629,7 +659,18 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       variation_type: 'standard',
       edition_badge: 'Workshop Standard',
       variation_notes: null,
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg',
+          caption:
+            'Bench shot: Dark Charcoal Martexin waxed canvas opened with hi-vis blaze orange interior slots',
+        },
+        {
+          image: '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg',
+          caption:
+            'Bench shot: Solid antiqued brass snaps pressed into 12oz waxed canvas',
+        },
+      ]),
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 50,
@@ -665,7 +706,18 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       variation_type: 'standard',
       edition_badge: 'Hand-Shaped',
       variation_notes: null,
-      variation_images: null,
+      variation_images: JSON.stringify([
+        {
+          image: '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg',
+          caption:
+            'Bench shot: Waxed Bark Brown cotton canvas 5-panel guide cap profile',
+        },
+        {
+          image: '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg',
+          caption:
+            'Bench shot: Floatable EVA foam brim shaping and antiqued brass mesh eyelet',
+        },
+      ]),
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 50,
@@ -757,6 +809,12 @@ export function exportSeedSql(outputPath?: string): string {
       `INSERT INTO categories (id, name, slug, parent_id, description, image) VALUES (${escapeVal(c.id)}, ${escapeVal(c.name)}, ${escapeVal(c.slug)}, ${escapeVal(c.parent_id)}, ${escapeVal(c.description)}, ${escapeVal(c.image)}) ON CONFLICT(id) DO UPDATE SET name=excluded.name, slug=excluded.slug, parent_id=excluded.parent_id, description=excluded.description, image=excluded.image;`
     );
   }
+
+  lines.push(
+    '-- Purge any legacy mock collectibles if present',
+    "DELETE FROM product_variations WHERE product_id NOT IN ('prod-bushwhack-anorak', 'prod-bramble-buster-pant', 'prod-cutbank-sling-pack', 'prod-minimalist-chest-rig', 'prod-waxed-tool-roll', 'prod-5panel-guide-cap');",
+    "DELETE FROM products WHERE id NOT IN ('prod-bushwhack-anorak', 'prod-bramble-buster-pant', 'prod-cutbank-sling-pack', 'prod-minimalist-chest-rig', 'prod-waxed-tool-roll', 'prod-5panel-guide-cap');"
+  );
 
   const products = memDb.prepare('SELECT * FROM products ORDER BY created_at ASC, id ASC').all() as any[];
   for (const p of products) {

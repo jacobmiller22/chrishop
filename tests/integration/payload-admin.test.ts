@@ -146,7 +146,7 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
       { slug: 'products', title: 'Products', itemMarker: 'The Bushwhack Storm Anorak' },
       { slug: 'categories', title: 'Categories', itemMarker: 'Apparel' },
       { slug: 'product-variations', title: 'Product Variations', itemMarker: 'Field Olive — Standard Run' },
-      { slug: 'media', title: 'Media', itemMarker: 'bushwhack-anorak-olive.webp' },
+      { slug: 'media', title: 'Media', itemMarker: 'media/bushwhack-storm-anorak/hero.jpeg' },
       { slug: 'users', title: 'Users', itemMarker: 'admin@chrishop.jacobmiller22.com' },
     ];
 

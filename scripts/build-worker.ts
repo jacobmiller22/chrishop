@@ -189,9 +189,20 @@ const PAYLOAD_COLLECTIONS = {
     description: 'High-resolution workshop photography persisted to Cloudflare R2.',
     columns: ['Preview', 'Filename', 'Alt Text', 'Filesize', 'Mime Type'],
     items: [
-      { id: 'med-bushwhack-flagship', preview: '🧥', filename: 'bushwhack-anorak-olive.webp', alt: 'Bushwhack Storm Anorak in Field Olive', filesize: '312 KB', mime: 'image/webp' },
-      { id: 'med-bramble-pant', preview: '👖', filename: 'bramble-pant-featured.webp', alt: 'Bramble-Buster Technical Guide Pant', filesize: '284 KB', mime: 'image/webp' },
-      { id: 'med-cutbank-sling', preview: '🎒', filename: 'cutbank-sling-featured.webp', alt: 'The Cutbank Lumbar & Sling Convertible Pack', filesize: '245 KB', mime: 'image/webp' },
+      { id: 'med-bushwhack-hero', preview: '🧥', filename: 'media/bushwhack-storm-anorak/hero.jpeg', alt: 'The Bushwhack Storm Anorak Hero Studio', filesize: '3.1 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-camo', preview: '🧥', filename: 'media/bushwhack-storm-anorak/camo-variation.jpeg', alt: 'Deadstock Duck Camo Pocket Bench Shot', filesize: '2.9 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-action', preview: '🌲', filename: 'media/bushwhack-storm-anorak/field-action.jpeg', alt: 'Bushwhack Anorak Alpine Field Testing', filesize: '3.4 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-detail', preview: '🔍', filename: 'media/bushwhack-storm-anorak/workbench-detail.jpeg', alt: 'AquaGuard Zipper Bar-Tack Workbench Detail', filesize: '2.7 MB', mime: 'image/jpeg' },
+      { id: 'med-bramble-hero', preview: '👖', filename: 'media/bramble-buster-technical-guide-pant/hero.jpeg', alt: 'Bramble-Buster Technical Guide Pant Studio', filesize: '2.8 MB', mime: 'image/jpeg' },
+      { id: 'med-bramble-camo', preview: '👖', filename: 'media/bramble-buster-technical-guide-pant/camo-variation.jpeg', alt: 'Deadstock Camo Knee Overlay Bench Shot', filesize: '3.2 MB', mime: 'image/jpeg' },
+      { id: 'med-cutbank-hero', preview: '🎒', filename: 'media/the-cutbank-lumbar-sling-pack/hero.jpeg', alt: 'The Cutbank Lumbar & Sling Pack Studio', filesize: '2.5 MB', mime: 'image/jpeg' },
+      { id: 'med-cutbank-coyote', preview: '🎒', filename: 'media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg', alt: 'Coyote Tan X-Pac Sailcloth Bench Shot', filesize: '3.0 MB', mime: 'image/jpeg' },
+      { id: 'med-chest-rig-hero', preview: '🎽', filename: 'media/minimalist-bank-chest-rig/hero.jpeg', alt: 'Minimalist Bank Chest Rig Studio', filesize: '2.7 MB', mime: 'image/jpeg' },
+      { id: 'med-chest-rig-proto', preview: '🎽', filename: 'media/minimalist-bank-chest-rig/prototype-variation.jpeg', alt: '1-of-1 Workshop Prototype Bench Shot', filesize: '2.6 MB', mime: 'image/jpeg' },
+      { id: 'med-tool-roll-hero', preview: '🛠️', filename: 'media/waxed-canvas-cordura-tool-roll/hero.jpeg', alt: 'Waxed Canvas & Cordura Tool Roll Studio', filesize: '3.0 MB', mime: 'image/jpeg' },
+      { id: 'med-tool-roll-charcoal', preview: '🛠️', filename: 'media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg', alt: 'Dark Charcoal Waxed Canvas Bench Shot', filesize: '2.9 MB', mime: 'image/jpeg' },
+      { id: 'med-guide-cap-hero', preview: '🧢', filename: 'media/the-bankbeaters-5-panel-guide-cap/hero.jpeg', alt: 'The BankBeaters 5-Panel Guide Cap Studio', filesize: '2.6 MB', mime: 'image/jpeg' },
+      { id: 'med-guide-cap-bark', preview: '🧢', filename: 'media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg', alt: 'Waxed Bark Brown Guide Cap Bench Shot', filesize: '2.8 MB', mime: 'image/jpeg' },
     ],
   },
   users: {
@@ -843,7 +854,35 @@ export default {
       );
     }
 
-    // 2. Cloudflare Static Assets Bridge
+    // 2. Edge R2 Media Handler (/media/*)
+    // Serve authentic product photography directly from Cloudflare R2 bucket binding (env.BUCKET).
+    // If not found in R2 or if BUCKET binding is not available, falls through to static assets bridge.
+    if (url.pathname.startsWith('/media/')) {
+      const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      if (env.BUCKET && typeof env.BUCKET.get === 'function') {
+        try {
+          const r2Object = await env.BUCKET.get(r2Key);
+          if (r2Object) {
+            const headers = new Headers();
+            if (typeof r2Object.writeHttpMetadata === 'function') {
+              r2Object.writeHttpMetadata(headers);
+            }
+            if (r2Object.httpEtag) {
+              headers.set('etag', r2Object.httpEtag);
+            }
+            headers.set('cache-control', 'public, max-age=31536000, immutable');
+            if (!headers.has('content-type')) {
+              headers.set('content-type', 'image/jpeg');
+            }
+            return new Response(r2Object.body, { headers });
+          }
+        } catch (err) {
+          // Fall through to ASSETS bridge on error
+        }
+      }
+    }
+
+    // 3. Cloudflare Static Assets Bridge
     // If the request targets a static asset (e.g. /_next/static/*, /favicon.ico, media files),
     // delegate to Cloudflare Static Assets binding (env.ASSETS).
     if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
@@ -857,7 +896,7 @@ export default {
       }
     }
 
-    // 3. Worker API Endpoints (/api/*)
+    // 4. Worker API Endpoints (/api/*)
     if (url.pathname.startsWith('/api/')) {
       return new Response(
         JSON.stringify({
@@ -877,7 +916,7 @@ export default {
       );
     }
 
-    // 4. Payload CMS v3 Administrative Panel (/admin and /admin/*)
+    // 5. Payload CMS v3 Administrative Panel (/admin and /admin/*)
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
       const adminHtml = renderPayloadAdmin(url.pathname);
       return new Response(adminHtml, {
@@ -889,7 +928,7 @@ export default {
       });
     }
 
-    // 5. Next.js 15 App Router Storefront (/ and /products/*)
+    // 6. Next.js 15 App Router Storefront (/ and /products/*)
     const pathname = url.pathname.endsWith('/') && url.pathname.length > 1 ? url.pathname.slice(0, -1) : url.pathname;
 
     if (pathname === '/') {
@@ -927,7 +966,7 @@ export default {
       }
     }
 
-    // 6. Default Fallback / 404 Not Found
+    // 7. Default Fallback / 404 Not Found
     return new Response(
       '<!DOCTYPE html><html lang="en"><head><title>404 - Page Not Found | BankBeaters Adventure Gear</title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="background:#15191E;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h1>404 | Equipment Not Found</h1><p><a href="/products" style="color:#E55B24;">Return to Equipment Catalog</a></p></div></body></html>',
       {
