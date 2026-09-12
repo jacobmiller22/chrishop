@@ -123,8 +123,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   {categoryIcon}
                 </span>
                 <div className="space-y-1">
-                  <p className="text-sm font-mono text-amber-400">Archival Edition Preview</p>
-                  <p className="text-xs text-slate-500">Served via Cloudflare R2 Storage</p>
+                  <p className="text-sm font-mono text-amber-400">Studio Edition Preview</p>
+                  <p className="text-xs text-slate-500">Photography coming soon</p>
                 </div>
               </div>
             )}
@@ -193,7 +193,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 Limited Edition Drop
               </Badge>
               <Badge variant="neutral" className="text-xs font-mono">
-                Payload CMS
+                Numbered Collector Series
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100">
@@ -343,11 +343,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             </Link>
           </div>
 
-          {/* CMS Integration Technical Footnote */}
+          {/* Artist Provenance Statement */}
           <div className="pt-4 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono space-y-1">
-            <p>Payload CMS Collection: products & product_variations</p>
-            <p>Product ID: {product.id}</p>
-            <p>Selected Variation ID: {selectedVariation?.id || 'none'}</p>
+            <p>Studio-authenticated limited edition · Direct from creator</p>
+            <p>Certificate of authenticity included with every physical order</p>
           </div>
         </div>
       </div>
