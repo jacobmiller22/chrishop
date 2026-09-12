@@ -11,14 +11,14 @@ describe('UI Design System Components (@chrishop/ui)', () => {
     );
     assert.ok(html.includes('<button'), 'Should render a button element');
     assert.ok(html.includes('Buy Now'), 'Should contain child text');
-    assert.ok(html.includes('bg-amber-600'), 'Should contain primary background class');
+    assert.ok(html.includes('bg-[#E55B24]'), 'Should contain primary background class');
   });
 
   it('should render Button with custom variant and size', () => {
     const html = renderToStaticMarkup(
       React.createElement(Button, { variant: 'outline', size: 'sm', disabled: true }, 'Disabled')
     );
-    assert.ok(html.includes('border-slate-600'), 'Should contain outline border class');
+    assert.ok(html.includes('border-stone-700'), 'Should contain outline border class');
     assert.ok(html.includes('text-sm'), 'Should contain sm size class');
     assert.ok(
       html.includes('disabled=""') || html.includes('disabled'),

@@ -6,17 +6,33 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  parent_id?: string | null;
   description?: string;
   image?: string;
+  children?: Category[];
 }
 
 export type ProductStatus = 'draft' | 'published' | 'archived';
+
+export interface ProductTechnicalSpecs {
+  materials?: string;
+  weight?: string;
+  fit_profile?: string;
+  origin?: string;
+}
 
 export interface Product {
   id: string;
   title: string;
   slug: string;
   description?: string;
+  maker_field_notes?: string;
+  artist_statement?: string;
+  technical_specs?: ProductTechnicalSpecs;
+  materials?: string;
+  weight?: string;
+  fit_profile?: string;
+  origin?: string;
   base_price: number;
   status: ProductStatus;
   /** High-resolution hero/banner image URL or Cloudflare R2 asset key */
@@ -28,6 +44,12 @@ export interface Product {
 }
 
 export type VariationStatus = 'coming_soon' | 'active' | 'sold_out' | 'archived';
+export type VariationType = 'standard' | 'micro_batch' | 'one_of_one' | 'prototype';
+
+export interface VariationImage {
+  image: string;
+  caption?: string;
+}
 
 export interface ProductVariation {
   id: string;
@@ -35,6 +57,10 @@ export interface ProductVariation {
   name?: string;
   variation_name: string;
   sku: string;
+  variation_type?: VariationType;
+  edition_badge?: string | null;
+  variation_notes?: string | null;
+  variation_images?: (VariationImage | string)[];
   price_override?: number | null;
   is_limited_edition: boolean;
   total_edition_count?: number | null;

@@ -64,6 +64,16 @@ jobs:
             '
           fi
 
+      - name: Initialize, Migrate & Seed Preview D1 Database
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          echo "Applying D1 migrations to chrishop-preview-db..."
+          pnpm exec wrangler d1 migrations apply chrishop-preview-db --remote || true
+          echo "Exporting BankBeaters seed SQL..."
+          pnpm exec tsx scripts/seed-db.ts --export-sql scripts/seed.sql
+          echo "Executing BankBeaters seed script against chrishop-preview-db..."
+          pnpm exec wrangler d1 execute chrishop-preview-db --remote --file=scripts/seed.sql || true
+
       - name: Deploy Ephemeral Preview to Cloudflare Workers
         id: deploy
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''

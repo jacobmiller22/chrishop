@@ -83,14 +83,18 @@ python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4
 python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4 --min-priority high
 ```
 
-### 3.3 Automated Scheduled Daemon (`launchd`)
-The adversarial audit is wired into the 12-hour local `launchd` service (`com.chrishop.backlog-refinement`). Every scheduled execution at 02:00 and 14:00 runs:
-1. Monorepo health check (`pnpm run check`).
-2. Adversarial backlog critique (`refinement_audit.py`).
-3. Roadmap & milestone audit (`pnpm run audit:roadmap`).
+### 3.3 On-Demand Execution & Project Management Skill
+The legacy 12-hour background `launchd` daemon has been decommissioned in favor of an on-demand, unified TypeScript auditor.
 
-To test the daemon run manually:
+Operators and AI agents can invoke the audit instantly:
 ```bash
-./infra/launchd/install.sh run-now
-./infra/launchd/install.sh logs
+# Direct CLI execution
+pnpm run audit:roadmap
+
+# With full codebase deliverables verification
+pnpm run audit:backlog
+
+# Trigger via Project Management skill
+/project-management roadmap audit
 ```
+

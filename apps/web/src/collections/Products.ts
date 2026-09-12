@@ -101,10 +101,46 @@ export const Products: CollectionConfig = {
       ],
     },
     {
+      name: 'maker_field_notes',
+      type: 'textarea',
+      admin: {
+        description: 'Chris’s bench and field notes on design, construction, and bank-testing conditions',
+      },
+    },
+    {
       name: 'artist_statement',
       type: 'textarea',
       admin: {
-        description: 'Extended artist statement, provenance notes, and conceptual inspiration',
+        description: 'Legacy artist statement field (mapped to maker_field_notes)',
+      },
+    },
+    {
+      name: 'materials',
+      type: 'text',
+      admin: {
+        description: 'Technical fabric specs and hardware (e.g. 3-Layer DWR Ripstop, 500D Cordura®, YKK AquaGuard®)',
+      },
+    },
+    {
+      name: 'weight',
+      type: 'text',
+      admin: {
+        description: 'Total garment/pack weight (e.g. 21.4 oz / 606g)',
+      },
+    },
+    {
+      name: 'fit_profile',
+      type: 'text',
+      admin: {
+        description: 'Fit characteristics (e.g. Relaxed Athletic with articulated elbows)',
+      },
+    },
+    {
+      name: 'origin',
+      type: 'text',
+      defaultValue: "Hand-cut & sewn in small batches in Chris's workshop",
+      admin: {
+        description: 'Workshop production provenance',
       },
     },
     {
