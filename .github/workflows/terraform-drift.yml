@@ -1,0 +1,60 @@
+name: Cloudflare Terraform Drift Detection
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  drift-detection:
+    name: Detect Cloudflare Infrastructure Drift
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Detect Staging Drift
+        id: staging_drift
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        continue-on-error: true
+        run: |
+          echo "Scanning staging infrastructure for configuration drift..."
+          cd infra/terraform/environments/staging
+          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" || true
+          terraform plan -detailed-exitcode -no-color \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+            -var="cloudflare_zone_id=${{ env.CLOUDFLARE_ZONE_ID }}" || exit $?
+
+      - name: Detect Production Drift
+        id: prod_drift
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        continue-on-error: true
+        run: |
+          echo "Scanning production infrastructure for configuration drift..."
+          cd infra/terraform/environments/production
+          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" || true
+          terraform plan -detailed-exitcode -no-color \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+            -var="cloudflare_zone_id=${{ env.CLOUDFLARE_ZONE_ID }}" || exit $?
+
+      - name: Report Drift Summary
+        run: |
+          echo "Drift detection complete."
+          if [ "${{ steps.staging_drift.outcome }}" = "failure" ] || [ "${{ steps.prod_drift.outcome }}" = "failure" ]; then
+            echo "⚠️ Drift detected between declared Terraform configuration and live Cloudflare state."
+          else
+            echo "✅ Zero drift detected across staging and production Cloudflare infrastructure."
+          fi

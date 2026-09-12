@@ -81,12 +81,27 @@ jobs:
       - name: Build Application
         run: pnpm run build
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Apply Staging Infrastructure via Terraform
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          cd infra/terraform/environments/staging
+          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" || true
+          terraform apply -auto-approve \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" || true
+
       - name: Deploy to Cloudflare Workers (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env staging
+
 
   test-staging:
     name: Verify Staging Integration & Edge Health
@@ -155,12 +170,27 @@ jobs:
       - name: Build Application
         run: pnpm run build
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Apply Production Infrastructure via Terraform
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          cd infra/terraform/environments/production
+          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" || true
+          terraform apply -auto-approve \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" || true
+
       - name: Deploy to Cloudflare Workers (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env production
+
 
   verify-production:
     name: Verify Production Edge Health

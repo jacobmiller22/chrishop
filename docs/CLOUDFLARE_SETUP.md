@@ -16,6 +16,11 @@ The platform provides three distinct environments with configuration-as-code por
 | **Staging** | `staging` | `staging-chrishop.jacobmiller22.com/*` | `staging-shop.jacobmiller22.com/*` | `chrishop-staging-db` | `NEXT_CACHE_WORKERS_KV` (staging) | `chrishop-media-staging` |
 | **Preview** | PR branches | `pr-<PR_NUMBER>-chrishop.jacobmiller22.com` | `workers.dev` preview URL | `chrishop-preview-db` | `NEXT_CACHE_WORKERS_KV` (preview) | `chrishop-media-preview` |
 
+> [!NOTE]
+> **Infrastructure as Code (IaC)**:
+> While Wrangler CLI commands manage local development and application bundle deployments, Cloudflare cloud infrastructure (D1 databases, KV namespaces, R2 buckets, DNS records, custom worker domains, and Turnstile widgets) is managed declaratively via **Terraform** (`infra/terraform/`). For operational setup and brownfield migration procedures, refer to [`docs/TERRAFORM_SETUP.md`](TERRAFORM_SETUP.md) and [`docs/analysis/TERRAFORM_MIGRATION_SPEC.md`](analysis/TERRAFORM_MIGRATION_SPEC.md).
+
+
 ---
 
 ## 2. Prerequisites & Authentication

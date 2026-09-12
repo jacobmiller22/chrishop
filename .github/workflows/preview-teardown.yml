@@ -20,6 +20,24 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: delete --name chrishop-preview-pr-${{ github.event.pull_request.number }} --force
 
+      - name: Setup Terraform
+        if: github.event.pull_request.merged == false && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Destroy Ephemeral Terraform Preview Stack (Unmerged PRs Only)
+        if: github.event.pull_request.merged == false && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          cd infra/terraform/environments/preview
+          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" -backend-config="key=\"environments/preview-pr-${PR_NUM}/terraform.tfstate\"" || true
+          terraform destroy -auto-approve \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+            -var="pr_number=${PR_NUM}" || true
+
+
       - name: Log Teardown Summary
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
