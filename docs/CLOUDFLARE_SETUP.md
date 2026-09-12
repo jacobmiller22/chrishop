@@ -270,6 +270,10 @@ pnpm exec wrangler secret list --env staging
 pnpm exec wrangler secret list --env production
 ```
 
+### Architectural Policy & Operational Runbook
+- **Architectural Decision Record**: For architectural rationale, threat modeling, and `@opennextjs/cloudflare` runtime dynamics, see [`docs/decisions/ADR_CLOUDFLARE_SECRETS_EVALUATION.md`](decisions/ADR_CLOUDFLARE_SECRETS_EVALUATION.md).
+- **Secret Rotation Runbook**: For zero-downtime rollover procedures, verification probes, and emergency revocation, see [`docs/runbooks/SECRET_ROTATION.md`](runbooks/SECRET_ROTATION.md).
+
 ---
 
 ## 7. Custom Domain Routes & DNS Configuration
