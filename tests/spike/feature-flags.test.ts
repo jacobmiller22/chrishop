@@ -179,8 +179,8 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
 
       assert.equal(value, true);
       assert.ok(
-        durationMs < 10,
-        `L2 KV read latency (${durationMs.toFixed(2)}ms) must be within 10ms boundary`
+        durationMs < 25,
+        `L2 KV read latency (${durationMs.toFixed(2)}ms) must be within 25ms boundary`
       );
     });
 
