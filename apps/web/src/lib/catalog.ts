@@ -190,111 +190,297 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
   `);
 
   // Baseline Category Hierarchy (Depth 2)
-  db.prepare(`
+  const baselineCategories = [
+    { id: 'cat-apparel', name: 'Apparel', slug: 'apparel', parent_id: null, description: 'Technical outerwear, guide pants, and weather-resistant midlayers.' },
+    { id: 'cat-outerwear', name: 'Outerwear', slug: 'outerwear', parent_id: 'cat-apparel', description: 'Weather-defense anoraks, wading shells, and storm jackets.' },
+    { id: 'cat-pants', name: 'Pants & Shorts', slug: 'pants', parent_id: 'cat-apparel', description: 'Heavyweight ripstop guide pants with Cordura brush reinforcement.' },
+    { id: 'cat-storm-shells', name: 'Waterproof Storm Shells', slug: 'waterproof-storm-shells', parent_id: 'cat-outerwear', description: '3-layer fully seam-taped waterproof breathable membranes.' },
+    { id: 'cat-brush-pants', name: 'Technical Brush Pants', slug: 'technical-brush-pants', parent_id: 'cat-pants', description: '4-way stretch DWR pants with 1000D Cordura knee and ankle scuff guards.' },
+    { id: 'cat-packs', name: 'Packs & Carry', slug: 'packs-carry', parent_id: null, description: 'Waterproof composite lumbar slings, modular chest rigs, and submersible gear duffels.' },
+    { id: 'cat-sling-packs', name: 'Lumbar & Sling Packs', slug: 'sling-packs', parent_id: 'cat-packs', description: 'One-handed access lumbar and sling packs engineered for uninhibited casting.' },
+    { id: 'cat-chest-rigs', name: 'Chest Rigs & Harnesses', slug: 'chest-rigs', parent_id: 'cat-packs', description: 'Modular chest workstations with drop-down fly/tackle shelves.' },
+    { id: 'cat-accessories', name: 'Field Accessories', slug: 'field-accessories', parent_id: null, description: 'Waxed canvas tool rolls, Kevlar-reinforced casting gloves, and floating brim guide caps.' },
+    { id: 'cat-tool-rolls', name: 'Tool Rolls & Wallets', slug: 'tool-rolls', parent_id: 'cat-accessories', description: 'Martexin waxed canvas leader rolls and tool organizers.' },
+    { id: 'cat-headwear', name: 'Caps & Headwear', slug: 'headwear', parent_id: 'cat-accessories', description: 'Floating brim 5-panel guide caps and waxed cotton sun covers.' },
+  ];
+
+  const insertCat = db.prepare(`
     INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
-    VALUES ('cat-apparel', 'Apparel', 'apparel', NULL, 'Technical outerwear, guide pants, and weather-resistant midlayers.')
-  `).run();
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  for (const c of baselineCategories) {
+    insertCat.run(c.id, c.name, c.slug, c.parent_id, c.description);
+  }
 
-  db.prepare(`
-    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
-    VALUES ('cat-outerwear', 'Outerwear', 'outerwear', 'cat-apparel', 'Weather-defense anoraks, wading shells, and storm jackets.')
-  `).run();
+  // Baseline Products (Authentic BankBeaters Catalog)
+  const baselineProducts = [
+    {
+      id: 'prod-bushwhack-anorak',
+      title: 'The Bushwhack Storm Anorak',
+      slug: 'bushwhack-storm-anorak',
+      description: 'Bombproof 3-layer waterproof/breathable membrane with 500D Cordura reinforced forearms and oversized tackle kangaroo pouch.',
+      maker_field_notes: 'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles.',
+      materials: '3-Layer DWR Toray Ripstop, 500D Cordura® Panels, YKK AquaGuard®',
+      weight: '21.4 oz (606g)',
+      fit_profile: 'Relaxed Athletic (Engineered for layering and double-haul casting)',
+      origin: "Hand-cut & sewn in small batches in Chris's workshop",
+      base_price: 340.0,
+      status: 'published',
+      category_id: 'cat-storm-shells',
+      shopify_product_id: 'gid://shopify/Product/101',
+      featured_image: 'bushwhack-anorak-olive.webp',
+      gallery: JSON.stringify(['bushwhack-anorak-front.webp', 'bushwhack-anorak-pocket.webp', 'bushwhack-anorak-cuff.webp']),
+    },
+    {
+      id: 'prod-bramble-buster-pant',
+      title: 'Bramble-Buster Technical Guide Pant',
+      slug: 'bramble-buster-technical-guide-pant',
+      description: 'Heavyweight stretch ripstop guide pants fortified with 1000D Cordura scuff guards on knees and ankles.',
+      maker_field_notes: 'Standard fishing waders get shredded by briars on the walk-in. These pants wear over thermal tights or wet-wading socks, taking direct abuse from blackberry canes.',
+      materials: 'Heavyweight 4-Way Stretch DWR Ripstop, 1000D Cordura® Knee & Ankle Panels',
+      weight: '17.8 oz (505g)',
+      fit_profile: 'Technical Straight (Articulated knees, gusseted seat)',
+      origin: "Hand-cut & sewn in small batches in Chris's workshop",
+      base_price: 215.0,
+      status: 'published',
+      category_id: 'cat-brush-pants',
+      shopify_product_id: 'gid://shopify/Product/102',
+      featured_image: 'bramble-pant-featured.webp',
+      gallery: JSON.stringify(['bramble-pant-knees.webp', 'bramble-pant-cuff.webp']),
+    },
+    {
+      id: 'prod-cutbank-sling-pack',
+      title: 'The Cutbank Lumbar & Sling Convertible Pack',
+      slug: 'the-cutbank-lumbar-sling-pack',
+      description: 'Waterproof X-Pac composite sling that converts to a lumbar pack in seconds with integrated magnetic net slot.',
+      maker_field_notes: 'When wading chest-deep or scrambling over downed timber, you need your pack out of your stroke until the second you land a fish.',
+      materials: 'Waterproof X-Pac® VX21 Composite Sailcloth, 500D Cordura® Base, YKK AquaGuard®',
+      weight: '14.2 oz (402g)',
+      fit_profile: 'Ambidextrous Sling / Lumbar Switchable with Breathable 3D Spacer Mesh',
+      origin: "Hand-crafted in Chris's workshop",
+      base_price: 195.0,
+      status: 'published',
+      category_id: 'cat-sling-packs',
+      shopify_product_id: 'gid://shopify/Product/103',
+      featured_image: 'cutbank-sling-featured.webp',
+      gallery: JSON.stringify(['cutbank-sling-net.webp', 'cutbank-sling-internal.webp']),
+    },
+    {
+      id: 'prod-minimalist-chest-rig',
+      title: 'Minimalist Bank Chest Rig',
+      slug: 'minimalist-bank-chest-rig',
+      description: 'Ultralight modular chest station with fold-down tackle workbench shelf and interchangeable EVA fly/lure patch.',
+      maker_field_notes: 'Eliminates heavy vests. Rides high on your chest so you can wade to your armpits without soaking your terminal fly boxes.',
+      materials: '500D Mil-Spec Cordura®, High-Density Closed-Cell EVA Fly Patch, Duraflex® Mojave Buckles',
+      weight: '9.6 oz (272g)',
+      fit_profile: 'Low-Profile 4-Point Harness (Rides high above deep wading lines)',
+      origin: "Hand-crafted in Chris's workshop",
+      base_price: 135.0,
+      status: 'published',
+      category_id: 'cat-chest-rigs',
+      shopify_product_id: 'gid://shopify/Product/104',
+      featured_image: 'chest-rig-featured.webp',
+      gallery: JSON.stringify(['chest-rig-open.webp', 'chest-rig-harness.webp']),
+    },
+    {
+      id: 'prod-waxed-tool-roll',
+      title: 'Waxed Canvas & Cordura Tool Roll / Leader Wallet',
+      slug: 'waxed-canvas-cordura-tool-roll',
+      description: 'Heavyweight waxed canvas organizer with 6 internal slots for tippet spools, leader wallets, pliers, and knot tools.',
+      maker_field_notes: 'Built with Martexin waxed canvas that sheds river spray and weathers into a deep personal patina.',
+      materials: '12oz Martexin Original Waxed Canvas, 420D Hi-Vis Blaze Orange Packcloth, Solid Brass Snaps',
+      weight: '6.5 oz (184g)',
+      fit_profile: 'Tri-Fold Compact (Fits into any thigh pocket or pack exterior sleeve)',
+      origin: 'Hand-cut, waxed, and stitched with bonded nylon thread',
+      base_price: 75.0,
+      status: 'published',
+      category_id: 'cat-tool-rolls',
+      shopify_product_id: 'gid://shopify/Product/105',
+      featured_image: 'tool-roll-featured.webp',
+      gallery: JSON.stringify(['tool-roll-open.webp', 'tool-roll-snaps.webp']),
+    },
+    {
+      id: 'prod-5panel-guide-cap',
+      title: 'The BankBeaters 5-Panel Guide Cap',
+      slug: 'the-bankbeaters-5-panel-guide-cap',
+      description: 'Waxed cotton 5-panel guide cap engineered with an unsinkable floatable EVA foam brim and dark glare-reducing underbill.',
+      maker_field_notes: 'If your hat blows off in a river rapid, normal caps sink immediately. Built with an EVA foam core brim that stays buoyant.',
+      materials: 'Dry-Finish Waxed Cotton Canvas, Floatable Closed-Cell EVA Foam Brim, Antiqued Brass Eyelets',
+      weight: '2.9 oz (82g)',
+      fit_profile: 'Low Crown 5-Panel with Nylon Webbing Quick-Release Adjuster',
+      origin: 'Sewn and shaped in workshop',
+      base_price: 44.0,
+      status: 'published',
+      category_id: 'cat-headwear',
+      shopify_product_id: 'gid://shopify/Product/106',
+      featured_image: 'guide-cap-featured.webp',
+      gallery: JSON.stringify(['guide-cap-side.webp', 'guide-cap-brim.webp']),
+    },
+  ];
 
-  db.prepare(`
-    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
-    VALUES ('cat-storm-shells', 'Waterproof Storm Shells', 'waterproof-storm-shells', 'cat-outerwear', '3-layer fully seam-taped waterproof breathable membranes.')
-  `).run();
+  const insertProd = db.prepare(`
+    INSERT OR IGNORE INTO products (id, title, slug, description, maker_field_notes, artist_statement, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id, featured_image, gallery)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  for (const p of baselineProducts) {
+    insertProd.run(
+      p.id,
+      p.title,
+      p.slug,
+      p.description,
+      p.maker_field_notes,
+      p.maker_field_notes,
+      p.materials,
+      p.weight,
+      p.fit_profile,
+      p.origin,
+      p.base_price,
+      p.status,
+      p.category_id,
+      p.shopify_product_id,
+      p.featured_image,
+      p.gallery
+    );
+  }
 
-  // Baseline Product
-  db.prepare(`
-    INSERT OR IGNORE INTO products (id, title, slug, description, maker_field_notes, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id)
-    VALUES (
-      'prod-bushwhack-anorak',
-      'The Bushwhack Storm Anorak',
-      'bushwhack-storm-anorak',
-      'Bombproof 3-layer waterproof/breathable membrane with 500D Cordura reinforced forearms and oversized tackle kangaroo pouch.',
-      'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles.',
-      '3-Layer DWR Toray Ripstop, 500D Cordura® Panels, YKK AquaGuard®',
-      '21.4 oz (606g)',
-      'Relaxed Athletic (Engineered for layering and double-haul casting)',
-      'Hand-cut & sewn in small batches in Chris workshop',
-      340.0,
-      'published',
-      'cat-storm-shells',
-      'gid://shopify/Product/101'
-    )
-  `).run();
+  // Baseline Variations
+  const baselineVariations = [
+    {
+      id: 'var-anorak-olive',
+      product_id: 'prod-bushwhack-anorak',
+      shopify_variant_id: 'gid://shopify/ProductVariant/201',
+      variation_name: 'Field Olive — Standard Run',
+      sku: 'BWK-ANRK-OLV-STD',
+      variation_type: 'standard',
+      edition_badge: 'Standard Production',
+      variation_notes: 'Standard production run in bombproof 3-layer olive ripstop with black 500D Cordura scuff guards.',
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 25,
+      stock_quantity: 12,
+      status: 'active',
+    },
+    {
+      id: 'var-anorak-camo-micro',
+      product_id: 'prod-bushwhack-anorak',
+      shopify_variant_id: 'gid://shopify/ProductVariant/202',
+      variation_name: 'Deadstock Duck Camo Pocket Edition',
+      sku: 'BWK-ANRK-CAMO-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 3 Crafted',
+      variation_notes: 'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch.',
+      variation_images: '[{"image":"camo-pocket-bench-1.webp","caption":"Bench shot: Deadstock 500D duck camo chest pouch under machine needle"}]',
+      price_override: 385.0,
+      is_limited_edition: 1,
+      total_edition_count: 3,
+      stock_quantity: 3,
+      status: 'active',
+    },
+    {
+      id: 'var-pant-olive-32',
+      product_id: 'prod-bramble-buster-pant',
+      shopify_variant_id: 'gid://shopify/ProductVariant/203',
+      variation_name: 'Field Olive Ripstop — 32x32',
+      sku: 'BMB-PNT-OLV-3232',
+      variation_type: 'standard',
+      edition_badge: 'Batch of 30',
+      variation_notes: 'Field olive stretch ripstop with black 1000D Cordura knees and cuffs.',
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 30,
+      stock_quantity: 10,
+      status: 'active',
+    },
+    {
+      id: 'var-sling-camo-xpac',
+      product_id: 'prod-cutbank-sling-pack',
+      shopify_variant_id: 'gid://shopify/ProductVariant/204',
+      variation_name: 'MultiCam Alpine X-Pac Edition',
+      sku: 'CTB-SLG-MCAM-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 5 Crafted',
+      variation_notes: 'Laser-cut MultiCam Alpine laminated sailcloth with safety orange high-vis lining.',
+      variation_images: null,
+      price_override: 225.0,
+      is_limited_edition: 1,
+      total_edition_count: 5,
+      stock_quantity: 4,
+      status: 'active',
+    },
+    {
+      id: 'var-rig-ranger',
+      product_id: 'prod-minimalist-chest-rig',
+      shopify_variant_id: 'gid://shopify/ProductVariant/205',
+      variation_name: 'Ranger Green / Blaze Accent',
+      sku: 'MIN-RIG-RGR-STD',
+      variation_type: 'standard',
+      edition_badge: 'Batch of 40',
+      variation_notes: '500D Mil-Spec Cordura with dual front zip pockets and high-vis blaze tabs.',
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 40,
+      stock_quantity: 18,
+      status: 'active',
+    },
+    {
+      id: 'var-roll-waxed-tan',
+      product_id: 'prod-waxed-tool-roll',
+      shopify_variant_id: 'gid://shopify/ProductVariant/206',
+      variation_name: 'Field Tan Waxed Canvas',
+      sku: 'TLR-WAX-TAN-STD',
+      variation_type: 'standard',
+      edition_badge: 'Standard Run',
+      variation_notes: '12oz Martexin waxed canvas in Field Tan with blaze orange liner.',
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 50,
+      stock_quantity: 22,
+      status: 'active',
+    },
+    {
+      id: 'var-cap-duck-camo',
+      product_id: 'prod-5panel-guide-cap',
+      shopify_variant_id: 'gid://shopify/ProductVariant/207',
+      variation_name: 'Deadstock Duck Camo / Floatable Brim',
+      sku: 'CAP-5PNL-DCAM-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 12 Crafted',
+      variation_notes: 'Vintage duck camo canvas with buoyant closed-cell EVA brim.',
+      variation_images: null,
+      price_override: 52.0,
+      is_limited_edition: 1,
+      total_edition_count: 12,
+      stock_quantity: 8,
+      status: 'active',
+    },
+  ];
 
-  // Baseline Variations (Standard + Micro-Batch)
-  db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, price_override, is_limited_edition, total_edition_count, stock_quantity, status)
-    VALUES (
-      'var-anorak-olive',
-      'prod-bushwhack-anorak',
-      'gid://shopify/ProductVariant/201',
-      'Field Olive — Standard Run',
-      'BWK-ANRK-OLV-STD',
-      'standard',
-      'Standard Production',
-      'Standard production run in bombproof 3-layer olive ripstop with black 500D Cordura scuff guards.',
-      NULL,
-      1,
-      25,
-      12,
-      'active'
-    )
-  `).run();
-
-  db.prepare(`
+  const insertVar = db.prepare(`
     INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, status)
-    VALUES (
-      'var-anorak-camo-micro',
-      'prod-bushwhack-anorak',
-      'gid://shopify/ProductVariant/202',
-      'Deadstock Duck Camo Pocket Edition',
-      'BWK-ANRK-CAMO-LTD',
-      'micro_batch',
-      'Only 3 Crafted',
-      'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch. Only 3 jackets crafted in this micro-batch run. Signed and numbered interior label.',
-      '[{"image":"camo-pocket-bench-1.webp","caption":"Bench shot: Deadstock 500D duck camo chest pouch under machine needle"}]',
-      385.0,
-      1,
-      3,
-      3,
-      'active'
-    )
-  `).run();
-
-  // Preserved baseline item for singleflight and regression test coverage
-  db.prepare(`
-    INSERT OR IGNORE INTO products (id, title, slug, description, base_price, status, category_id, shopify_product_id)
-    VALUES (
-      'prod-obsidian-beast',
-      'Midnight Obsidian Beast',
-      'midnight-obsidian-beast',
-      'Hand-carved obsidian beast artifact.',
-      350.0,
-      'published',
-      'cat-storm-shells',
-      'gid://shopify/Product/1'
-    )
-  `).run();
-
-  db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, price_override, is_limited_edition, stock_quantity, status)
-    VALUES (
-      'var-beast-std',
-      'prod-obsidian-beast',
-      'gid://shopify/ProductVariant/1001',
-      'Standard Edition',
-      'BEAST-STD',
-      'standard',
-      NULL,
-      1,
-      5,
-      'active'
-    )
-  `).run();
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  for (const v of baselineVariations) {
+    insertVar.run(
+      v.id,
+      v.product_id,
+      v.shopify_variant_id,
+      v.variation_name,
+      v.sku,
+      v.variation_type,
+      v.edition_badge,
+      v.variation_notes,
+      v.variation_images,
+      v.price_override,
+      v.is_limited_edition,
+      v.total_edition_count,
+      v.stock_quantity,
+      v.status
+    );
+  }
 }
 
 // ============================================================================
@@ -526,7 +712,7 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
     query += ` AND p.status IN (${placeholders})`;
     params.push(...statuses);
 
-    query += ` ORDER BY p.title ASC`;
+    query += ` ORDER BY p.created_at ASC, p.id ASC`;
 
     if (options?.limit) {
       query += ` LIMIT ?`;

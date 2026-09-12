@@ -191,6 +191,9 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   `);
 
   for (const c of categories) {
+    if (c.parent_id && c.parent_id === c.id) {
+      throw new Error(`Self-parenting category detected: ${c.id} cannot be its own parent`);
+    }
     insertCat.run(c.id, c.name, c.slug, c.parent_id, c.description, c.image);
     console.log(`  Processed category: [${c.slug}] ${c.name}`);
   }
@@ -733,9 +736,59 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   };
 }
 
+export function exportSeedSql(outputPath?: string): string {
+  const memDb = new DatabaseSync(':memory:');
+  seedDatabase(memDb);
+
+  const escapeVal = (val: any) => {
+    if (val === null || val === undefined) return 'NULL';
+    if (typeof val === 'number') return String(val);
+    return `'${String(val).replace(/'/g, "''")}'`;
+  };
+
+  const lines: string[] = [
+    '-- BankBeaters Adventure Gear D1 Seed Script',
+    'PRAGMA foreign_keys = ON;',
+  ];
+
+  const categories = memDb.prepare('SELECT * FROM categories ORDER BY parent_id ASC, id ASC').all() as any[];
+  for (const c of categories) {
+    lines.push(
+      `INSERT INTO categories (id, name, slug, parent_id, description, image) VALUES (${escapeVal(c.id)}, ${escapeVal(c.name)}, ${escapeVal(c.slug)}, ${escapeVal(c.parent_id)}, ${escapeVal(c.description)}, ${escapeVal(c.image)}) ON CONFLICT(id) DO UPDATE SET name=excluded.name, slug=excluded.slug, parent_id=excluded.parent_id, description=excluded.description, image=excluded.image;`
+    );
+  }
+
+  const products = memDb.prepare('SELECT * FROM products ORDER BY created_at ASC, id ASC').all() as any[];
+  for (const p of products) {
+    lines.push(
+      `INSERT INTO products (id, title, slug, description, maker_field_notes, artist_statement, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id, featured_image, gallery) VALUES (${escapeVal(p.id)}, ${escapeVal(p.title)}, ${escapeVal(p.slug)}, ${escapeVal(p.description)}, ${escapeVal(p.maker_field_notes)}, ${escapeVal(p.artist_statement)}, ${escapeVal(p.materials)}, ${escapeVal(p.weight)}, ${escapeVal(p.fit_profile)}, ${escapeVal(p.origin)}, ${escapeVal(p.base_price)}, ${escapeVal(p.status)}, ${escapeVal(p.category_id)}, ${escapeVal(p.shopify_product_id)}, ${escapeVal(p.featured_image)}, ${escapeVal(p.gallery)}) ON CONFLICT(id) DO UPDATE SET title=excluded.title, slug=excluded.slug, description=excluded.description, maker_field_notes=excluded.maker_field_notes, artist_statement=excluded.artist_statement, materials=excluded.materials, weight=excluded.weight, fit_profile=excluded.fit_profile, origin=excluded.origin, base_price=excluded.base_price, status=excluded.status, category_id=excluded.category_id, shopify_product_id=excluded.shopify_product_id, featured_image=excluded.featured_image, gallery=excluded.gallery;`
+    );
+  }
+
+  const variations = memDb.prepare('SELECT * FROM product_variations ORDER BY product_id ASC, id ASC').all() as any[];
+  for (const v of variations) {
+    lines.push(
+      `INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES (${escapeVal(v.id)}, ${escapeVal(v.product_id)}, ${escapeVal(v.shopify_variant_id)}, ${escapeVal(v.variation_name)}, ${escapeVal(v.sku)}, ${escapeVal(v.variation_type)}, ${escapeVal(v.edition_badge)}, ${escapeVal(v.variation_notes)}, ${escapeVal(v.variation_images)}, ${escapeVal(v.price_override)}, ${escapeVal(v.is_limited_edition)}, ${escapeVal(v.total_edition_count)}, ${escapeVal(v.stock_quantity)}, ${escapeVal(v.release_date)}, ${escapeVal(v.status)}) ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;`
+    );
+  }
+
+  const sqlContent = lines.join('\n') + '\n';
+  if (outputPath) {
+    fs.mkdirSync(path.dirname(path.resolve(process.cwd(), outputPath)), { recursive: true });
+    fs.writeFileSync(path.resolve(process.cwd(), outputPath), sqlContent, 'utf-8');
+    console.log(`✔ Exported seed SQL to ${outputPath} (${sqlContent.length} bytes)`);
+  }
+  return sqlContent;
+}
+
 if (process.argv[1]?.includes('seed-db')) {
   try {
-    seedDatabase();
+    const exportIdx = process.argv.indexOf('--export-sql');
+    if (exportIdx !== -1 && process.argv[exportIdx + 1]) {
+      exportSeedSql(process.argv[exportIdx + 1]);
+    } else {
+      seedDatabase();
+    }
   } catch (err) {
     console.error('❌ Database seed failed:', err);
     process.exit(1);

@@ -42,6 +42,12 @@ export const Categories: CollectionConfig = {
       admin: {
         description: 'Parent category for hierarchical nesting (supports depth-2 category navigation)',
       },
+      validate: (value: any, { id }: any) => {
+        if (value && id && (value === id || value?.id === id)) {
+          return 'A category cannot be its own parent (self-parenting cycle detected).';
+        }
+        return true;
+      },
     },
     {
       name: 'description',

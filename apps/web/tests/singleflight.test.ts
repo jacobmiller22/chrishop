@@ -193,7 +193,7 @@ describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
       catalogSingleFlight.resetMetrics();
 
       const queries = Array.from({ length: 15 }, () =>
-        getProductBySlug('midnight-obsidian-beast')
+        getProductBySlug('bushwhack-storm-anorak')
       );
 
       const results = await Promise.all(queries);
@@ -201,8 +201,8 @@ describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
       assert.equal(results.length, 15);
       for (const p of results) {
         assert.ok(p);
-        assert.equal(p?.slug, 'midnight-obsidian-beast');
-        assert.equal(p?.base_price, 350);
+        assert.equal(p?.slug, 'bushwhack-storm-anorak');
+        assert.equal(p?.base_price, 340);
       }
 
       const metrics = catalogSingleFlight.getMetrics();
@@ -215,12 +215,12 @@ describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
     it('should support bypassSingleFlight option for forced revalidation', async () => {
       catalogSingleFlight.resetMetrics();
 
-      const p = await getProductBySlug('midnight-obsidian-beast', {
+      const p = await getProductBySlug('bushwhack-storm-anorak', {
         bypassSingleFlight: true,
       });
 
       assert.ok(p);
-      assert.equal(p?.slug, 'midnight-obsidian-beast');
+      assert.equal(p?.slug, 'bushwhack-storm-anorak');
 
       // bypassSingleFlight does not touch catalogSingleFlight metrics
       const metrics = catalogSingleFlight.getMetrics();

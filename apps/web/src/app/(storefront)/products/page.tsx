@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
 
+export const dynamic = 'force-static';
 export const revalidate = 10;
 
 interface ProductsPageProps {
@@ -50,7 +51,13 @@ export default async function ProductsPage(props: ProductsPageProps) {
             Home
           </Link>
           <span>/</span>
-          <span className="text-stone-200 font-semibold uppercase">Equipment Catalog</span>
+          {activeCategoryObj ? (
+            <Link href="/products" className="hover:text-[#E55B24] transition-colors">
+              Equipment Catalog
+            </Link>
+          ) : (
+            <span className="text-stone-200 font-semibold uppercase">Equipment Catalog</span>
+          )}
           {activeCategoryObj && (
             <>
               <span>/</span>
@@ -82,7 +89,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/products"
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                 !activeCategory
                   ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
                   : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
@@ -98,7 +105,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
                 <Link
                   key={cat.id}
                   href={`/products?category=${cat.slug}`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase font-semibold transition-all flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
                       : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
@@ -122,7 +129,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
                   <Link
                     key={cat.id}
                     href={`/products?category=${cat.slug}`}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-mono transition-all ${
                       isSelected
                         ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
                         : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'

@@ -45,14 +45,18 @@ export const Header: React.FC<HeaderProps> = ({
               {item.label}
             </a>
           ))}
-          <div className="relative">
-            <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2">
+          <a
+            href="/cart"
+            className="relative group block"
+            aria-label={`View Gear Roll cart with ${cartCount} items`}
+          >
+            <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors">
               <span>🎒 Gear Roll</span>
-              <span className="bg-[#E55B24] text-white font-bold px-1.5 py-0.5 rounded-full text-xs">
+              <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1 rounded-full text-xs inline-flex items-center justify-center">
                 {cartCount}
               </span>
             </span>
-          </div>
+          </a>
         </nav>
       </div>
     </header>

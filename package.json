@@ -28,6 +28,8 @@
     "format:check": "prettier --check .",
     "audit:security": "pnpm audit --audit-level=high",
     "audit:roadmap": "tsx scripts/audit-roadmap.ts",
+    "audit:backlog": "tsx scripts/audit-roadmap.ts",
+    "deploy:prod": "tsx scripts/promote-production.ts",
     "pm:prioritize": "tsx scripts/prioritize-backlog.ts",
     "seed": "tsx scripts/seed-db.ts",
     "d1:setup": "bash scripts/d1-local-setup.sh",

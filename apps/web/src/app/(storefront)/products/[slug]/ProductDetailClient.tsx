@@ -199,9 +199,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             {/* Top Badges overlay */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
               {product.category && (
-                <span className="bg-[#15191E]/90 text-stone-300 border border-stone-700/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md">
+                <Link
+                  href={`/products?category=${product.category.slug}`}
+                  className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md transition-colors"
+                >
                   {product.category.name}
-                </span>
+                </Link>
               )}
               {isSoldOut ? (
                 <span className="bg-rose-950/90 text-rose-300 border border-rose-800/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md font-bold">
@@ -429,7 +432,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2" role="radiogroup" aria-label="Select batch or variation">
                 {variations.map((v) => {
                   const isSelected = v.id === selectedVariationId;
                   const variationSoldOut = v.status === 'sold_out' || v.stock_quantity <= 0;
@@ -439,6 +442,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     <button
                       key={v.id}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => handleSelectVariation(v.id)}
                       className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-4 ${
                         isSelected
@@ -447,12 +452,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       }`}
                     >
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           <span
-                            className={`w-2 h-2 rounded-full ${
-                              isSelected ? 'bg-[#E55B24]' : 'bg-stone-600'
+                            className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                              isSelected
+                                ? 'border-[#E55B24] bg-[#E55B24]'
+                                : 'border-stone-500 bg-transparent hover:border-stone-400'
                             }`}
-                          />
+                          >
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />}
+                          </span>
                           <span className="text-sm font-semibold text-stone-100">
                             {v.variation_name}
                           </span>
@@ -462,7 +471,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-4">
+                        <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-6">
                           <span>{v.sku}</span>
                           {v.variation_type && (
                             <>

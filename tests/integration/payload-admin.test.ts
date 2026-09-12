@@ -143,10 +143,10 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     };
 
     const collections = [
-      { slug: 'products', title: 'Products', itemMarker: 'Midnight Obsidian Beast' },
-      { slug: 'categories', title: 'Categories', itemMarker: 'Sculptures' },
-      { slug: 'product-variations', title: 'Product Variations', itemMarker: 'Obsidian Beast - Standard Resin' },
-      { slug: 'media', title: 'Media', itemMarker: 'obsidian-beast-flagship.webp' },
+      { slug: 'products', title: 'Products', itemMarker: 'The Bushwhack Storm Anorak' },
+      { slug: 'categories', title: 'Categories', itemMarker: 'Apparel' },
+      { slug: 'product-variations', title: 'Product Variations', itemMarker: 'Field Olive — Standard Run' },
+      { slug: 'media', title: 'Media', itemMarker: 'bushwhack-anorak-olive.webp' },
       { slug: 'users', title: 'Users', itemMarker: 'admin@chrishop.jacobmiller22.com' },
     ];
 
@@ -199,13 +199,13 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     };
 
     // Test Document Edit View
-    const editReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/midnight-obsidian-beast');
+    const editReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/bushwhack-storm-anorak');
     const editRes = await worker.fetch(editReq, mockEnv, {});
     assert.equal(editRes.status, 200);
     const editHtml = await editRes.text();
 
     assert.ok(!editHtml.includes('Administrative Dashboard'), 'Edit view must not render dashboard');
-    assert.ok(editHtml.includes('Edit Product: midnight-obsidian-beast'), 'Edit view must display Edit Product heading');
+    assert.ok(editHtml.includes('Edit Product: bushwhack-storm-anorak'), 'Edit view must display Edit Product heading');
     assert.ok(editHtml.includes('Save Changes'), 'Must have Save Changes button');
     assert.ok(editHtml.includes('href="/admin/collections/products"'), 'Must link back to collection');
 
