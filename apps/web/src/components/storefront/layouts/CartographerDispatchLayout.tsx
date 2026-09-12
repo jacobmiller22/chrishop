@@ -13,17 +13,17 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
     <div className="w-full min-h-screen bg-[#151311] text-[#EDE6DA] selection:bg-[#C85A32] selection:text-white font-mono-dispatch">
       {/* 1. Bespoke Cartographer Survey Header */}
       <header className="sticky top-0 z-40 w-full bg-[#151311]/95 backdrop-blur-md border-b border-[#2C2621]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="group flex items-center gap-3">
-              <span className="w-8 h-8 rounded-sm bg-[#C85A32] flex items-center justify-center font-serif-cartographer text-lg font-bold text-[#151311]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+              <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-[#C85A32] flex items-center justify-center font-serif-cartographer text-base sm:text-lg font-bold text-[#151311] shrink-0">
                 🧭
               </span>
               <div className="flex flex-col">
-                <span className="font-serif-cartographer text-2xl uppercase tracking-wider text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors leading-none font-bold">
+                <span className="font-serif-cartographer text-xl sm:text-2xl uppercase tracking-wider text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors leading-none font-bold">
                   BANKBEATERS
                 </span>
-                <span className="text-[10px] tracking-[0.2em] text-[#9E9484] uppercase font-mono-dispatch pt-1">
+                <span className="text-[9px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.2em] text-[#9E9484] uppercase font-mono-dispatch pt-1 truncate">
                   Adventure Gear · Field Survey 10,152&apos;
                 </span>
               </div>
@@ -33,8 +33,8 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             </span>
           </div>
 
-          <nav className="flex items-center gap-8 text-xs uppercase tracking-widest text-[#B5ABA0]">
-            <a href="#survey-plates" className="hover:text-[#C85A32] transition-colors">
+          <nav className="flex items-center gap-3 sm:gap-6 lg:gap-8 text-[11px] sm:text-xs uppercase tracking-wider sm:tracking-widest text-[#B5ABA0]">
+            <a href="#survey-plates" className="hover:text-[#C85A32] transition-colors hidden xs:inline">
               Survey Plates
             </a>
             <Link href="/products?category=outerwear" className="hover:text-[#C85A32] transition-colors hidden sm:inline">
@@ -43,80 +43,80 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             <Link href="/products?category=packs-carry" className="hover:text-[#C85A32] transition-colors hidden md:inline">
               Field Packs
             </Link>
-            <Link href="/about" className="hover:text-[#C85A32] transition-colors">
+            <Link href="/about" className="hover:text-[#C85A32] transition-colors hidden sm:inline">
               Surveyor Log
             </Link>
             <Link
               href="/cart"
-              className="px-3.5 py-1.5 border border-[#443B33] hover:border-[#C85A32] bg-[#1E1B18] text-[#EDE6DA] hover:text-[#C85A32] transition-all flex items-center gap-2 rounded-xs"
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#443B33] hover:border-[#C85A32] bg-[#1E1B18] text-[#EDE6DA] hover:text-[#C85A32] transition-all flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0"
             >
-              <span className="text-[11px] font-bold">Gear Roll</span>
-              <span className="text-[10px] bg-[#2E2822] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
+              <span className="text-[10px] sm:text-[11px] font-bold">Gear Roll</span>
+              <span className="text-[9px] sm:text-[10px] bg-[#2E2822] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
             </Link>
           </nav>
         </div>
       </header>
 
       {/* 2. Split-Page Expedition Dispatch Hero */}
-      <section className="relative w-full border-b border-[#2C2621] bg-[#171512] py-16 lg:py-24 px-6 lg:px-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      <section className="relative w-full border-b border-[#2C2621] bg-[#171512] py-10 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Left Expedition Journal Narrative */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="inline-flex items-center gap-3 bg-[#201D19] border border-[#3E352C] px-3.5 py-1.5 rounded-xs">
-              <span className="w-2 h-2 rounded-full bg-[#C85A32] animate-pulse" />
-              <span className="text-xs uppercase tracking-widest text-[#D4A373] font-bold">
+          <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-[#201D19] border border-[#3E352C] px-3 sm:px-3.5 py-1.5 rounded-xs">
+              <span className="w-2 h-2 rounded-full bg-[#C85A32] animate-pulse shrink-0" />
+              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[#D4A373] font-bold">
                 EXPEDITION DISPATCH // LOG ENTRY NO. 104
               </span>
             </div>
 
-            <div className="space-y-4">
-              <span className="text-xs uppercase tracking-[0.25em] text-[#9E9484] block font-semibold">
+            <div className="space-y-3 sm:space-y-4">
+              <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#9E9484] block font-semibold">
                 Option E · Cartographer &amp; Field Dispatch
               </span>
-              <h1 className="font-serif-cartographer text-5xl sm:text-7xl lg:text-8xl font-bold uppercase tracking-tight text-[#F7F2E8] leading-[0.95]">
+              <h1 className="font-serif-cartographer text-4xl sm:text-6xl lg:text-8xl font-bold uppercase tracking-tight text-[#F7F2E8] leading-[0.95] break-words">
                 Curiosity &gt; Fear.
               </h1>
-              <p className="text-sm sm:text-base text-[#CBC2B4] leading-relaxed max-w-xl pt-2">
+              <p className="text-xs sm:text-base text-[#CBC2B4] leading-relaxed max-w-xl pt-1 sm:pt-2">
                 Technical foul-weather outerwear, reinforced guide trousers, and convertible chest rigs.
                 Hand-patterned and sewn by Chris on an industrial Juki lockstitch machine in Leadville, Colorado
                 for backcountry anglers who bushwhack the bank on foot.
               </p>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center gap-5">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-5">
               <a
                 href="#survey-plates"
-                className="px-8 py-4 bg-[#C85A32] hover:bg-[#D96B43] text-[#151311] font-serif-cartographer text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-xs shadow-lg shadow-[#C85A32]/20"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 bg-[#C85A32] hover:bg-[#D96B43] text-[#151311] font-serif-cartographer text-sm sm:text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-xs shadow-lg shadow-[#C85A32]/20"
               >
                 Explore Gear Roster ({products.length})
               </a>
               <Link
                 href="/about"
-                className="px-8 py-4 border border-[#443B33] hover:border-[#D4A373] bg-[#1E1B18] hover:bg-[#25211D] text-[#EDE6DA] font-serif-cartographer text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-xs"
+                className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border border-[#443B33] hover:border-[#D4A373] bg-[#1E1B18] hover:bg-[#25211D] text-[#EDE6DA] font-serif-cartographer text-sm sm:text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-xs"
               >
                 Surveyor Field Notes
               </Link>
             </div>
 
             {/* Field Dispatch Gauge Ticker */}
-            <div className="pt-6 border-t border-[#26211C] grid grid-cols-3 gap-6 text-xs text-[#9E9484]">
-              <div>
-                <span className="block text-[#D4A373] font-bold text-sm font-serif-cartographer uppercase">
+            <div className="pt-6 border-t border-[#26211C] grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 text-xs text-[#9E9484]">
+              <div className="flex sm:flex-col justify-between sm:justify-start items-center sm:items-start border-b sm:border-b-0 border-[#26211C] pb-2 sm:pb-0">
+                <span className="block text-[#D4A373] font-bold text-xs sm:text-sm font-serif-cartographer uppercase">
                   10,152 FT
                 </span>
-                <span className="text-[11px]">Sawatch Elevation</span>
+                <span className="text-[10px] sm:text-[11px]">Sawatch Elevation</span>
               </div>
-              <div>
-                <span className="block text-[#D4A373] font-bold text-sm font-serif-cartographer uppercase">
+              <div className="flex sm:flex-col justify-between sm:justify-start items-center sm:items-start border-b sm:border-b-0 border-[#26211C] pb-2 sm:pb-0">
+                <span className="block text-[#D4A373] font-bold text-xs sm:text-sm font-serif-cartographer uppercase">
                   142 CFS
                 </span>
-                <span className="text-[11px]">Headwater Flow // 41°F</span>
+                <span className="text-[10px] sm:text-[11px]">Headwater Flow // 41°F</span>
               </div>
-              <div>
-                <span className="block text-[#D4A373] font-bold text-sm font-serif-cartographer uppercase">
+              <div className="flex sm:flex-col justify-between sm:justify-start items-center sm:items-start">
+                <span className="block text-[#D4A373] font-bold text-xs sm:text-sm font-serif-cartographer uppercase">
                   Single-Needle
                 </span>
-                <span className="text-[11px]">Lockstitched Integrity</span>
+                <span className="text-[10px] sm:text-[11px]">Lockstitched Integrity</span>
               </div>
             </div>
           </div>
@@ -161,13 +161,13 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       </section>
 
       {/* 3. Surveyor Field Ledger (3 Craft Standards) */}
-      <section className="py-20 px-6 lg:px-12 border-b border-[#2C2621] bg-[#181613]">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
+      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#2C2621] bg-[#181613]">
+        <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.3em] text-[#C85A32] font-bold">
               Cartographic Field Standards
             </span>
-            <h2 className="font-serif-cartographer text-3xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2E8]">
+            <h2 className="font-serif-cartographer text-2xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2E8]">
               The Sawatch Ledger
             </h2>
             <p className="text-xs sm:text-sm text-[#B5ABA0] leading-relaxed">
@@ -175,12 +175,12 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-[#1C1916] border border-[#2E271F] p-8 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-[#1C1916] border border-[#2E271F] p-5 sm:p-8 space-y-3 sm:space-y-4">
               <span className="text-xs font-bold text-[#C85A32] tracking-widest block uppercase">
                 {'// 01. Topographic Proofing'}
               </span>
-              <h3 className="font-serif-cartographer text-2xl font-bold uppercase text-[#F7F2E8]">
+              <h3 className="font-serif-cartographer text-xl sm:text-2xl font-bold uppercase text-[#F7F2E8]">
                 River-Tested Hydrostatic
               </h3>
               <p className="text-xs text-[#B5ABA0] leading-relaxed">
@@ -189,11 +189,11 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
               </p>
             </div>
 
-            <div className="bg-[#1C1916] border border-[#2E271F] p-8 space-y-4">
+            <div className="bg-[#1C1916] border border-[#2E271F] p-5 sm:p-8 space-y-3 sm:space-y-4">
               <span className="text-xs font-bold text-[#C85A32] tracking-widest block uppercase">
                 {'// 02. Single-Needle Lockstitch'}
               </span>
-              <h3 className="font-serif-cartographer text-2xl font-bold uppercase text-[#F7F2E8]">
+              <h3 className="font-serif-cartographer text-xl sm:text-2xl font-bold uppercase text-[#F7F2E8]">
                 Mechanical Durability
               </h3>
               <p className="text-xs text-[#B5ABA0] leading-relaxed">
@@ -202,11 +202,11 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
               </p>
             </div>
 
-            <div className="bg-[#1C1916] border border-[#2E271F] p-8 space-y-4">
+            <div className="bg-[#1C1916] border border-[#2E271F] p-5 sm:p-8 space-y-3 sm:space-y-4">
               <span className="text-xs font-bold text-[#C85A32] tracking-widest block uppercase">
                 {'// 03. Lifetime Stewardship'}
               </span>
-              <h3 className="font-serif-cartographer text-2xl font-bold uppercase text-[#F7F2E8]">
+              <h3 className="font-serif-cartographer text-xl sm:text-2xl font-bold uppercase text-[#F7F2E8]">
                 Perpetual Repair Log
               </h3>
               <p className="text-xs text-[#B5ABA0] leading-relaxed">
@@ -219,14 +219,14 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       </section>
 
       {/* 4. Equipment Survey Plates Grid */}
-      <section id="survey-plates" className="py-24 px-6 lg:px-12 bg-[#151311]">
-        <div className="max-w-7xl mx-auto space-y-16">
+      <section id="survey-plates" className="py-12 sm:py-24 px-4 sm:px-6 lg:px-12 bg-[#151311]">
+        <div className="max-w-7xl mx-auto space-y-10 sm:space-y-16">
           <div className="flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b border-[#2C2621] pb-6">
             <div>
               <span className="text-xs uppercase tracking-[0.25em] text-[#C85A32] font-bold block">
                 Leadville Headwaters Equipment
               </span>
-              <h2 className="font-serif-cartographer text-4xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2E8]">
+              <h2 className="font-serif-cartographer text-3xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2E8]">
                 Survey Catalog Plates
               </h2>
             </div>
@@ -239,7 +239,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {products.map((product, idx) => {
               const displayImage =
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
@@ -248,7 +248,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
                 <Link
                   key={product.id}
                   href={`/products/${product.slug}`}
-                  className="group block bg-[#1C1916] border border-[#2E271F] hover:border-[#C85A32] transition-all duration-300 p-5 space-y-4"
+                  className="group block bg-[#1C1916] border border-[#2E271F] hover:border-[#C85A32] transition-all duration-300 p-4 sm:p-5 space-y-4"
                 >
                   <div className="flex items-center justify-between text-[11px] text-[#9E9484] border-b border-[#262019] pb-2">
                     <span className="font-bold text-[#C85A32]">PLATE-0{idx + 1}</span>
@@ -268,7 +268,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-baseline">
-                      <h4 className="font-serif-cartographer text-xl font-bold uppercase text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors">
+                      <h4 className="font-serif-cartographer text-lg sm:text-xl font-bold uppercase text-[#F7F2E8] group-hover:text-[#C85A32] transition-colors">
                         {product.title}
                       </h4>
                       <span className="text-sm font-bold text-[#D4A373]">
@@ -293,10 +293,10 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       </section>
 
       {/* 5. Bespoke Cartographer Footer */}
-      <footer className="border-t border-[#2C2621] py-16 px-6 lg:px-12 bg-[#110F0D]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#9E9484]">
-          <div className="flex items-center gap-4">
-            <span className="font-serif-cartographer text-base font-bold text-[#C85A32] tracking-wider">
+      <footer className="border-t border-[#2C2621] py-10 sm:py-16 px-4 sm:px-6 lg:px-12 bg-[#110F0D]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#9E9484] text-center md:text-left">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-4">
+            <span className="font-serif-cartographer text-sm sm:text-base font-bold text-[#C85A32] tracking-wider">
               BANKBEATERS CARTOGRAPHY &amp; EXPEDITION
             </span>
             <span>·</span>

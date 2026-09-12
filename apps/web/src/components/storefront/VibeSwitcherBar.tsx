@@ -134,27 +134,27 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
   // Fully minimized mode: unobtrusive tiny floating icon in bottom-right corner
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50">
         <button
           onClick={() => setIsMinimized(false)}
           title="Open Design Vibe Switcher"
           aria-label="Open Design Vibe Switcher"
-          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-stone-900/95 hover:bg-stone-800 text-stone-100 border border-stone-700/80 shadow-2xl backdrop-blur-md text-xs font-mono transition-all hover:scale-105"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-stone-900/95 hover:bg-stone-800 text-stone-100 border border-stone-700/80 shadow-2xl backdrop-blur-md text-xs font-mono transition-all hover:scale-105 max-w-[calc(100vw-1.5rem)]"
         >
           <span>{current.icon}</span>
-          <span className="font-bold">{current.label}: {current.name}</span>
-          <span className="text-[10px] text-stone-400 bg-stone-800 px-1.5 py-0.5 rounded">9 Vibes 🎨</span>
+          <span className="font-bold truncate max-w-[130px] sm:max-w-none">{current.label}: {current.name}</span>
+          <span className="text-[10px] text-stone-400 bg-stone-800 px-1.5 py-0.5 rounded whitespace-nowrap">9 Vibes 🎨</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* Expanded Popover Modal */}
+    <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 flex flex-col items-center sm:items-end">
+      {/* Expanded Popover Modal / Mobile Bottom Sheet */}
       {isOpen && (
-        <div className="mb-3 w-[420px] max-w-[calc(100vw-2rem)] rounded-2xl bg-stone-950/95 border border-stone-800 shadow-2xl backdrop-blur-xl p-5 space-y-4 text-stone-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="flex items-center justify-between border-b border-stone-800/80 pb-3">
+        <div className="w-full sm:w-[420px] sm:max-w-[calc(100vw-2rem)] max-h-[85vh] rounded-t-2xl sm:rounded-2xl bg-stone-950/98 sm:bg-stone-950/95 border-t sm:border border-stone-800 shadow-2xl backdrop-blur-xl p-4 sm:p-5 space-y-3 sm:space-y-4 text-stone-100 animate-in fade-in slide-in-from-bottom-3 duration-200 sm:mb-3 flex flex-col">
+          <div className="flex items-center justify-between border-b border-stone-800/80 pb-2.5 sm:pb-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-stone-200">
@@ -170,11 +170,11 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
             </button>
           </div>
 
-          <p className="text-[11px] text-stone-400 leading-relaxed">
+          <p className="text-[11px] text-stone-400 leading-relaxed hidden sm:block">
             Select any archetype below to instantly swap the entire storefront experience—including typography, bespoke header, full-screen hero, product catalog cards, and footer.
           </p>
 
-          <div className="space-y-2 max-h-[62vh] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[52vh] sm:max-h-[58vh] overflow-y-auto pr-1">
             {ORDERED_VIBES.map((vibe) => {
               const meta = VIBE_METADATA[vibe];
               const isActive = activeVibe === vibe;
@@ -186,7 +186,7 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
                     onSelectVibe(vibe);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                  className={`w-full text-left p-2.5 sm:p-3 rounded-xl border transition-all flex flex-col gap-1 sm:gap-1.5 ${
                     isActive
                       ? 'bg-stone-900 border-white/50 shadow-lg ring-1 ring-white/20'
                       : 'bg-stone-900/40 border-stone-800/80 hover:border-stone-700 hover:bg-stone-900/80'
@@ -206,9 +206,9 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
                     )}
                   </div>
 
-                  <p className="text-[11px] text-stone-400 leading-snug">{meta.summary}</p>
+                  <p className="text-[10px] sm:text-[11px] text-stone-400 leading-snug">{meta.summary}</p>
 
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] font-mono">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 sm:pt-1 text-[9px] sm:text-[10px] font-mono">
                     <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 border border-stone-700/60">
                       🔤 {meta.fontBadge}
                     </span>
@@ -242,14 +242,14 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
       )}
 
       {/* Sleek Floating Dock Pill */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-stone-950/90 border border-stone-700/80 shadow-2xl backdrop-blur-md">
+      <div className={`flex items-center gap-1.5 p-1.5 rounded-full bg-stone-950/90 border border-stone-700/80 shadow-2xl backdrop-blur-md mb-2 sm:mb-0 ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-stone-800 text-stone-100 text-xs font-mono transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-stone-800 text-stone-100 text-xs font-mono transition-colors max-w-[calc(100vw-4rem)] sm:max-w-none"
         >
           <span>{current.icon}</span>
-          <span className="font-bold">{current.label}: {current.name}</span>
-          <span className="text-stone-400 text-[11px]">{isOpen ? '▲' : '▼'}</span>
+          <span className="font-bold truncate max-w-[130px] sm:max-w-none">{current.label}: {current.name}</span>
+          <span className="text-stone-400 text-[10px] sm:text-[11px]">{isOpen ? '▲' : '▼'}</span>
         </button>
 
         <button
