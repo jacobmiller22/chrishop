@@ -60,7 +60,7 @@ When work on a story is ready for review/merge:
 
    ## Related Issue
    Fixes #<IssueNumber>" \
-     --base main
+     --base staging
    ```
 3. **Mandatory Issue Linking**: The PR description **MUST** explicitly include `Fixes #<IssueNumber>` or `Closes #<IssueNumber>`. This links the PR directly to the issue on GitHub and ensures the GitHub Project Board (`board-sync.yml`) moves the issue card through `In Progress` ➔ `In Review` ➔ `Done` automatically upon PR creation and merge.
 
@@ -94,17 +94,18 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
    - Run build validation (`npx pnpm run build`) where applicable.
 2. **Create & Link Pull Request**:
-   - Create a Pull Request via `gh pr create` targeting `main`, including `Fixes #<IssueNumber>` in the PR body.
+   - Create a Pull Request via `gh pr create` targeting `staging` (`--base staging`), including `Fixes #<IssueNumber>` in the PR body.
 3. **Merge Pull Request / CI Verification**:
-   - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`).
-4. **Post Comprehensive Completion Comment & Close GitHub Issue**:
+   - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `staging` (`gh pr merge --merge` or `git merge --no-ff`).
+4. **Post Comprehensive Completion Comment & PR-Gated GitHub Issue Closure**:
    - Post a comprehensive completion comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
      - **Merge & Human Review Status Header**: Explicitly state status (`🟡 HUMAN INPUT REQUIRED BEFORE MERGE`, `🟢 MERGED / NO INPUT NEEDED`, `🔴 BLOCKED / PENDING`, or `❌ ACTION REQUIRED / FAILING`).
      - **Verification Links with Proper Descriptive Anchors**: Include markdown links with descriptive text (never naked URLs) for the PR (`[PR #<N>: <Title>](...)`), Issue (`[Issue #<N>: <Title>](...)`), CI Run (`[CI Run #<ID>](...)`), and Ephemeral Preview with deep route anchors (`[Storefront (/)]`, `[Admin (/admin)]`, `[Health (/api/health)]`).
      - **Completion Status & Deliverables Summary** (created/modified files, interfaces, endpoints, verification outputs).
      - **Verification Results** (typecheck, lint, build, unit and ephemeral integration test outputs).
      - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, staging/production deployment notes).
-   - Update issue label to `status:completed` and close the issue (`gh issue close <IssueNumber>`).
+   - Update issue label to `status:completed` (remove `status:in-progress`).
+   - **CRITICAL GATE**: Do **NOT** close the issue while its associated PR is still open. Verify PR merge status (`gh pr view <PR_NUMBER> --json state,merged`). Only close the issue via `gh issue close <IssueNumber> --reason "completed"` once the PR is confirmed merged.
 5. **Update Progress & Deliver Structured Summary to User**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a structured handoff report to the user following [story-feedback-loop](../story-feedback-loop/SKILL.md) Section 7.2:
@@ -113,7 +114,7 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
      - **Verification Evidence & Deliverables**.
      - **Copy-pasteable Next Steps / Merge Command**.
 6. **Worktree Teardown & Process Reaping**:
-   - Switch back to the main monorepo worktree: `wt switch main`.
+   - Switch back to the staging integration worktree: `wt switch staging`.
    - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.
    - Prune git metadata: `git worktree prune` and confirm with `wt list`.
 
@@ -154,5 +155,5 @@ pnpm run audit:roadmap
 1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`) in milestone titles and descriptions.
 2. **Orphaned Issues**: Detects open issues with no assigned milestone (`milestone == null`).
 3. **Priority Health**: Flags any open issue missing an explicit `priority:*` label.
-4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label that remains open on GitHub.
+4. **Issue Lifecycle Sync**: Flags any completed story whose PR is already merged but whose issue remains open on GitHub (stories awaiting PR merge legitimately remain open with `status:completed`).
 5. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.

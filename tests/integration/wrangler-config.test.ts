@@ -195,11 +195,20 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Enforce promotion rules job
     assert.ok(content.includes('enforce-promotion-rules:'), 'CI must declare enforce-promotion-rules job');
+    assert.ok(content.includes('base_ref }}" = "main"'), 'Must check and block PRs targeting legacy main');
+    assert.ok(
+      content.includes("Pull requests targeting legacy 'main' are strictly prohibited"),
+      'Must output explanatory error message when PR targets main'
+    );
     assert.ok(content.includes('base_ref }}" = "production"'), 'Must check if base branch is production');
     assert.ok(content.includes('head_ref }}" != "staging"'), 'Must reject if head branch is not staging');
     assert.ok(
       content.includes('Only the \'staging\' branch is permitted to merge into \'production\''),
       'Must output explanatory error message when non-staging branch targets production'
+    );
+    assert.ok(
+      content.includes("Feature pull requests must target 'staging'"),
+      'Must enforce that feature PRs target staging'
     );
   });
 
