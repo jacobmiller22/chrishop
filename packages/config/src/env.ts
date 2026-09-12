@@ -45,6 +45,8 @@ export const serverEnvSchema = z.object({
   // Cloudflare Platform Credentials (Optional in local dev, required in production edge)
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
   CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
+  CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
 
   // Channel-Agnostic Transactional Email & Operational Alert Credentials
   RESEND_API_KEY: z.string().min(1).optional(),
@@ -76,6 +78,7 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: z.string().optional(),
   NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
   NEXT_PUBLIC_R2_PUBLIC_URL: z.string().optional(),
+  NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
 });
 
 export const envSchema = serverEnvSchema.merge(clientEnvSchema);

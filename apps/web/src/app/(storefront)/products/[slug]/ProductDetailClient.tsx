@@ -63,14 +63,37 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       const variantId =
         selectedVariation.shopify_variant_id ||
         `gid://shopify/ProductVariant/${selectedVariation.id}`;
-      const res = await shopify.createCart(variantId, 1);
-      const checkoutUrl = res.data?.cartCreate?.cart?.checkoutUrl;
+
+      let checkoutUrl: string | undefined;
+
+      try {
+        const response = await fetch('/api/cart/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantId, quantity: 1 }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          checkoutUrl = data?.cart?.checkoutUrl;
+        } else {
+          const errData = await response.json().catch(() => null);
+          if (errData?.error) {
+            setCheckoutError(errData.error);
+            setIsCheckingOut(false);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to direct client if running in an environment without edge route resolution
+        const res = await shopify.createCart(variantId, 1);
+        checkoutUrl = res.data?.cartCreate?.cart?.checkoutUrl;
+      }
+
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       } else {
-        const errorMsg =
-          res.data?.cartCreate?.userErrors?.[0]?.message || 'Checkout is currently unavailable';
-        setCheckoutError(errorMsg);
+        setCheckoutError('Checkout is currently unavailable');
         setIsCheckingOut(false);
       }
     } catch (err: any) {
