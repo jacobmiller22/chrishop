@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             { label: 'Outerwear', href: '/products?category=outerwear' },
             { label: 'Packs & Carry', href: '/products?category=packs-carry' },
             { label: 'Field Accessories', href: '/products?category=field-accessories' },
+            { label: "The Maker's Story", href: '/about' },
             { label: 'The Maker’s Bench', href: '/#makers-bench' },
           ]}
         />
