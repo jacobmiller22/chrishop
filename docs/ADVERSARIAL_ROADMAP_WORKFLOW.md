@@ -24,7 +24,7 @@ The **Adversarial Roadmap Evaluation Workflow** enforces continuous synchronizat
 ### Pillar 2: Milestone Hygiene & Zero-Orphan Policy
 - **Zero Orphaned Issues**: Every open issue MUST be assigned to an Epic label (`epic:phase-X`) AND an active GitHub Milestone. Floating issues with `milestone: null` are strictly forbidden.
 - **De-duplication**: Proactively identify duplicate stories across phases (e.g. CI/CD deploy pipeline stories split across Phase 2 and Phase 4) and consolidate them immediately.
-- **Issue Lifecycle Sync**: Any story marked `status:completed` or documented in `docs/` as finished MUST be formally closed on GitHub with linked commits/PRs.
+- **Issue Lifecycle Sync**: Stories marked `status:completed` legitimately remain open while their respective pull requests are pending review/merge. Once the pull request is merged, the issue MUST be formally closed on GitHub with linked commits/PRs.
 
 ### Pillar 3: Priority-First Governance
 Every story MUST be classified into a standardized priority tier:

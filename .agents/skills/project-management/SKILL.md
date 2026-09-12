@@ -98,14 +98,15 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Create a Pull Request via `gh pr create` targeting `main`, including `Fixes #<IssueNumber>` in the PR body.
 3. **Merge Pull Request / CI Verification**:
    - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`).
-4. **Post Comprehensive Completion Comment & Close GitHub Issue**:
+4. **Post Comprehensive Completion Comment & Update Issue Status**:
    - Post a comprehensive completion comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
      - **Merge & Human Review Status Header**: Explicitly state status (`🟡 HUMAN INPUT REQUIRED BEFORE MERGE`, `🟢 MERGED / NO INPUT NEEDED`, `🔴 BLOCKED / PENDING`, or `❌ ACTION REQUIRED / FAILING`).
      - **Verification Links with Proper Descriptive Anchors**: Include markdown links with descriptive text (never naked URLs) for the PR (`[PR #<N>: <Title>](...)`), Issue (`[Issue #<N>: <Title>](...)`), CI Run (`[CI Run #<ID>](...)`), and Ephemeral Preview with deep route anchors (`[Storefront (/)]`, `[Admin (/admin)]`, `[Health (/api/health)]`).
      - **Completion Status & Deliverables Summary** (created/modified files, interfaces, endpoints, verification outputs).
      - **Verification Results** (typecheck, lint, build, unit and ephemeral integration test outputs).
      - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, staging/production deployment notes).
-   - Update issue label to `status:completed` and close the issue (`gh issue close <IssueNumber>`).
+   - Update issue label to `status:completed` (remove `status:in-progress`).
+   - **PR-Gated Issue Closure**: DO NOT close the issue until the PR has been merged. If the PR is open / pending review, keep the issue open. Only once the PR is merged may the issue be closed (`gh issue close <IssueNumber> --reason "completed"`).
 5. **Update Progress & Deliver Structured Summary to User**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a structured handoff report to the user following [story-feedback-loop](../story-feedback-loop/SKILL.md) Section 7.2:
@@ -173,7 +174,7 @@ You can invoke the audit at any time using:
 1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`, `caddy`, `ansible`, `minio`) in milestone titles and descriptions.
 2. **Orphaned Issues**: Detects open issues with no assigned milestone (`milestone == null`).
 3. **Priority Governance**: Flags any open issue missing an explicit `priority:*` label (`priority:critical`, `priority:high`, `priority:medium`, `priority:low`).
-4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label that remains open on GitHub.
+4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label whose corresponding pull request has already been merged but the issue remains open on GitHub. (Issues awaiting PR merge legitimately remain open).
 5. **Codebase Deliverables Verification**: Audits closed issues against actual files on disk (`apps/`, `packages/`, `infra/`, `docs/`) to detect missing or orphaned artifacts.
 6. **Dependency & Blocker Analysis**: Evaluates issue prerequisite references (`Prerequisites: #<N>`) to flag blocked stories vs. unblocked shovel-ready items.
 7. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.
