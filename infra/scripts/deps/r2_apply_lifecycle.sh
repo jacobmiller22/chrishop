@@ -82,8 +82,38 @@ CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-}"
 
 # Resolve Wrangler executable
 WRANGLER_BIN=""
+PRIMARY_REPO_ROOT=""
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  GIT_COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [[ -n "${GIT_COMMON_DIR}" && -d "${GIT_COMMON_DIR}" ]]; then
+    PRIMARY_REPO_ROOT="$(cd "${GIT_COMMON_DIR}/.." && pwd)"
+  fi
+fi
+
+# Load local environment if CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is unset
+for env_candidate in "${REPO_ROOT}/.env" "${PRIMARY_REPO_ROOT}/.env"; do
+  if [[ -f "${env_candidate}" ]]; then
+    if [[ -z "${CLOUDFLARE_API_TOKEN}" ]]; then
+      VAL="$(grep -E '^CLOUDFLARE_API_TOKEN=' "${env_candidate}" | head -n1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)"
+      if [[ -n "${VAL}" ]]; then
+        CLOUDFLARE_API_TOKEN="${VAL}"
+        export CLOUDFLARE_API_TOKEN
+      fi
+    fi
+    if [[ -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
+      VAL="$(grep -E '^CLOUDFLARE_ACCOUNT_ID=' "${env_candidate}" | head -n1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)"
+      if [[ -n "${VAL}" ]]; then
+        CLOUDFLARE_ACCOUNT_ID="${VAL}"
+        export CLOUDFLARE_ACCOUNT_ID
+      fi
+    fi
+  fi
+done
+
 if [[ -x "${REPO_ROOT}/node_modules/.bin/wrangler" ]]; then
   WRANGLER_BIN="${REPO_ROOT}/node_modules/.bin/wrangler"
+elif [[ -n "${PRIMARY_REPO_ROOT}" && -x "${PRIMARY_REPO_ROOT}/node_modules/.bin/wrangler" ]]; then
+  WRANGLER_BIN="${PRIMARY_REPO_ROOT}/node_modules/.bin/wrangler"
 elif command -v wrangler >/dev/null 2>&1; then
   WRANGLER_BIN="$(command -v wrangler)"
 fi
@@ -133,8 +163,8 @@ apply_lifecycle_policy() {
 
   # Attempt application via Wrangler CLI first
   if [[ -n "${WRANGLER_BIN}" ]]; then
-    echo "[INFO] Applying lifecycle rules via Wrangler CLI..."
-    if "${WRANGLER_BIN}" r2 bucket lifecycle set "${bucket}" --file "${config_file}" -y; then
+    echo "[INFO] Applying lifecycle rules via Wrangler CLI (${WRANGLER_BIN})..."
+    if ${WRANGLER_BIN} r2 bucket lifecycle set "${bucket}" --file "${config_file}" -y; then
       echo "[SUCCESS] Successfully applied lifecycle policy to '${bucket}' via Wrangler."
       return 0
     else
