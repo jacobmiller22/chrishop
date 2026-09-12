@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execSync } from 'node:child_process';
 import {
   parseCommitLog,
@@ -188,36 +189,106 @@ describe('Story 2.40: Release Notes Composer & Manifest Generator', () => {
   });
 
   describe('5. Real Git Delta Computation (composeReleaseNotes)', () => {
-    it('should successfully compute delta between origin/production and origin/staging', async () => {
-      const delta = computeReleaseDelta({
-        base: 'origin/production',
-        head: 'origin/staging',
-        cwd: rootDir,
-      });
+    function createGitFixture(): { tempDir: string; cleanup: () => void } {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chrishop-release-fixture-'));
+      execSync('git init -b main', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git config user.name "Test Runner"', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
 
-      assert.ok(delta.commitCount >= 10, 'Expected at least 10 commits between origin/production and origin/staging');
-      assert.ok(delta.resolvedIssues.length > 0, 'Expected resolved issue references');
-      assert.ok(delta.mergedPrs.length > 0, 'Expected merged PR references');
-      assert.ok(delta.impactedAreas.some((a) => a.area === 'apps/web'), 'Should detect apps/web impact');
-      assert.ok(delta.impactedAreas.some((a) => a.area === 'infra'), 'Should detect infra impact');
-      assert.ok(delta.impactedAreas.some((a) => a.area === '.github'), 'Should detect .github impact');
+      // Base commit on main
+      fs.writeFileSync(path.join(tempDir, 'README.md'), '# Base');
+      execSync('git add README.md && git commit -m "chore: base commit"', { cwd: tempDir, stdio: 'ignore' });
+
+      // Create production branch
+      execSync('git branch production', { cwd: tempDir, stdio: 'ignore' });
+
+      // Switch to staging and add feature commits
+      execSync('git checkout -b staging', { cwd: tempDir, stdio: 'ignore' });
+
+      fs.mkdirSync(path.join(tempDir, 'apps/web'), { recursive: true });
+      fs.writeFileSync(path.join(tempDir, 'apps/web/page.tsx'), '// web code');
+      execSync(
+        'git add apps/web/page.tsx && git commit -m "feat(storefront): Story 1.15 Curate Seed Catalog (#145) (#179)\n\nFixes #145"',
+        { cwd: tempDir, stdio: 'ignore' }
+      );
+
+      fs.mkdirSync(path.join(tempDir, 'migrations'), { recursive: true });
+      fs.writeFileSync(path.join(tempDir, 'migrations/0002_orders.sql'), 'CREATE TABLE orders (id TEXT);');
+      execSync(
+        'git add migrations/0002_orders.sql && git commit -m "feat(db): Story 2.19 Orders Table (#90) (#104)\n\nCloses #90"',
+        { cwd: tempDir, stdio: 'ignore' }
+      );
+
+      return {
+        tempDir,
+        cleanup: () => {
+          try {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          } catch {}
+        },
+      };
+    }
+
+    it('should accurately compute commit delta, migrations, and areas in git fixture', async () => {
+      const fixture = createGitFixture();
+      try {
+        const delta = computeReleaseDelta({
+          base: 'production',
+          head: 'staging',
+          cwd: fixture.tempDir,
+          repo: 'jacobmiller22/chrishop',
+        });
+
+        assert.equal(delta.commitCount, 2);
+        assert.deepEqual(delta.resolvedIssues, [90, 145]);
+        assert.deepEqual(delta.mergedPrs, [104, 179]);
+        assert.deepEqual(delta.migrations, ['migrations/0002_orders.sql']);
+        assert.ok(delta.impactedAreas.some((a) => a.area === 'apps/web'));
+        assert.ok(delta.impactedAreas.some((a) => a.area === 'migrations'));
+
+        const markdown = generateReleaseMarkdown(delta, { repo: 'jacobmiller22/chrishop' });
+        assert.ok(markdown.includes('`2` commits'));
+        assert.ok(markdown.includes('migrations/0002_orders.sql'));
+        assert.ok(markdown.includes('https://github.com/jacobmiller22/chrishop/issues/145 (Story 1.15)'));
+      } finally {
+        fixture.cleanup();
+      }
     });
 
-    it('should generate valid JSON delta and write to file with --json and --output', async () => {
-      const tempJsonPath = path.join(rootDir, 'node_modules/.cache/test-release-delta.json');
-      await composeReleaseNotes({
-        base: 'origin/production',
-        head: 'origin/staging',
-        json: true,
-        output: tempJsonPath,
-        cwd: rootDir,
-      });
+    it('should generate valid JSON delta and write to file with --json and --output in fixture', async () => {
+      const fixture = createGitFixture();
+      try {
+        const tempJsonPath = path.join(fixture.tempDir, 'nested/cache/release-delta.json');
+        await composeReleaseNotes({
+          base: 'production',
+          head: 'staging',
+          json: true,
+          output: tempJsonPath,
+          cwd: fixture.tempDir,
+          repo: 'jacobmiller22/chrishop',
+        });
 
-      assert.ok(fs.existsSync(tempJsonPath), 'Temporary JSON output file must exist');
-      const content = JSON.parse(fs.readFileSync(tempJsonPath, 'utf-8'));
-      assert.equal(typeof content.commitCount, 'number');
-      assert.ok(Array.isArray(content.commits));
-      assert.ok(Array.isArray(content.impactedAreas));
+        assert.ok(fs.existsSync(tempJsonPath), 'Temporary JSON output file must exist');
+        const content = JSON.parse(fs.readFileSync(tempJsonPath, 'utf-8'));
+        assert.equal(content.commitCount, 2);
+        assert.deepEqual(content.resolvedIssues, [90, 145]);
+        assert.deepEqual(content.migrations, ['migrations/0002_orders.sql']);
+      } finally {
+        fixture.cleanup();
+      }
+    });
+
+    it('should safely inspect monorepo branches if present or gracefully handle shallow clones', async () => {
+      try {
+        const delta = computeReleaseDelta({
+          base: 'origin/production',
+          head: 'origin/staging',
+          cwd: rootDir,
+        });
+        assert.ok(delta.commitCount >= 0);
+      } catch (err: any) {
+        assert.match(err.message, /Could not resolve any git ref/);
+      }
     });
   });
 
