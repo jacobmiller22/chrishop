@@ -356,13 +356,21 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           {mediaList.length > 1 && (
             <div className="flex items-center gap-3 overflow-x-auto pb-2">
               {mediaList.map((m, idx) => {
-                const thumbUrl = buildCloudflareImageUrl(m.url, {
-                  width: 160,
-                  quality: 75,
-                  format: 'auto',
-                  fit: 'cover',
-                  onerror: 'redirect',
-                });
+                const isCachedHighRes = loadedImages.has(m.url);
+                const thumbUrl = isCachedHighRes
+                  ? buildCloudflareImageUrl(m.url, {
+                      width: 1024,
+                      quality: 80,
+                      format: 'auto',
+                      onerror: 'redirect',
+                    })
+                  : buildCloudflareImageUrl(m.url, {
+                      width: 160,
+                      quality: 75,
+                      format: 'auto',
+                      fit: 'cover',
+                      onerror: 'redirect',
+                    });
 
                 return (
                   <button
