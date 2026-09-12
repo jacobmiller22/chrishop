@@ -55,6 +55,55 @@ export const ProductVariations: CollectionConfig = {
       },
     },
     {
+      name: 'variation_type',
+      type: 'select',
+      defaultValue: 'standard',
+      options: [
+        { label: 'Standard Production', value: 'standard' },
+        { label: 'Micro-Batch Run (2-10 Pieces)', value: 'micro_batch' },
+        { label: 'One-of-One (Unique Single Item)', value: 'one_of_one' },
+        { label: 'Archive / Prototype Sample', value: 'prototype' },
+      ],
+      admin: {
+        description: 'Maker batch classification (Standard run vs workshop micro-batch)',
+      },
+    },
+    {
+      name: 'edition_badge',
+      type: 'text',
+      admin: {
+        description: 'Prominent badge tag for limited runs (e.g. "Only 3 Crafted", "Deadstock Duck Camo Edition")',
+      },
+    },
+    {
+      name: 'variation_notes',
+      type: 'textarea',
+      admin: {
+        description:
+          'Maker story for this variation (deadstock fabric provenance, sewing table notes, differences from standard silhouette)',
+      },
+    },
+    {
+      name: 'variation_images',
+      type: 'array',
+      admin: {
+        description:
+          'Quick workbench detail photos specific to this variation. Automatically prepended to the parent gallery on the PDP.',
+      },
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+        },
+        {
+          name: 'caption',
+          type: 'text',
+        },
+      ],
+    },
+    {
       name: 'price_override',
       type: 'number',
       min: 0,

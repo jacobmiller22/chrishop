@@ -35,10 +35,19 @@ export const Categories: CollectionConfig = {
       },
     },
     {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: false,
+      admin: {
+        description: 'Parent category for hierarchical nesting (supports depth-2 category navigation)',
+      },
+    },
+    {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Editorial description of the artwork category',
+        description: 'Editorial description of the adventure gear category',
       },
     },
     {

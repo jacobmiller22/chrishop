@@ -8,24 +8,28 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  title = "Chris's Shop",
-  subtitle = 'Exclusive drops & limited edition art',
+  title = 'BankBeaters',
+  subtitle = 'Adventure Gear · Curiosity > Fear',
   navItems = [
-    { label: 'Shop Drops', href: '#' },
-    { label: 'About Chris', href: '#' },
-    { label: 'Contact', href: '#' },
+    { label: 'Adventure Gear', href: '/products' },
+    { label: 'Outerwear', href: '/products?category=outerwear' },
+    { label: 'Packs & Carry', href: '/products?category=packs-carry' },
+    { label: 'Field Accessories', href: '/products?category=field-accessories' },
+    { label: 'The Maker’s Bench', href: '/#makers-bench' },
   ],
   cartCount = 0,
 }) => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-stone-800/80 bg-[#15191E]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-            {title}
-          </span>
+          <a href="/" className="flex items-center gap-2 group">
+            <span className="text-xl font-black tracking-wider uppercase font-mono text-[#E55B24] group-hover:text-orange-400 transition-colors">
+              {title}
+            </span>
+          </a>
           {subtitle && (
-            <span className="hidden md:inline-block text-xs text-slate-400 border-l border-slate-800 pl-3">
+            <span className="hidden md:inline-block text-xs text-stone-400 font-mono border-l border-stone-800 pl-3">
               {subtitle}
             </span>
           )}
@@ -36,15 +40,15 @@ export const Header: React.FC<HeaderProps> = ({
             <a
               key={item.label}
               href={item.href}
-              className="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors"
+              className="text-sm font-medium text-stone-300 hover:text-[#E55B24] transition-colors"
             >
               {item.label}
             </a>
           ))}
           <div className="relative">
-            <span className="text-sm font-medium text-slate-200 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
-              <span>🛒 Cart</span>
-              <span className="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full text-xs">
+            <span className="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2">
+              <span>🎒 Gear Roll</span>
+              <span className="bg-[#E55B24] text-white font-bold px-1.5 py-0.5 rounded-full text-xs">
                 {cartCount}
               </span>
             </span>

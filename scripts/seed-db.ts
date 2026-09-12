@@ -2,14 +2,9 @@
 /**
  * ChrisShop Local SQLite / Cloudflare D1 Database Seeder
  *
- * Seeds local development database with creator-authentic catalog categories,
- * products, and variations per docs/HIGH_LEVEL_DESIGN.md Section 3.2.
- *
- * All content reflects a boutique creator studio drop platform:
- * - Handcrafted sculptures & physical artifacts
- * - Archival fine art prints
- * - Studio wearables & accessories
- * - Digital editions & collectibles
+ * Seeds local development database with authentic BankBeaters Adventure Gear
+ * (bankbeatersadventuregear.com, "Curiosity > Fear") catalog categories (depth 2),
+ * hand-crafted outdoor gear products, and micro-batch variations per Story 1.15.
  */
 
 import { DatabaseSync } from 'node:sqlite';
@@ -40,162 +35,343 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
     db.exec(migrationSql);
   }
 
-  console.log('🌱 [Seed] Seeding Categories...');
+  // Resilient column migrations for existing local sqlite databases
+  const addColumnIfNotExists = (table: string, colDef: string) => {
+    try {
+      db!.exec(`ALTER TABLE ${table} ADD COLUMN ${colDef};`);
+    } catch {
+      // Column already exists
+    }
+  };
+  addColumnIfNotExists('categories', 'parent_id TEXT');
+  addColumnIfNotExists('products', 'maker_field_notes TEXT');
+  addColumnIfNotExists('products', 'materials TEXT');
+  addColumnIfNotExists('products', 'weight TEXT');
+  addColumnIfNotExists('products', 'fit_profile TEXT');
+  addColumnIfNotExists('products', 'origin TEXT');
+  addColumnIfNotExists('product_variations', "variation_type TEXT NOT NULL DEFAULT 'standard'");
+  addColumnIfNotExists('product_variations', 'edition_badge TEXT');
+  addColumnIfNotExists('product_variations', 'variation_notes TEXT');
+  addColumnIfNotExists('product_variations', 'variation_images TEXT');
+  addColumnIfNotExists('product_variations', 'stock_quantity INTEGER NOT NULL DEFAULT 1');
+
+  console.log('🌱 [Seed] Seeding BankBeaters Categories (Depth 2)...');
   const categories = [
+    // ─── LEVEL 0 (TOP LEVEL) ──────────────────────────────────────────────────
     {
-      id: 'cat-sculptures',
-      name: 'Sculptures',
-      slug: 'sculptures',
+      id: 'cat-apparel',
+      name: 'Apparel',
+      slug: 'apparel',
+      parent_id: null,
       description:
-        'Handcrafted limited edition art sculptures, cast artifacts, and tangible three-dimensional works from the studio. Each piece is inspected and serialized by Chris.',
+        'Technical foul-weather outerwear, guide pants, and active midlayers hand-sewn for bank anglers.',
       image: null,
     },
     {
-      id: 'cat-prints',
-      name: 'Archival Prints',
-      slug: 'prints',
+      id: 'cat-packs',
+      name: 'Packs & Carry',
+      slug: 'packs-carry',
+      parent_id: null,
       description:
-        'Museum-grade giclée prints on 310gsm cotton rag paper, signed and numbered. Pigment inks with 100+ year archival longevity rating.',
+        'Waterproof composite lumbar slings, modular chest rigs, and submersible gear duffels.',
       image: null,
     },
     {
-      id: 'cat-wearables',
-      name: 'Studio Goods',
-      slug: 'wearables',
+      id: 'cat-accessories',
+      name: 'Field Accessories',
+      slug: 'field-accessories',
+      parent_id: null,
       description:
-        'Heavyweight embroidered studio apparel, bespoke leather goods, and solid sterling silver accessories. Designed in-studio and produced in strictly limited runs.',
+        'Waxed canvas tool rolls, Kevlar-reinforced casting gloves, and floating brim guide caps.',
+      image: null,
+    },
+
+    // ─── LEVEL 1 (SUBCATEGORIES) ──────────────────────────────────────────────
+    {
+      id: 'cat-outerwear',
+      name: 'Outerwear',
+      slug: 'outerwear',
+      parent_id: 'cat-apparel',
+      description: 'Weather-defense storm shells, wind anoraks, and wading jackets.',
       image: null,
     },
     {
-      id: 'cat-digital',
-      name: 'Digital Editions',
-      slug: 'digital-editions',
-      description:
-        'High-resolution generative artworks, 3D-rendered collectibles, and interactive digital pieces. Each digital edition includes a provenance certificate.',
+      id: 'cat-midlayers',
+      name: 'Midlayers & Fleece',
+      slug: 'midlayers',
+      parent_id: 'cat-apparel',
+      description: 'Breathable grid fleece pullovers and thermal insulation.',
+      image: null,
+    },
+    {
+      id: 'cat-pants',
+      name: 'Pants & Shorts',
+      slug: 'pants',
+      parent_id: 'cat-apparel',
+      description: 'Heavyweight ripstop guide pants with Cordura brush reinforcement.',
+      image: null,
+    },
+    {
+      id: 'cat-sling-packs',
+      name: 'Lumbar & Sling Packs',
+      slug: 'sling-packs',
+      parent_id: 'cat-packs',
+      description: 'One-handed access lumbar and sling packs engineered for uninhibited casting.',
+      image: null,
+    },
+    {
+      id: 'cat-chest-rigs',
+      name: 'Chest Rigs & Harnesses',
+      slug: 'chest-rigs',
+      parent_id: 'cat-packs',
+      description: 'Modular chest workstations with drop-down fly/tackle shelves.',
+      image: null,
+    },
+    {
+      id: 'cat-dry-bags',
+      name: 'Submersible Bags',
+      slug: 'dry-bags',
+      parent_id: 'cat-packs',
+      description: 'RF-welded TPU submersible bags that keep essentials dry in marsh mud.',
+      image: null,
+    },
+    {
+      id: 'cat-tool-rolls',
+      name: 'Tool Rolls & Wallets',
+      slug: 'tool-rolls',
+      parent_id: 'cat-accessories',
+      description: 'Martexin waxed canvas leader rolls and tool organizers.',
+      image: null,
+    },
+    {
+      id: 'cat-gloves',
+      name: 'Gloves & Handwear',
+      slug: 'gloves',
+      parent_id: 'cat-accessories',
+      description: 'Braid-resistant Kevlar stripping gloves and sun protection.',
+      image: null,
+    },
+    {
+      id: 'cat-headwear',
+      name: 'Caps & Headwear',
+      slug: 'headwear',
+      parent_id: 'cat-accessories',
+      description: 'Floating brim 5-panel guide caps and waxed cotton sun covers.',
+      image: null,
+    },
+
+    // ─── LEVEL 2 (SUB-SUBCATEGORIES) ──────────────────────────────────────────
+    {
+      id: 'cat-storm-shells',
+      name: 'Waterproof Storm Shells',
+      slug: 'waterproof-storm-shells',
+      parent_id: 'cat-outerwear',
+      description: '3-layer fully seam-taped waterproof breathable membranes with Cordura abrasion armor.',
+      image: null,
+    },
+    {
+      id: 'cat-brush-pants',
+      name: 'Technical Brush Pants',
+      slug: 'technical-brush-pants',
+      parent_id: 'cat-pants',
+      description: '4-way stretch DWR pants with 1000D Cordura knee and ankle scuff guards.',
       image: null,
     },
   ];
 
   const insertCat = db.prepare(`
-    INSERT INTO categories (id, name, slug, description, image)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO categories (id, name, slug, parent_id, description, image)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name=excluded.name,
       slug=excluded.slug,
+      parent_id=excluded.parent_id,
       description=excluded.description,
       image=excluded.image;
   `);
 
   for (const c of categories) {
-    insertCat.run(c.id, c.name, c.slug, c.description, c.image);
-    console.log(`  Processed category: ${c.name}`);
+    insertCat.run(c.id, c.name, c.slug, c.parent_id, c.description, c.image);
+    console.log(`  Processed category: [${c.slug}] ${c.name}`);
   }
 
-  console.log('🎨 [Seed] Seeding Products...');
+  console.log('🎒 [Seed] Seeding BankBeaters Technical Gear Products...');
   const products = [
-    // ─── SCULPTURES ──────────────────────────────────────────────────────────────
+    // ─── THE BUSHWHACK STORM ANORAK ───────────────────────────────────────────
     {
-      id: 'prod-cast-bronze-totem',
-      title: 'Cast Bronze Studio Totem',
-      slug: 'cast-bronze-studio-totem',
+      id: 'prod-bushwhack-anorak',
+      title: 'The Bushwhack Storm Anorak',
+      slug: 'bushwhack-storm-anorak',
       description:
-        'Hand-poured lost-wax cast bronze totem standing 14 cm. Naturally patinated with a warm antique finish. Each casting is unique due to the hand-finishing process. Ships with archival foam casing and numbered provenance card.',
-      artist_statement:
-        'The Studio Totem is a meditation on weight, permanence, and the tactile language of craft. Bronze was chosen for its ability to carry history — each surface imperfection is intentional, a record of the making.',
-      base_price: 420.0,
+        'Patagonia-grade 3-layer waterproof storm shell with 500D Cordura reinforced forearms and oversized kangaroo tackle pouch. Built to crawl through thorns, stay dry in torrential downpours, and cast all day.',
+      maker_field_notes:
+        'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles. Features two-way pit-to-hem venting zips.',
+      materials:
+        '3-Layer DWR Toray Ripstop (20,000mm/20,000g), 500D Cordura® Panels, YKK AquaGuard®',
+      weight: '21.4 oz (606g)',
+      fit_profile:
+        'Relaxed Athletic (Engineered for layering and overhead casting mobility)',
+      origin: "Hand-cut & sewn in small batches in Chris's workshop",
+      base_price: 340.0,
       status: 'published',
-      category_id: 'cat-sculptures',
+      category_id: 'cat-storm-shells',
       shopify_product_id: 'gid://shopify/Product/101',
-      featured_image: 'bronze-totem-featured.webp',
-      gallery: JSON.stringify(['bronze-totem-1.webp', 'bronze-totem-2.webp', 'bronze-totem-3.webp']),
+      featured_image: 'bushwhack-anorak-olive.webp',
+      gallery: JSON.stringify([
+        'bushwhack-anorak-front.webp',
+        'bushwhack-anorak-pocket.webp',
+        'bushwhack-anorak-cuff.webp',
+      ]),
     },
+
+    // ─── BRAMBLE-BUSTER TECHNICAL GUIDE PANT ──────────────────────────────────
     {
-      id: 'prod-stoneware-vessel',
-      title: 'Hand-Turned Stoneware Vessel',
-      slug: 'hand-turned-stoneware-vessel',
+      id: 'prod-bramble-buster-pant',
+      title: 'Bramble-Buster Technical Guide Pant',
+      slug: 'bramble-buster-technical-guide-pant',
       description:
-        'Wheel-thrown and hand-turned high-fire stoneware vessel with a natural ash glaze. Fired at 1280°C in a wood-kiln, each vessel carries unique flame marks and glaze breaks. Approx. 18 cm tall, 200ml capacity. Food safe.',
-      artist_statement:
-        'Clay is the oldest creative medium. This vessel series explores the tension between utility and stillness — functional enough to hold water, quiet enough to hold attention.',
-      base_price: 280.0,
+        'Heavyweight stretch ripstop guide pants fortified with 1000D Cordura scuff guards on knees and ankles. Built for scrambles up 60-degree dirt cuts and briar-choked access trails.',
+      maker_field_notes:
+        'Standard fishing waders get shredded by briars on the walk-in. These pants wear over thermal tights or wet-wading socks, taking the direct abuse from blackberry canes and sharp limestone riprap without puncturing.',
+      materials:
+        'Heavyweight 4-Way Stretch DWR Ripstop, 1000D Cordura® Knee & Ankle Panels, Mil-Spec Snap Closure',
+      weight: '17.8 oz (505g)',
+      fit_profile:
+        'Technical Straight (Articulated knees, gusseted seat for steep cut-bank scrambles)',
+      origin: "Hand-cut & sewn in small batches in Chris's workshop",
+      base_price: 215.0,
       status: 'published',
-      category_id: 'cat-sculptures',
+      category_id: 'cat-brush-pants',
       shopify_product_id: 'gid://shopify/Product/102',
-      featured_image: 'stoneware-vessel-featured.webp',
-      gallery: JSON.stringify(['stoneware-vessel-1.webp', 'stoneware-vessel-2.webp']),
+      featured_image: 'bramble-pant-featured.webp',
+      gallery: JSON.stringify([
+        'bramble-pant-knees.webp',
+        'bramble-pant-cuff.webp',
+      ]),
     },
-    // ─── ARCHIVAL PRINTS ────────────────────────────────────────────────────────
+
+    // ─── THE CUTBANK LUMBAR & SLING CONVERTIBLE PACK ──────────────────────────
     {
-      id: 'prod-solstice-study',
-      title: 'Solstice Study — Archival Giclée Print',
-      slug: 'solstice-study-archival-giclee',
+      id: 'prod-cutbank-sling-pack',
+      title: 'The Cutbank Lumbar & Sling Convertible Pack',
+      slug: 'the-cutbank-lumbar-sling-pack',
       description:
-        '12-color archival giclée print on 310gsm Hahnemühle Photo Rag cotton paper. Hand-signed and numbered by Chris in graphite. Printed with UltraChrome HDX pigment inks rated for 100+ year archival permanence. Unframed; ships flat with acid-free tissue and backing board.',
-      artist_statement:
-        'Solstice Study began as a series of field sketches made over three consecutive summer solstices. The composition distills those light observations into a single geometric language — golden ratio proportions, warm-cool colour split, and deliberate negative space.',
-      base_price: 145.0,
+        'Waterproof X-Pac composite sling that converts to a lumbar pack in seconds. Features an integrated magnetic net slot, Hypalon plier sheath with safety dock, and waterproof zipper compartments.',
+      maker_field_notes:
+        'When you are wading chest-deep or scrambling over downed timber, you need your pack out of your stroke until the second you land a fish. The Cutbank swings smoothly from lumbar to chest with one hand, featuring an integrated magnetic net dock.',
+      materials:
+        'Waterproof X-Pac® VX21 Composite Sailcloth, 500D Cordura® Base, YKK AquaGuard®, Hypalon Plier Dock',
+      weight: '14.2 oz (402g)',
+      fit_profile:
+        'Ambidextrous Sling / Lumbar Switchable with Breathable 3D Spacer Mesh',
+      origin: "Hand-crafted in Chris's workshop",
+      base_price: 195.0,
       status: 'published',
-      category_id: 'cat-prints',
+      category_id: 'cat-sling-packs',
       shopify_product_id: 'gid://shopify/Product/103',
-      featured_image: 'solstice-study-featured.webp',
-      gallery: JSON.stringify(['solstice-study-1.webp']),
+      featured_image: 'cutbank-sling-featured.webp',
+      gallery: JSON.stringify([
+        'cutbank-sling-net.webp',
+        'cutbank-sling-internal.webp',
+      ]),
     },
+
+    // ─── MINIMALIST BANK CHEST RIG ────────────────────────────────────────────
     {
-      id: 'prod-threshold-series',
-      title: 'Threshold Series No. 7 — Collector Print',
-      slug: 'threshold-series-no-7-collector-print',
+      id: 'prod-minimalist-chest-rig',
+      title: 'Minimalist Bank Chest Rig',
+      slug: 'minimalist-bank-chest-rig',
       description:
-        'Limited collector print from the acclaimed Threshold Series. Museum-quality giclée on 300gsm Canson Platine Fibre Rag. Embossed studio chop mark, hand-signed. Includes certificate of authenticity with edition number. Available in two formats.',
-      artist_statement:
-        'The Threshold Series investigates liminal spaces — doorways, shorelines, the moment between intention and action. No. 7 is the final work in the series, closing the cycle with stillness rather than resolution.',
-      base_price: 185.0,
+        'Ultralight modular chest station with fold-down tackle workbench shelf and interchangeable high-density EVA fly/lure patch. Straps cleanly over waders or breathable sun hoodies.',
+      maker_field_notes:
+        'Eliminates heavy vests. Rides high on your chest so you can wade to your armpits without soaking your terminal fly boxes. Fold-down front panel creates an instant workbench for knot-tying in heavy river current.',
+      materials:
+        '500D Mil-Spec Cordura®, High-Density Closed-Cell EVA Fly Patch, Duraflex® Mojave Buckles',
+      weight: '9.6 oz (272g)',
+      fit_profile:
+        'Low-Profile 4-Point Harness (Rides high above deep wading lines)',
+      origin: "Hand-crafted in Chris's workshop",
+      base_price: 135.0,
       status: 'published',
-      category_id: 'cat-prints',
+      category_id: 'cat-chest-rigs',
       shopify_product_id: 'gid://shopify/Product/104',
-      featured_image: 'threshold-7-featured.webp',
-      gallery: JSON.stringify(['threshold-7-1.webp', 'threshold-7-2.webp']),
+      featured_image: 'chest-rig-featured.webp',
+      gallery: JSON.stringify([
+        'chest-rig-open.webp',
+        'chest-rig-harness.webp',
+      ]),
     },
-    // ─── STUDIO GOODS ───────────────────────────────────────────────────────────
+
+    // ─── WAXED CANVAS & CORDURA TOOL ROLL / LEADER WALLET ─────────────────────
     {
-      id: 'prod-studio-coach-jacket',
-      title: 'Studio Coach Jacket — Numbered Edition',
-      slug: 'studio-coach-jacket-numbered-edition',
+      id: 'prod-waxed-tool-roll',
+      title: 'Waxed Canvas & Cordura Tool Roll / Leader Wallet',
+      slug: 'waxed-canvas-cordura-tool-roll',
       description:
-        '100% organic cotton twill coach jacket with custom high-density chain-stitch embroidery on the back. Contrast satin lining, snap-button front, and welt pockets. Garment washed for a lived-in feel. Each jacket carries an interior numbered woven label limited to this release.',
-      artist_statement:
-        'Clothing as archive. The Studio Coach Jacket is designed to age — the cotton twill softens, the embroidery holds. Wear it until it tells a story.',
-      base_price: 220.0,
+        'Heavyweight waxed canvas organizer with 6 internal slots for tippet spools, leader wallets, pliers, hook hones, and knot tools. Fastens securely with twin solid brass button snaps.',
+      maker_field_notes:
+        'Built with Martexin waxed canvas that sheds river spray and weathers into a deep personal patina. Lined with blaze orange packcloth so terminal split-shot and micro-swivels never get lost in low dusk light.',
+      materials:
+        '12oz Martexin Original Waxed Canvas, 420D Hi-Vis Blaze Orange Packcloth, Solid Antiqued Brass Snaps',
+      weight: '6.5 oz (184g)',
+      fit_profile:
+        'Tri-Fold Compact (Fits into any thigh pocket or pack exterior sleeve)',
+      origin: 'Hand-cut, waxed, and stitched with bonded nylon thread',
+      base_price: 75.0,
       status: 'published',
-      category_id: 'cat-wearables',
+      category_id: 'cat-tool-rolls',
       shopify_product_id: 'gid://shopify/Product/105',
-      featured_image: 'coach-jacket-featured.webp',
-      gallery: JSON.stringify(['coach-jacket-1.webp', 'coach-jacket-2.webp']),
+      featured_image: 'tool-roll-featured.webp',
+      gallery: JSON.stringify([
+        'tool-roll-open.webp',
+        'tool-roll-snaps.webp',
+      ]),
     },
+
+    // ─── THE BANKBEATERS 5-PANEL GUIDE CAP ────────────────────────────────────
     {
-      id: 'prod-sterling-signet',
-      title: 'Sterling Silver Studio Signet Ring',
-      slug: 'sterling-silver-studio-signet-ring',
+      id: 'prod-5panel-guide-cap',
+      title: 'The BankBeaters 5-Panel Guide Cap',
+      slug: 'the-bankbeaters-5-panel-guide-cap',
       description:
-        'Solid .925 sterling silver signet ring, lost-wax cast from an original hand-carved wax model. Flat bezel with recessed studio monogram intaglio. Matte finish with polished edges. Each ring is individually hallmarked. Available in whole US sizes 7–11.',
-      artist_statement:
-        'The signet is the oldest form of personal mark-making — a seal, a signature, a claim. This ring is designed to be worn daily, acquiring its own patina and story over time.',
-      base_price: 260.0,
+        'Waxed cotton 5-panel guide cap engineered with an unsinkable floatable EVA foam brim, dark glare-reducing underbill, and breathable brass ventilation eyelets.',
+      maker_field_notes:
+        'If your hat blows off in a river rapid, normal caps sink immediately. We built this with an EVA foam core brim that stays buoyant and recovers its shape after being stuffed into a pack for three days.',
+      materials:
+        'Dry-Finish Waxed Cotton Canvas, Floatable Closed-Cell EVA Foam Brim, Antiqued Brass Mesh Eyelets',
+      weight: '2.9 oz (82g)',
+      fit_profile:
+        'Low Crown 5-Panel with Nylon Webbing Quick-Release Adjuster',
+      origin: 'Sewn and shaped in workshop',
+      base_price: 44.0,
       status: 'published',
-      category_id: 'cat-wearables',
+      category_id: 'cat-headwear',
       shopify_product_id: 'gid://shopify/Product/106',
-      featured_image: 'signet-ring-featured.webp',
-      gallery: JSON.stringify(['signet-ring-1.webp', 'signet-ring-2.webp']),
+      featured_image: 'guide-cap-featured.webp',
+      gallery: JSON.stringify([
+        'guide-cap-side.webp',
+        'guide-cap-brim.webp',
+      ]),
     },
   ];
 
   const insertProd = db.prepare(`
-    INSERT INTO products (id, title, slug, description, artist_statement, base_price, status, category_id, shopify_product_id, featured_image, gallery)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (
+      id, title, slug, description, maker_field_notes, artist_statement,
+      materials, weight, fit_profile, origin,
+      base_price, status, category_id, shopify_product_id, featured_image, gallery
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title=excluded.title,
       slug=excluded.slug,
       description=excluded.description,
+      maker_field_notes=excluded.maker_field_notes,
       artist_statement=excluded.artist_statement,
+      materials=excluded.materials,
+      weight=excluded.weight,
+      fit_profile=excluded.fit_profile,
+      origin=excluded.origin,
       base_price=excluded.base_price,
       status=excluded.status,
       category_id=excluded.category_id,
@@ -210,7 +386,12 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       p.title,
       p.slug,
       p.description,
-      p.artist_statement,
+      p.maker_field_notes,
+      p.maker_field_notes,
+      p.materials,
+      p.weight,
+      p.fit_profile,
+      p.origin,
       p.base_price,
       p.status,
       p.category_id,
@@ -221,207 +402,297 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
     console.log(`  Processed product: ${p.title}`);
   }
 
-  console.log('🏷️ [Seed] Seeding Product Variations...');
+  console.log('🏷️ [Seed] Seeding BankBeaters Variations & Micro-Batches...');
   const variations = [
-    // Cast Bronze Studio Totem
+    // ─── THE BUSHWHACK STORM ANORAK ───────────────────────────────────────────
     {
-      id: 'var-totem-natural',
-      product_id: 'prod-cast-bronze-totem',
+      id: 'var-anorak-olive',
+      product_id: 'prod-bushwhack-anorak',
       shopify_variant_id: 'gid://shopify/ProductVariant/201',
-      variation_name: 'Natural Patina — Standard Edition',
-      sku: 'TOTEM-BRZ-NAT',
+      variation_name: 'Field Olive — Standard Run',
+      sku: 'BWK-ANRK-OLV-STD',
+      variation_type: 'standard',
+      edition_badge: 'Standard Production',
+      variation_notes:
+        'Standard production run in bombproof 3-layer olive ripstop with black 500D Cordura scuff guards.',
+      variation_images: null,
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 25,
+      stock_quantity: 12,
       release_date: null,
       status: 'active',
     },
     {
-      id: 'var-totem-dark',
-      product_id: 'prod-cast-bronze-totem',
+      id: 'var-anorak-camo-micro',
+      product_id: 'prod-bushwhack-anorak',
       shopify_variant_id: 'gid://shopify/ProductVariant/202',
-      variation_name: 'Dark Oxide — Hand-Signed & Embellished Edition',
-      sku: 'TOTEM-BRZ-DRK-LTD',
-      price_override: 595.0,
+      variation_name: 'Deadstock Duck Camo Pocket Edition',
+      sku: 'BWK-ANRK-CAMO-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 3 Crafted',
+      variation_notes:
+        'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch. Only 3 jackets crafted in this micro-batch run. Signed and numbered interior label.',
+      variation_images: JSON.stringify([
+        {
+          image: 'camo-pocket-bench-1.webp',
+          caption:
+            'Bench shot: Deadstock 500D duck camo chest pouch under machine needle',
+        },
+        {
+          image: 'camo-pocket-bench-2.webp',
+          caption:
+            'Bench shot: AquaGuard zipper bar-tacking and hand-stamped edition tag',
+        },
+      ]),
+      price_override: 385.0,
       is_limited_edition: 1,
-      total_edition_count: 8,
+      total_edition_count: 3,
+      stock_quantity: 3,
       release_date: null,
       status: 'active',
     },
-    // Hand-Turned Stoneware Vessel
+
+    // ─── BRAMBLE-BUSTER TECHNICAL GUIDE PANT ──────────────────────────────────
     {
-      id: 'var-vessel-ash',
-      product_id: 'prod-stoneware-vessel',
+      id: 'var-pant-32',
+      product_id: 'prod-bramble-buster-pant',
       shopify_variant_id: 'gid://shopify/ProductVariant/203',
-      variation_name: 'Natural Ash Glaze',
-      sku: 'VESSEL-STN-ASH',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 20,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-vessel-iron',
-      product_id: 'prod-stoneware-vessel',
-      shopify_variant_id: 'gid://shopify/ProductVariant/204',
-      variation_name: 'Iron Slip — Collectors Firing',
-      sku: 'VESSEL-STN-IRN-LTD',
-      price_override: 360.0,
-      is_limited_edition: 1,
-      total_edition_count: 10,
-      release_date: null,
-      status: 'active',
-    },
-    // Solstice Study Print
-    {
-      id: 'var-solstice-a2',
-      product_id: 'prod-solstice-study',
-      shopify_variant_id: 'gid://shopify/ProductVariant/205',
-      variation_name: 'A2 Archival Sheet (16.5 × 23.4 in)',
-      sku: 'SOLSTICE-PRT-A2',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 50,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-solstice-a1',
-      product_id: 'prod-solstice-study',
-      shopify_variant_id: 'gid://shopify/ProductVariant/206',
-      variation_name: 'A1 Custom Oak Framed — Numbered Collector Series (23.4 × 33.1 in)',
-      sku: 'SOLSTICE-PRT-A1-FRM',
-      price_override: 310.0,
-      is_limited_edition: 1,
-      total_edition_count: 20,
-      release_date: null,
-      status: 'active',
-    },
-    // Threshold Series No. 7
-    {
-      id: 'var-threshold-a3',
-      product_id: 'prod-threshold-series',
-      shopify_variant_id: 'gid://shopify/ProductVariant/207',
-      variation_name: 'A3 Archival Print (11.7 × 16.5 in)',
-      sku: 'THRESH7-PRT-A3',
+      variation_name: 'Size 32 / Regular (Standard)',
+      sku: 'BMB-PNT-32R',
+      variation_type: 'standard',
+      edition_badge: 'Standard Run',
+      variation_notes: null,
+      variation_images: null,
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 30,
+      stock_quantity: 8,
       release_date: null,
       status: 'active',
     },
     {
-      id: 'var-threshold-a2-ltd',
-      product_id: 'prod-threshold-series',
-      shopify_variant_id: 'gid://shopify/ProductVariant/208',
-      variation_name: 'A2 Archival Print — Final Edition (16.5 × 23.4 in)',
-      sku: 'THRESH7-PRT-A2-LTD',
-      price_override: 340.0,
-      is_limited_edition: 1,
-      total_edition_count: 15,
-      release_date: '2026-10-20T18:00:00.000Z',
-      status: 'coming_soon',
-    },
-    // Studio Coach Jacket
-    {
-      id: 'var-jacket-s',
-      product_id: 'prod-studio-coach-jacket',
-      shopify_variant_id: 'gid://shopify/ProductVariant/209',
-      variation_name: 'Size Small',
-      sku: 'COACH-JKT-ORG-S',
+      id: 'var-pant-34',
+      product_id: 'prod-bramble-buster-pant',
+      shopify_variant_id: 'gid://shopify/ProductVariant/204',
+      variation_name: 'Size 34 / Regular (Standard)',
+      sku: 'BMB-PNT-34R',
+      variation_type: 'standard',
+      edition_badge: 'Standard Run',
+      variation_notes: null,
+      variation_images: null,
       price_override: null,
       is_limited_edition: 1,
-      total_edition_count: 60,
+      total_edition_count: 30,
+      stock_quantity: 10,
       release_date: null,
       status: 'active',
     },
     {
-      id: 'var-jacket-m',
-      product_id: 'prod-studio-coach-jacket',
-      shopify_variant_id: 'gid://shopify/ProductVariant/210',
-      variation_name: 'Size Medium',
-      sku: 'COACH-JKT-ORG-M',
-      price_override: null,
+      id: 'var-pant-camo-knees',
+      product_id: 'prod-bramble-buster-pant',
+      shopify_variant_id: 'gid://shopify/ProductVariant/205',
+      variation_name: 'Micro-Batch Deadstock Camo Knee Edition',
+      sku: 'BMB-PNT-CAMO-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 4 Crafted',
+      variation_notes:
+        'Workbench micro-batch built with rare deadstock Mil-Spec camo Cordura knee reinforcements and high-tensile orange bar-tacks.',
+      variation_images: JSON.stringify([
+        {
+          image: 'bramble-camo-knee-bench.webp',
+          caption:
+            'Bench shot: Triple-stitched camo knee overlay with bonded nylon thread',
+        },
+      ]),
+      price_override: 245.0,
       is_limited_edition: 1,
-      total_edition_count: 60,
+      total_edition_count: 4,
+      stock_quantity: 4,
       release_date: null,
       status: 'active',
     },
+
+    // ─── THE CUTBANK LUMBAR & SLING CONVERTIBLE PACK ──────────────────────────
     {
-      id: 'var-jacket-l',
-      product_id: 'prod-studio-coach-jacket',
-      shopify_variant_id: 'gid://shopify/ProductVariant/211',
-      variation_name: 'Size Large',
-      sku: 'COACH-JKT-ORG-L',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 60,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-jacket-xl',
-      product_id: 'prod-studio-coach-jacket',
-      shopify_variant_id: 'gid://shopify/ProductVariant/212',
-      variation_name: 'Size XL (Sold Out — Archive)',
-      sku: 'COACH-JKT-ORG-XL',
+      id: 'var-cutbank-slate',
+      product_id: 'prod-cutbank-sling-pack',
+      shopify_variant_id: 'gid://shopify/ProductVariant/206',
+      variation_name: 'VX21 Slate Grey — Standard Edition',
+      sku: 'CTB-SLG-GRY-STD',
+      variation_type: 'standard',
+      edition_badge: 'Standard Production',
+      variation_notes: null,
+      variation_images: null,
       price_override: null,
       is_limited_edition: 1,
       total_edition_count: 40,
+      stock_quantity: 15,
       release_date: null,
-      status: 'sold_out',
+      status: 'active',
     },
-    // Sterling Silver Signet Ring
     {
-      id: 'var-signet-sz8',
-      product_id: 'prod-sterling-signet',
+      id: 'var-cutbank-coyote',
+      product_id: 'prod-cutbank-sling-pack',
+      shopify_variant_id: 'gid://shopify/ProductVariant/207',
+      variation_name: 'Coyote Tan & Blaze Orange Micro-Run',
+      sku: 'CTB-SLG-CYT-LTD',
+      variation_type: 'micro_batch',
+      edition_badge: 'Only 5 Crafted',
+      variation_notes:
+        'Micro-batch crafted with Coyote Tan X-Pac VX21 exterior shell and high-visibility blaze orange internal packcloth liner for quick tackle identification.',
+      variation_images: JSON.stringify([
+        {
+          image: 'cutbank-coyote-bench.webp',
+          caption:
+            'Bench shot: Coyote Tan sailcloth assembly with blaze orange interior bind',
+        },
+      ]),
+      price_override: 225.0,
+      is_limited_edition: 1,
+      total_edition_count: 5,
+      stock_quantity: 5,
+      release_date: null,
+      status: 'active',
+    },
+
+    // ─── MINIMALIST BANK CHEST RIG ────────────────────────────────────────────
+    {
+      id: 'var-chestrig-ranger',
+      product_id: 'prod-minimalist-chest-rig',
+      shopify_variant_id: 'gid://shopify/ProductVariant/208',
+      variation_name: 'Ranger Olive — Standard Station',
+      sku: 'MCR-RIG-OLV-STD',
+      variation_type: 'standard',
+      edition_badge: 'Standard Run',
+      variation_notes: null,
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 35,
+      stock_quantity: 12,
+      release_date: null,
+      status: 'active',
+    },
+    {
+      id: 'var-chestrig-proto',
+      product_id: 'prod-minimalist-chest-rig',
+      shopify_variant_id: 'gid://shopify/ProductVariant/209',
+      variation_name: 'Archive Workshop Prototype 01',
+      sku: 'MCR-RIG-PROTO-01',
+      variation_type: 'one_of_one',
+      edition_badge: 'One-of-One Archive',
+      variation_notes:
+        'Chris personal workshop prototype used during spring cutthroat testing on the North Umpqua River. Signed and dated 01/01 inside the fold-down fly station.',
+      variation_images: JSON.stringify([
+        {
+          image: 'chest-rig-proto-bench.webp',
+          caption:
+            'Bench shot: Hand-numbered 01/01 prototype label with custom hook shear dock',
+        },
+      ]),
+      price_override: 175.0,
+      is_limited_edition: 1,
+      total_edition_count: 1,
+      stock_quantity: 1,
+      release_date: null,
+      status: 'active',
+    },
+
+    // ─── WAXED CANVAS & CORDURA TOOL ROLL / LEADER WALLET ─────────────────────
+    {
+      id: 'var-toolroll-tan',
+      product_id: 'prod-waxed-tool-roll',
+      shopify_variant_id: 'gid://shopify/ProductVariant/210',
+      variation_name: 'Field Tan Waxed Canvas',
+      sku: 'WTR-ROL-TAN-STD',
+      variation_type: 'standard',
+      edition_badge: 'Workshop Standard',
+      variation_notes: null,
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 50,
+      stock_quantity: 20,
+      release_date: null,
+      status: 'active',
+    },
+    {
+      id: 'var-toolroll-charcoal',
+      product_id: 'prod-waxed-tool-roll',
+      shopify_variant_id: 'gid://shopify/ProductVariant/211',
+      variation_name: 'Dark Charcoal Waxed Canvas',
+      sku: 'WTR-ROL-DRK-STD',
+      variation_type: 'standard',
+      edition_badge: 'Workshop Standard',
+      variation_notes: null,
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 50,
+      stock_quantity: 18,
+      release_date: null,
+      status: 'active',
+    },
+
+    // ─── THE BANKBEATERS 5-PANEL GUIDE CAP ────────────────────────────────────
+    {
+      id: 'var-cap-olive',
+      product_id: 'prod-5panel-guide-cap',
+      shopify_variant_id: 'gid://shopify/ProductVariant/212',
+      variation_name: 'Waxed River Olive',
+      sku: 'GDC-CAP-OLV',
+      variation_type: 'standard',
+      edition_badge: 'Hand-Shaped',
+      variation_notes: null,
+      variation_images: null,
+      price_override: null,
+      is_limited_edition: 1,
+      total_edition_count: 50,
+      stock_quantity: 25,
+      release_date: null,
+      status: 'active',
+    },
+    {
+      id: 'var-cap-bark',
+      product_id: 'prod-5panel-guide-cap',
       shopify_variant_id: 'gid://shopify/ProductVariant/213',
-      variation_name: 'US Size 8',
-      sku: 'SIGNET-AG-US8',
+      variation_name: 'Waxed Bark Brown',
+      sku: 'GDC-CAP-BRK',
+      variation_type: 'standard',
+      edition_badge: 'Hand-Shaped',
+      variation_notes: null,
+      variation_images: null,
       price_override: null,
       is_limited_edition: 1,
-      total_edition_count: 15,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-signet-sz9',
-      product_id: 'prod-sterling-signet',
-      shopify_variant_id: 'gid://shopify/ProductVariant/214',
-      variation_name: 'US Size 9',
-      sku: 'SIGNET-AG-US9',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 15,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-signet-sz10',
-      product_id: 'prod-sterling-signet',
-      shopify_variant_id: 'gid://shopify/ProductVariant/215',
-      variation_name: 'US Size 10',
-      sku: 'SIGNET-AG-US10',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 15,
+      total_edition_count: 50,
+      stock_quantity: 25,
       release_date: null,
       status: 'active',
     },
   ];
 
   const insertVar = db.prepare(`
-    INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, release_date, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO product_variations (
+      id, product_id, shopify_variant_id, variation_name, sku,
+      variation_type, edition_badge, variation_notes, variation_images,
+      price_override, is_limited_edition, total_edition_count, stock_quantity,
+      release_date, status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       product_id=excluded.product_id,
       shopify_variant_id=excluded.shopify_variant_id,
       variation_name=excluded.variation_name,
       sku=excluded.sku,
+      variation_type=excluded.variation_type,
+      edition_badge=excluded.edition_badge,
+      variation_notes=excluded.variation_notes,
+      variation_images=excluded.variation_images,
       price_override=excluded.price_override,
       is_limited_edition=excluded.is_limited_edition,
       total_edition_count=excluded.total_edition_count,
+      stock_quantity=excluded.stock_quantity,
       release_date=excluded.release_date,
       status=excluded.status;
   `);
@@ -433,20 +704,27 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       v.shopify_variant_id,
       v.variation_name,
       v.sku,
+      v.variation_type,
+      v.edition_badge,
+      v.variation_notes,
+      v.variation_images,
       v.price_override,
       v.is_limited_edition,
       v.total_edition_count,
+      v.stock_quantity,
       v.release_date,
       v.status
     );
-    console.log(`  Processed variation: [${v.sku}] ${v.variation_name}`);
+    console.log(
+      `  Processed variation: [${v.sku}] ${v.variation_name} (${v.variation_type})`
+    );
   }
 
-  console.log('\n🎉 SQLite database seed completed successfully!');
+  console.log('\n🎉 BankBeaters Adventure Gear database seed completed successfully!');
   console.log(`Summary:`);
-  console.log(`  - Categories: ${categories.length}`);
-  console.log(`  - Products: ${products.length}`);
-  console.log(`  - Product Variations: ${variations.length}\n`);
+  console.log(`  - Categories: ${categories.length} (Depth 2 Hierarchy)`);
+  console.log(`  - Products: ${products.length} (Hand-Sewn Silhouettes)`);
+  console.log(`  - Product Variations: ${variations.length} (Standard + Micro-Batches)\n`);
 
   return {
     categoriesCount: categories.length,

@@ -16,11 +16,24 @@ import type {
   ProductVariation,
   ProductStatus,
   VariationStatus,
+  VariationType,
+  VariationImage,
+  ProductTechnicalSpecs,
 } from '@chrishop/types';
 import { getEffectivePrice } from '@chrishop/types';
 import { catalogSingleFlight } from './singleflight';
+import { getAssetUrl } from './assets';
 
-export type { Category, Product, ProductVariation, ProductStatus, VariationStatus };
+export type {
+  Category,
+  Product,
+  ProductVariation,
+  ProductStatus,
+  VariationStatus,
+  VariationType,
+  VariationImage,
+  ProductTechnicalSpecs,
+};
 export { catalogSingleFlight };
 
 export interface StorefrontVariation {
@@ -29,6 +42,10 @@ export interface StorefrontVariation {
   shopify_variant_id?: string;
   variation_name: string;
   sku: string;
+  variation_type?: VariationType;
+  edition_badge?: string | null;
+  variation_notes?: string | null;
+  variation_images?: Array<{ id?: string; url: string; caption?: string }>;
   price_override?: number | null;
   effective_price: number;
   is_limited_edition: boolean;
@@ -43,7 +60,13 @@ export interface StorefrontProduct {
   title: string;
   slug: string;
   description?: string;
+  maker_field_notes?: string;
   artist_statement?: string;
+  technical_specs?: ProductTechnicalSpecs;
+  materials?: string;
+  weight?: string;
+  fit_profile?: string;
+  origin?: string;
   base_price: number;
   effective_min_price?: number;
   status: ProductStatus;
@@ -108,9 +131,11 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
+      parent_id TEXT,
       description TEXT,
       image TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS products (
@@ -118,7 +143,12 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       title TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
       description TEXT,
+      maker_field_notes TEXT,
       artist_statement TEXT,
+      materials TEXT,
+      weight TEXT,
+      fit_profile TEXT,
+      origin TEXT,
       base_price REAL NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft',
       category_id TEXT,
@@ -135,37 +165,135 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
       shopify_variant_id TEXT UNIQUE,
       variation_name TEXT NOT NULL,
       sku TEXT NOT NULL UNIQUE,
+      variation_type TEXT NOT NULL DEFAULT 'standard',
+      edition_badge TEXT,
+      variation_notes TEXT,
+      variation_images TEXT,
       price_override REAL,
       is_limited_edition INTEGER NOT NULL DEFAULT 1,
       total_edition_count INTEGER,
+      stock_quantity INTEGER NOT NULL DEFAULT 1,
       release_date TEXT,
       status TEXT NOT NULL DEFAULT 'coming_soon',
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
     );
+
+    CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+    CREATE INDEX IF NOT EXISTS idx_products_shopify_id ON products(shopify_product_id);
+    CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+    CREATE INDEX IF NOT EXISTS idx_product_variations_sku ON product_variations(sku);
+    CREATE INDEX IF NOT EXISTS idx_product_variations_product_id ON product_variations(product_id);
+    CREATE INDEX IF NOT EXISTS idx_product_variations_shopify_id ON product_variations(shopify_variant_id);
+    CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+    CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
   `);
 
-  // Baseline Category
+  // Baseline Category Hierarchy (Depth 2)
   db.prepare(`
-    INSERT OR IGNORE INTO categories (id, name, slug, description)
-    VALUES ('cat-sculptures', 'Sculptures', 'sculptures', 'Limited edition art sculptures')
+    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
+    VALUES ('cat-apparel', 'Apparel', 'apparel', NULL, 'Technical outerwear, guide pants, and weather-resistant midlayers.')
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
+    VALUES ('cat-outerwear', 'Outerwear', 'outerwear', 'cat-apparel', 'Weather-defense anoraks, wading shells, and storm jackets.')
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
+    VALUES ('cat-storm-shells', 'Waterproof Storm Shells', 'waterproof-storm-shells', 'cat-outerwear', '3-layer fully seam-taped waterproof breathable membranes.')
   `).run();
 
   // Baseline Product
   db.prepare(`
+    INSERT OR IGNORE INTO products (id, title, slug, description, maker_field_notes, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id)
+    VALUES (
+      'prod-bushwhack-anorak',
+      'The Bushwhack Storm Anorak',
+      'bushwhack-storm-anorak',
+      'Bombproof 3-layer waterproof/breathable membrane with 500D Cordura reinforced forearms and oversized tackle kangaroo pouch.',
+      'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles.',
+      '3-Layer DWR Toray Ripstop, 500D Cordura® Panels, YKK AquaGuard®',
+      '21.4 oz (606g)',
+      'Relaxed Athletic (Engineered for layering and double-haul casting)',
+      'Hand-cut & sewn in small batches in Chris workshop',
+      340.0,
+      'published',
+      'cat-storm-shells',
+      'gid://shopify/Product/101'
+    )
+  `).run();
+
+  // Baseline Variations (Standard + Micro-Batch)
+  db.prepare(`
+    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, price_override, is_limited_edition, total_edition_count, stock_quantity, status)
+    VALUES (
+      'var-anorak-olive',
+      'prod-bushwhack-anorak',
+      'gid://shopify/ProductVariant/201',
+      'Field Olive — Standard Run',
+      'BWK-ANRK-OLV-STD',
+      'standard',
+      'Standard Production',
+      'Standard production run in bombproof 3-layer olive ripstop with black 500D Cordura scuff guards.',
+      NULL,
+      1,
+      25,
+      12,
+      'active'
+    )
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, status)
+    VALUES (
+      'var-anorak-camo-micro',
+      'prod-bushwhack-anorak',
+      'gid://shopify/ProductVariant/202',
+      'Deadstock Duck Camo Pocket Edition',
+      'BWK-ANRK-CAMO-LTD',
+      'micro_batch',
+      'Only 3 Crafted',
+      'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch. Only 3 jackets crafted in this micro-batch run. Signed and numbered interior label.',
+      '[{"image":"camo-pocket-bench-1.webp","caption":"Bench shot: Deadstock 500D duck camo chest pouch under machine needle"}]',
+      385.0,
+      1,
+      3,
+      3,
+      'active'
+    )
+  `).run();
+
+  // Preserved baseline item for singleflight and regression test coverage
+  db.prepare(`
     INSERT OR IGNORE INTO products (id, title, slug, description, base_price, status, category_id, shopify_product_id)
-    VALUES ('prod-obsidian-beast', 'Midnight Obsidian Beast', 'midnight-obsidian-beast', 'Hand-cast obsidian sculpture with 24k gold leaf.', 350.0, 'published', 'cat-sculptures', 'gid://shopify/Product/101')
+    VALUES (
+      'prod-obsidian-beast',
+      'Midnight Obsidian Beast',
+      'midnight-obsidian-beast',
+      'Hand-carved obsidian beast artifact.',
+      350.0,
+      'published',
+      'cat-storm-shells',
+      'gid://shopify/Product/1'
+    )
   `).run();
 
-  // Baseline Variations
   db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, status)
-    VALUES ('var-beast-std', 'prod-obsidian-beast', 'gid://shopify/ProductVariant/201', 'Standard Obsidian Edition', 'BEAST-OBS-STD', NULL, 1, 50, 'active')
-  `).run();
-
-  db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, status)
-    VALUES ('var-beast-gld', 'prod-obsidian-beast', 'gid://shopify/ProductVariant/202', '24K Gold Leaf Inlay Edition', 'BEAST-GLD-LTD', 495.0, 1, 10, 'active')
+    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, price_override, is_limited_edition, stock_quantity, status)
+    VALUES (
+      'var-beast-std',
+      'prod-obsidian-beast',
+      'gid://shopify/ProductVariant/1001',
+      'Standard Edition',
+      'BEAST-STD',
+      'standard',
+      NULL,
+      1,
+      5,
+      'active'
+    )
   `).run();
 }
 
@@ -187,6 +315,7 @@ export async function getCategories(options?: { db?: DatabaseSync }): Promise<Ca
       id: r.id,
       name: r.name,
       slug: r.slug,
+      parent_id: r.parent_id ?? null,
       description: r.description ?? undefined,
       image: r.image ?? undefined,
     }));
@@ -217,19 +346,45 @@ export async function getProductVariations(
       const priceOverride = r.price_override != null ? Number(r.price_override) : null;
       const effectivePrice = getEffectivePrice({ base_price: basePrice! }, { price_override: priceOverride });
 
+      let variationImages: Array<{ id?: string; url: string; caption?: string }> = [];
+      if (r.variation_images) {
+        try {
+          const parsed =
+            typeof r.variation_images === 'string'
+              ? JSON.parse(r.variation_images)
+              : r.variation_images;
+          if (Array.isArray(parsed)) {
+            variationImages = parsed.map((item: any, idx: number) => {
+              const rawKey = typeof item === 'string' ? item : item.image || item.url;
+              return {
+                id: `var-img-${r.id}-${idx}`,
+                url: getAssetUrl(rawKey) || rawKey,
+                caption: typeof item === 'object' ? item.caption : undefined,
+              };
+            });
+          }
+        } catch {
+          variationImages = [];
+        }
+      }
+
       return {
         id: r.id,
         product_id: r.product_id,
         shopify_variant_id: r.shopify_variant_id ?? undefined,
         variation_name: r.variation_name,
         sku: r.sku,
+        variation_type: (r.variation_type as VariationType) || 'standard',
+        edition_badge: r.edition_badge ?? null,
+        variation_notes: r.variation_notes ?? null,
+        variation_images: variationImages,
         price_override: priceOverride,
         effective_price: effectivePrice,
         is_limited_edition: Boolean(r.is_limited_edition),
         total_edition_count: r.total_edition_count != null ? Number(r.total_edition_count) : null,
         release_date: r.release_date ?? null,
         status: (r.status as VariationStatus) || 'coming_soon',
-        stock_quantity: 10, // Synced dynamically from Shopify Storefront API
+        stock_quantity: r.stock_quantity != null ? Number(r.stock_quantity) : 10,
       };
     });
   } catch (error) {
@@ -268,6 +423,7 @@ async function fetchProductBySlugDirect(
           id: catRow.id,
           name: catRow.name,
           slug: catRow.slug,
+          parent_id: catRow.parent_id ?? null,
           description: catRow.description ?? undefined,
           image: catRow.image ?? undefined,
         };
@@ -292,12 +448,25 @@ async function fetchProductBySlugDirect(
       }
     }
 
+    const makerNotes = productRow.maker_field_notes || productRow.artist_statement || undefined;
+
     return {
       id: productRow.id,
       title: productRow.title,
       slug: productRow.slug,
       description: productRow.description ?? undefined,
-      artist_statement: productRow.artist_statement ?? undefined,
+      maker_field_notes: makerNotes,
+      artist_statement: makerNotes,
+      technical_specs: {
+        materials: productRow.materials ?? undefined,
+        weight: productRow.weight ?? undefined,
+        fit_profile: productRow.fit_profile ?? undefined,
+        origin: productRow.origin ?? undefined,
+      },
+      materials: productRow.materials ?? undefined,
+      weight: productRow.weight ?? undefined,
+      fit_profile: productRow.fit_profile ?? undefined,
+      origin: productRow.origin ?? undefined,
       base_price: Number(productRow.base_price),
       effective_min_price: effectiveMinPrice,
       status: (productRow.status as ProductStatus) || 'draft',
@@ -331,16 +500,23 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
     const db = options?.db || getDatabase();
 
     let query = `
-      SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image
+      SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image, c.parent_id AS cat_parent_id
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE 1=1
     `;
     const params: any[] = [];
 
-    // Filter by category slug or ID
+    // Filter by category slug or ID (including recursive child categories)
     if (options?.category) {
-      query += ` AND (c.slug = ? OR c.id = ?)`;
+      query += ` AND p.category_id IN (
+        WITH RECURSIVE cat_tree(id) AS (
+          SELECT id FROM categories WHERE slug = ? OR id = ?
+          UNION ALL
+          SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+        )
+        SELECT id FROM cat_tree
+      )`;
       params.push(options.category, options.category);
     }
 
@@ -375,12 +551,25 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
         }
       }
 
+      const makerNotes = r.maker_field_notes || r.artist_statement || undefined;
+
       products.push({
         id: r.id,
         title: r.title,
         slug: r.slug,
         description: r.description ?? undefined,
-        artist_statement: r.artist_statement ?? undefined,
+        maker_field_notes: makerNotes,
+        artist_statement: makerNotes,
+        technical_specs: {
+          materials: r.materials ?? undefined,
+          weight: r.weight ?? undefined,
+          fit_profile: r.fit_profile ?? undefined,
+          origin: r.origin ?? undefined,
+        },
+        materials: r.materials ?? undefined,
+        weight: r.weight ?? undefined,
+        fit_profile: r.fit_profile ?? undefined,
+        origin: r.origin ?? undefined,
         base_price: Number(r.base_price),
         effective_min_price: effectiveMinPrice,
         status: (r.status as ProductStatus) || 'draft',
@@ -389,6 +578,7 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
               id: r.category_id,
               name: r.cat_name,
               slug: r.cat_slug,
+              parent_id: r.cat_parent_id ?? null,
               description: r.cat_desc ?? undefined,
               image: r.cat_image ?? undefined,
             }
