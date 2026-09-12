@@ -203,6 +203,25 @@ pnpm exec wrangler r2 bucket cors set chrishop-media-staging --file infra/r2/cor
 pnpm exec wrangler r2 bucket cors set chrishop-media-prod --file infra/r2/cors-media.json
 ```
 
+### Apply & Monitor Bucket Lifecycle Policies (Story 2.36)
+
+Automate object lifecycle rules, Infrequent Access transitions, and orphan cleanup across production, staging, and preview tiers:
+
+```bash
+# Apply lifecycle rules idempotently across all buckets (or pass --dry-run to validate)
+infra/scripts/deps/r2_apply_lifecycle.sh --env all
+
+# Or apply per-environment using the Wrangler CLI:
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-prod --file infra/r2/lifecycle-prod.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-staging --file infra/r2/lifecycle-staging.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-preview --file infra/r2/lifecycle-preview.json -y
+
+# View and audit active bucket lifecycle configurations:
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-prod
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-staging
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-preview
+```
+
 ---
 
 ## 6. Secret Management & Isolation
