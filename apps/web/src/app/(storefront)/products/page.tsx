@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Card, Badge, Button } from '@chrishop/ui';
+import Image from 'next/image';
+import { Card, Badge, Button, ArtworkMedia, ARTWORK_MEDIA_SIZES } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
 
 export const revalidate = 10;
@@ -119,11 +120,13 @@ export default async function ProductsPage(props: ProductsPageProps) {
                 {/* Visual Header / Image Container */}
                 <div className="relative aspect-square w-full bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-800/80">
                   {imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <ArtworkMedia
                       src={imageUrl}
                       alt={product.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes={ARTWORK_MEDIA_SIZES.CATALOG_GRID}
+                      aspectRatio="square"
+                      asImage={Image}
+                      imgClassName="group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="text-center space-y-2 p-6">
@@ -137,7 +140,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
                   )}
 
                   {/* Top Badges */}
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
                     {product.category?.name && (
                       <Badge variant="neutral" className="bg-slate-950/80 backdrop-blur-md text-xs">
                         {product.category.name}

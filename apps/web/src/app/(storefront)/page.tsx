@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button, Card, Badge } from '@chrishop/ui';
+import Image from 'next/image';
+import { Button, Card, Badge, ArtworkMedia, ARTWORK_MEDIA_SIZES } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 
 export const revalidate = 60;
@@ -81,11 +82,13 @@ export default async function HomePage() {
             {/* Visual Preview */}
             <Card className="aspect-square flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 border-amber-900/30 overflow-hidden relative p-0 shadow-2xl">
               {flagshipImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <ArtworkMedia
                   src={flagshipImageUrl}
                   alt={featuredProduct.title}
-                  className="w-full h-full object-cover"
+                  sizes={ARTWORK_MEDIA_SIZES.PRODUCT_DETAIL}
+                  aspectRatio="square"
+                  priority={true}
+                  asImage={Image}
                 />
               ) : (
                 <div className="text-center space-y-3 p-6">
@@ -98,7 +101,7 @@ export default async function HomePage() {
               )}
 
               {featuredProduct.category && (
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-10">
                   <Badge variant="neutral" className="bg-slate-950/80 backdrop-blur-md text-xs">
                     {featuredProduct.category.name}
                   </Badge>
@@ -184,17 +187,23 @@ export default async function HomePage() {
                   key={item.id}
                   className="group flex flex-col justify-between overflow-hidden p-0 border-slate-800 hover:border-amber-500/40 transition-all duration-300"
                 >
-                  <div className="relative aspect-video bg-gradient-to-br from-slate-900 to-slate-950 flex items-center justify-center border-b border-slate-800">
+                  <div className="relative aspect-video bg-gradient-to-br from-slate-900 to-slate-950 flex items-center justify-center border-b border-slate-800 overflow-hidden">
                     {itemImg ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={itemImg} alt={item.title} className="w-full h-full object-cover" />
+                      <ArtworkMedia
+                        src={itemImg}
+                        alt={item.title}
+                        sizes={ARTWORK_MEDIA_SIZES.CATALOG_GRID}
+                        aspectRatio="video"
+                        asImage={Image}
+                        imgClassName="group-hover:scale-105 transition-transform duration-500"
+                      />
                     ) : (
                       <span className="text-4xl">🎨</span>
                     )}
                     {item.category?.name && (
                       <Badge
                         variant="neutral"
-                        className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-xs"
+                        className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-xs z-10"
                       >
                         {item.category.name}
                       </Badge>

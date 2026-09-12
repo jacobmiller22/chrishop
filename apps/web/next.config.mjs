@@ -6,6 +6,8 @@ const nextConfig = {
   transpilePackages: ['@chrishop/ui', '@chrishop/types', '@chrishop/notifications'],
   serverExternalPackages: ['@libsql/client', 'drizzle-orm', 'node:sqlite'],
   images: {
+    loader: 'custom',
+    loaderFile: './src/lib/image-loader.ts',
     remotePatterns: [
       {
         protocol: 'https',

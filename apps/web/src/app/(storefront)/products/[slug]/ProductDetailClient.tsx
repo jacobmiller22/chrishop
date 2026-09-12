@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button } from '@chrishop/ui';
+import Image from 'next/image';
+import { Badge, Button, ProductGallery } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/assets';
 import { shopify } from '@/lib/shopify';
@@ -21,7 +22,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const variations: StorefrontVariation[] = product.variations || [];
   const [selectedVariationId, setSelectedVariationId] = useState<string>(variations[0]?.id || '');
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
 
   const selectedVariation = variations.find((v) => v.id === selectedVariationId) || variations[0];
 
@@ -37,8 +37,15 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       mediaList.push({ id: 'hero', url, label: 'Hero Banner' });
     }
   }
+  if (product.gallery && Array.isArray(product.gallery)) {
+    product.gallery.forEach((g, idx) => {
+      const url = getAssetUrl(g);
+      if (url && !mediaList.some((m) => m.url === url)) {
+        mediaList.push({ id: `gallery-${idx}`, url, label: `Gallery ${idx + 1}` });
+      }
+    });
+  }
 
-  const activeMedia = mediaList[selectedImageIndex] || mediaList[0];
   const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '✨';
 
   // Price resolution
@@ -132,68 +139,38 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Left Column: Media & Gallery Section */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-square w-full rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-2xl">
-            {activeMedia ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={activeMedia.url}
-                alt={product.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="text-center p-8 space-y-4">
-                <span className="text-8xl select-none inline-block filter drop-shadow-lg">
-                  {categoryIcon}
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-mono text-amber-400">Studio Edition Preview</p>
-                  <p className="text-xs text-slate-500">Photography coming soon</p>
-                </div>
-              </div>
-            )}
-
-            {/* Top Badges overlay */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-              {product.category && (
-                <Badge variant="neutral" className="bg-slate-950/80 backdrop-blur-md">
-                  {product.category.name}
-                </Badge>
-              )}
-              {isSoldOut ? (
-                <Badge variant="danger" className="bg-rose-950/80 backdrop-blur-md">
-                  Sold Out
-                </Badge>
-              ) : isComingSoon ? (
-                <Badge variant="info" className="bg-blue-950/80 backdrop-blur-md">
-                  Coming Soon
-                </Badge>
-              ) : (
-                <Badge variant="success" className="bg-emerald-950/80 backdrop-blur-md">
-                  In Stock ({selectedVariation?.stock_quantity ?? 'Available'})
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Gallery Thumbnails */}
-          {mediaList.length > 1 && (
-            <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              {mediaList.map((m, idx) => (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                    selectedImageIndex === idx
-                      ? 'border-amber-400 shadow-md shadow-amber-400/20'
-                      : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={m.label} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+          <ProductGallery
+            items={mediaList}
+            title={product.title}
+            asImage={Image}
+            fallbackIcon={
+              <span className="text-8xl select-none inline-block filter drop-shadow-lg">
+                {categoryIcon}
+              </span>
+            }
+            badge={
+              <>
+                {product.category && (
+                  <Badge variant="neutral" className="bg-slate-950/80 backdrop-blur-md">
+                    {product.category.name}
+                  </Badge>
+                )}
+                {isSoldOut ? (
+                  <Badge variant="danger" className="bg-rose-950/80 backdrop-blur-md">
+                    Sold Out
+                  </Badge>
+                ) : isComingSoon ? (
+                  <Badge variant="info" className="bg-blue-950/80 backdrop-blur-md">
+                    Coming Soon
+                  </Badge>
+                ) : (
+                  <Badge variant="success" className="bg-emerald-950/80 backdrop-blur-md">
+                    In Stock ({selectedVariation?.stock_quantity ?? 'Available'})
+                  </Badge>
+                )}
+              </>
+            }
+          />
 
           {/* Provenance & Crafting Note */}
           <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4 text-xs text-slate-400 space-y-2">
