@@ -11,7 +11,7 @@ export default {
         'app/(payload)/api/[...slug]/route',
         'app/(payload)/api/graphql/route',
       ],
-      patterns: ['admin/*', 'api/payload/*', 'api/graphql'],
+      patterns: ['admin', 'admin/*', 'admin/**', 'api/payload/*', 'api/graphql'],
       override: {
         wrapper: 'cloudflare-node',
         converter: 'edge',

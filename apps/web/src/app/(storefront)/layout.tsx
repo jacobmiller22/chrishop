@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { Metadata } from 'next';
 import { Header } from '@chrishop/ui';
-import './globals.css';
+import '../globals.css';
 
 export const metadata: Metadata = {
   title: "Chris's Shop | Exclusive Art & Limited Drops",
