@@ -48,10 +48,21 @@ export const serverEnvSchema = z.object({
   CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
   CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
 
-  // Operational Notifications & Transactional Email (Optional in local dev)
-  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
+  // Channel-Agnostic Transactional Email & Operational Alert Credentials
   RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+  MERCHANT_ALERT_EMAIL: z.string().email('MERCHANT_ALERT_EMAIL must be a valid email address').optional(),
+  OPS_ALERT_WEBHOOK_URL: z.string().url('OPS_ALERT_WEBHOOK_URL must be a valid URL').optional(),
+
+  // Legacy / Deprecated Notification Credentials (retained for backward compatibility)
+  /** @deprecated Use RESEND_FROM_EMAIL instead */
   EMAIL_FROM: z.string().optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
+  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL or MERCHANT_ALERT_EMAIL instead */
+  DISCORD_WEBHOOK_ORDERS: z.string().url('DISCORD_WEBHOOK_ORDERS must be a valid URL').optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
+  DISCORD_WEBHOOK_ALERTS: z.string().url('DISCORD_WEBHOOK_ALERTS must be a valid URL').optional(),
 });
 
 export const clientEnvSchema = z.object({

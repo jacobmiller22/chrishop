@@ -22,7 +22,8 @@ Per ADR-2026-09-11 (`ADR_CLOUDFLARE_SECRETS_EVALUATION.md`), application runtime
 | **`SHOPIFY_STOREFRONT_TOKEN`** | Cloudflare Workers Secret | Production, Staging | 180 Days / Incident | Disruption of live cart creation / checkout |
 | **`SHOPIFY_WEBHOOK_SECRET`** | Cloudflare Workers Secret | Production, Staging | 180 Days / Incident | Failed HMAC validation for order webhooks |
 | **`RESEND_API_KEY`** | Cloudflare Workers Secret | Production, Staging | 180 Days / Incident | Transactional email notification delivery |
-| **`DISCORD_WEBHOOK_URL`** | Cloudflare Workers Secret | Production, Staging | 365 Days / Incident | Internal team alerts delivery |
+| **`OPS_ALERT_WEBHOOK_URL`** | Cloudflare Workers Secret | Production, Staging | 365 Days / Incident | Operational webhook alerts delivery |
+| **`DISCORD_WEBHOOK_URL`** | Cloudflare Workers Secret (Legacy) | Production, Staging | 365 Days / Incident | Legacy internal team alerts delivery |
 | **`CLOUDFLARE_API_TOKEN`** | GitHub Repository Secret | GitHub Actions CI/CD | 90 Days / Incident | Automated deployment pipelines blocked |
 
 ---
@@ -168,10 +169,14 @@ Used to cryptographically verify the `X-Shopify-Hmac-Sha256` signature header on
 
 ---
 
-### 3.5 `DISCORD_WEBHOOK_URL` (Real-Time Team Alerts)
+### 3.5 `OPS_ALERT_WEBHOOK_URL` & `DISCORD_WEBHOOK_URL` (Operational Alerts)
 
-1. In Discord server channel settings (`#order-alerts`), create a new Webhook or regenerate URL.
-2. Deploy to Staging & Production:
+1. **`OPS_ALERT_WEBHOOK_URL`** (Generic Webhooks / Slack / Zapier):
+   ```bash
+   pnpm exec wrangler secret put OPS_ALERT_WEBHOOK_URL --env staging
+   pnpm exec wrangler secret put OPS_ALERT_WEBHOOK_URL --env production
+   ```
+2. **`DISCORD_WEBHOOK_URL`** (Legacy / Deprecated):
    ```bash
    pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env staging
    pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env production
