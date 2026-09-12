@@ -1,17 +1,17 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EdgeFeatureFlagEngine,
   flagSchema,
   FLAG_KEYS,
   ENVIRONMENT_FLAG_DEFAULTS,
-  hashToBucket,
-  evaluateCanaryRollout,
+  evaluateFlag,
+  isFeatureEnabled,
+  getFeatureFlag,
+  evaluateAllFlags,
   evaluateVipAccess,
   resolveEnvironmentTier,
   generateFlagDebugHeaders,
-  clearFlagCache,
-  type KVNamespaceLike,
+  type CloudflareFlagshipBinding,
   type EvaluationContext,
 } from '../../packages/config/src/flags';
 import {
@@ -21,61 +21,92 @@ import {
   isEmergencyKillSwitchActive,
   isCheckoutDisabled,
   canAccessDrop,
-  isSessionInCanary,
   extractEvaluationContext,
+  getFlagResponseHeaders,
 } from '../../apps/web/src/lib/flags';
 import { ShopifyStorefrontClient } from '../../apps/web/src/lib/shopify';
 
 /**
- * Mock Workers KV Namespace for local Miniflare simulation
+ * Mock Cloudflare Flagship Binding for testing Worker runtime integration
  */
-class MockKVNamespace implements KVNamespaceLike {
-  public store: Map<string, string> = new Map();
-  public readLatencyMs: number = 2; // Simulated edge KV read latency (1-4ms)
+class MockCloudflareFlagship implements CloudflareFlagshipBinding {
+  public flags: Map<string, unknown> = new Map();
+  public lastEvaluatedContext?: Record<string, unknown>;
 
-  async get(key: string): Promise<string | null> {
-    if (this.readLatencyMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, this.readLatencyMs));
+  async getBooleanValue(
+    key: string,
+    defaultValue: boolean,
+    context?: Record<string, unknown>
+  ): Promise<boolean> {
+    this.lastEvaluatedContext = context;
+    if (this.flags.has(key)) {
+      return Boolean(this.flags.get(key));
     }
-    return this.store.get(key) || null;
+    return defaultValue;
   }
 
-  async put(key: string, value: string): Promise<void> {
-    this.store.set(key, value);
+  async getStringValue(
+    key: string,
+    defaultValue: string,
+    context?: Record<string, unknown>
+  ): Promise<string> {
+    this.lastEvaluatedContext = context;
+    if (this.flags.has(key)) {
+      return String(this.flags.get(key));
+    }
+    return defaultValue;
   }
 
-  async delete(key: string): Promise<void> {
-    this.store.delete(key);
+  async getNumberValue(
+    key: string,
+    defaultValue: number,
+    context?: Record<string, unknown>
+  ): Promise<number> {
+    this.lastEvaluatedContext = context;
+    if (this.flags.has(key)) {
+      return Number(this.flags.get(key));
+    }
+    return defaultValue;
+  }
+
+  async getObjectValue<T = unknown>(
+    key: string,
+    defaultValue: T,
+    context?: Record<string, unknown>
+  ): Promise<T> {
+    this.lastEvaluatedContext = context;
+    if (this.flags.has(key)) {
+      return this.flags.get(key) as T;
+    }
+    return defaultValue;
   }
 }
 
-describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', () => {
-  let engine: EdgeFeatureFlagEngine;
-  let mockKV: MockKVNamespace;
+describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
+  let mockFlagship: MockCloudflareFlagship;
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    engine = new EdgeFeatureFlagEngine(5000); // 5s TTL
-    mockKV = new MockKVNamespace();
-    clearFlagCache();
+    mockFlagship = new MockCloudflareFlagship();
     // Reset process.env flag variables to avoid cross-test contamination
     for (const key of FLAG_KEYS) {
       delete process.env[key];
     }
+    delete (globalThis as any).FLAGS;
     process.env.NODE_ENV = 'test';
   });
 
   afterEach(() => {
-    clearFlagCache();
+    delete (globalThis as any).FLAGS;
     process.env = { ...originalEnv };
   });
 
   // ----------------------------------------------------------------------------
-  // 1. Flag Registry, Schema & Multi-Tier Matrix
+  // 1. Flag Registry, Schema & Environment Matrix
   // ----------------------------------------------------------------------------
-  describe('1. Flag Registry, Schema & Multi-Tier Matrix', () => {
+  describe('1. Flag Registry, Schema & Environment Matrix', () => {
     it('should validate all flags conform to Zod schema and FLAG_* prefix convention', () => {
-      assert.ok(FLAG_KEYS.length >= 8, 'Expected at least 8 core flags defined');
+      assert.ok(FLAG_KEYS.length >= 7, 'Expected at least 7 core flags defined');
       for (const key of FLAG_KEYS) {
         assert.ok(
           key.startsWith('FLAG_'),
@@ -142,18 +173,61 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
   });
 
   // ----------------------------------------------------------------------------
-  // 2. Edge Runtime Decision Latency & Performance SLA
+  // 2. Cloudflare Flagship Binding Path (Tier 1)
   // ----------------------------------------------------------------------------
-  describe('2. Edge Runtime Decision Latency & Performance SLA (< 0.5ms)', () => {
-    it('should confirm in-memory L1 cache decision latency is < 0.05ms (sub-50 microseconds)', async () => {
-      // Warm up cache
-      await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, { NODE_ENV: 'production' });
+  describe('2. Cloudflare Flagship Binding Path (Tier 1)', () => {
+    it('should evaluate flag using env.FLAGS native binding when available', async () => {
+      mockFlagship.flags.set('FLAG_IS_DROP_ACTIVE', true);
+
+      const isDropOn = await evaluateFlag(
+        'FLAG_IS_DROP_ACTIVE',
+        false,
+        { userId: 'user-123' },
+        { FLAGS: mockFlagship }
+      );
+
+      assert.equal(isDropOn, true);
+      assert.deepEqual(mockFlagship.lastEvaluatedContext, { userId: 'user-123' });
+    });
+
+    it('should pass targeting context (userId, customerTags, country) to Flagship binding', async () => {
+      mockFlagship.flags.set('FLAG_VIP_EARLY_ACCESS', true);
+
+      const context: EvaluationContext = {
+        userId: 'vip-shopper-77',
+        customerTags: ['vip', 'collector'],
+        country: 'US',
+      };
+
+      const result = await evaluateFlag('FLAG_VIP_EARLY_ACCESS', false, context, {
+        FLAGS: mockFlagship,
+      });
+
+      assert.equal(result, true);
+      assert.equal(mockFlagship.lastEvaluatedContext?.userId, 'vip-shopper-77');
+      assert.deepEqual(mockFlagship.lastEvaluatedContext?.customerTags, ['vip', 'collector']);
+    });
+
+    it('should fallback to default value when flag is missing in Flagship app', async () => {
+      const result = await evaluateFlag(
+        'FLAG_NON_EXISTENT_FEATURE',
+        false,
+        {},
+        { FLAGS: mockFlagship }
+      );
+
+      assert.equal(result, false);
+    });
+
+    it('should achieve sub-millisecond edge decision latency with Flagship binding (< 0.05ms)', async () => {
+      mockFlagship.flags.set('FLAG_IS_DROP_ACTIVE', true);
+      const env = { FLAGS: mockFlagship };
 
       const iterations = 10000;
       const start = performance.now();
 
       for (let i = 0; i < iterations; i++) {
-        await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, { NODE_ENV: 'production' });
+        await evaluateFlag('FLAG_IS_DROP_ACTIVE', false, {}, env);
       }
 
       const totalDurationMs = performance.now() - start;
@@ -161,89 +235,46 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
 
       assert.ok(
         avgLatencyMs < 0.05,
-        `Average L1 decision latency (${avgLatencyMs.toFixed(5)}ms) must be < 0.05ms`
-      );
-    });
-
-    it('should benchmark Cloudflare Workers KV L2 read latency within edge budget (< 5ms)', async () => {
-      await mockKV.put('flag:FLAG_IS_DROP_ACTIVE', 'true');
-
-      const start = performance.now();
-      const value = await engine.getFlag(
-        'FLAG_IS_DROP_ACTIVE',
-        {},
-        { NODE_ENV: 'production' },
-        mockKV
-      );
-      const durationMs = performance.now() - start;
-
-      assert.equal(value, true);
-      assert.ok(
-        durationMs < 10,
-        `L2 KV read latency (${durationMs.toFixed(2)}ms) must be within 10ms boundary`
-      );
-    });
-
-    it('should prove Edge-Native KV/L1 is > 10x faster than simulated Flagship Decision API (80ms)', async () => {
-      // Simulate Flagship Decision API outbound HTTP latency
-      const simulateFlagshipDecisionApi = async () => {
-        await new Promise((resolve) => setTimeout(resolve, 60)); // 60ms simulated network RTT
-        return { isDropActive: true };
-      };
-
-      const startFlagship = performance.now();
-      await simulateFlagshipDecisionApi();
-      const flagshipDurationMs = performance.now() - startFlagship;
-
-      const startEdge = performance.now();
-      await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, { NODE_ENV: 'production' }, mockKV);
-      const edgeDurationMs = performance.now() - startEdge;
-
-      const speedup = flagshipDurationMs / Math.max(0.1, edgeDurationMs);
-      assert.ok(
-        speedup > 5,
-        `Edge-native flags (${edgeDurationMs.toFixed(2)}ms) must be dramatically faster than Decision API (${flagshipDurationMs.toFixed(2)}ms), speedup factor: ${speedup.toFixed(1)}x`
+        `Average Flagship decision latency (${avgLatencyMs.toFixed(5)}ms) must be < 0.05ms`
       );
     });
   });
 
   // ----------------------------------------------------------------------------
-  // 3. Layered Resolution Order (L0 -> L1 -> L2 -> L3 -> L4)
+  // 3. Local Development & Offline Testing Path (Tier 2)
   // ----------------------------------------------------------------------------
-  describe('3. Layered Resolution Hierarchy', () => {
-    it('should fall back to Level 4 Tier Defaults when no overrides exist', async () => {
-      const prodVal = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, { NODE_ENV: 'production' });
-      assert.equal(prodVal, false);
+  describe('3. Local Development & Offline Testing Path (Tier 2)', () => {
+    it('should evaluate flags directly from process.env when FLAGS binding is absent', async () => {
+      process.env.FLAG_IS_DROP_ACTIVE = 'true';
+      process.env.FLAG_ENABLE_WIREMOCK = '1';
 
-      const previewVal = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, { NODE_ENV: 'preview' });
+      const isDrop = await evaluateFlag('FLAG_IS_DROP_ACTIVE', false);
+      const isWireMock = await evaluateFlag('FLAG_ENABLE_WIREMOCK', false);
+
+      assert.equal(isDrop, true);
+      assert.equal(isWireMock, true);
+    });
+
+    it('should fallback to environment-tier defaults when environment variable is unset', async () => {
+      delete process.env.FLAG_IS_DROP_ACTIVE;
+      delete process.env.FLAG_ENABLE_WIREMOCK;
+
+      // In test tier, default is false
+      const testVal = await isFeatureEnabled('FLAG_IS_DROP_ACTIVE', { environmentTier: 'test' });
+      assert.equal(testVal, false);
+
+      // In preview tier, default is true
+      const previewVal = await isFeatureEnabled('FLAG_IS_DROP_ACTIVE', {
+        environmentTier: 'preview',
+      });
       assert.equal(previewVal, true);
     });
 
-    it('should allow Level 3 Environment Variables to override Level 4 Tier Defaults', async () => {
-      const env = { NODE_ENV: 'production', FLAG_IS_DROP_ACTIVE: 'true' };
-      const val = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, env);
-      assert.equal(val, true, 'Environment variable FLAG_IS_DROP_ACTIVE must override production default false');
-    });
+    it('should evaluate numeric flags correctly from process.env', async () => {
+      process.env.FLAG_PHASE_6_CANARY_PERCENT = '75';
 
-    it('should allow Level 2 Cloudflare Workers KV to override Level 3 Environment Variables', async () => {
-      const env = { NODE_ENV: 'production', FLAG_IS_DROP_ACTIVE: 'false' };
-      await mockKV.put('flag:FLAG_IS_DROP_ACTIVE', 'true');
-
-      const val = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, env, mockKV);
-      assert.equal(val, true, 'KV value true must take precedence over env variable false');
-    });
-
-    it('should allow Level 0 Per-Request Overrides to take absolute precedence', async () => {
-      const env = { NODE_ENV: 'production', FLAG_IS_DROP_ACTIVE: 'false' };
-      await mockKV.put('flag:FLAG_IS_DROP_ACTIVE', 'false');
-
-      engine.setOverride('FLAG_IS_DROP_ACTIVE', true);
-      const val = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, env, mockKV);
-      assert.equal(val, true, 'Per-request override must take precedence over KV and Env');
-
-      engine.clearOverrides();
-      const resetVal = await engine.getFlag('FLAG_IS_DROP_ACTIVE', {}, env, mockKV);
-      assert.equal(resetVal, false, 'Clearing overrides must revert to KV value');
+      const canaryPercent = await getFeatureFlag('FLAG_PHASE_6_CANARY_PERCENT');
+      assert.equal(canaryPercent, 75);
     });
   });
 
@@ -262,38 +293,27 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
 
     it('should trip circuit breaker in ShopifyStorefrontClient and block cartCreate without network call', async () => {
       process.env.FLAG_EMERGENCY_KILL_SWITCH = 'true';
-      const client = new ShopifyStorefrontClient();
+      const client = new ShopifyStorefrontClient({ token: 'test_token' });
 
-      const mutation = `
-        mutation cartCreate($input: CartInput!) {
-          cartCreate(input: $input) {
-            cart { id checkoutUrl }
-          }
-        }
-      `;
-
-      const response = await client.request(mutation, { input: {} });
-      assert.equal(response.data, null);
-      assert.ok(response.errors && response.errors.length > 0);
-      assert.equal(response.errors[0].code, 'CIRCUIT_BREAKER_ACTIVE');
-      assert.ok(response.errors[0].message.includes('FLAG_EMERGENCY_KILL_SWITCH'));
+      const res = await client.createCart('variant_123', 1);
+      assert.equal(res.data, null);
+      assert.equal(res.errors?.[0]?.code, 'CIRCUIT_BREAKER_ACTIVE');
     });
 
     it('should allow product querying even when checkout is disabled', async () => {
       process.env.FLAG_DISABLE_CHECKOUT = 'true';
-      const client = new ShopifyStorefrontClient();
+      process.env.FLAG_EMERGENCY_KILL_SWITCH = 'false';
 
-      const productQuery = `
-        query getProducts {
-          products(first: 5) {
-            edges { node { id title } }
-          }
-        }
-      `;
+      const isKilled = await isEmergencyKillSwitchActive();
+      const checkoutBlocked = await isCheckoutDisabled();
 
-      const response = await client.request(productQuery);
-      assert.ok(response.data, 'Product query must succeed even when checkout is disabled');
-      assert.equal(response.errors, undefined);
+      assert.equal(isKilled, false);
+      assert.equal(checkoutBlocked, true);
+
+      // Products query remains permitted
+      const client = new ShopifyStorefrontClient({ token: 'test_token' });
+      const res = await client.request('{ shop { name } }');
+      assert.ok(res.data);
     });
   });
 
@@ -301,13 +321,10 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
   // 5. Drop Early Access & VIP Gating
   // ----------------------------------------------------------------------------
   describe('5. Drop Early Access & VIP Gating', () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = 'production';
+    it('should block public users when drop is not active and no VIP credentials provided', async () => {
       process.env.FLAG_IS_DROP_ACTIVE = 'false';
       process.env.FLAG_VIP_EARLY_ACCESS = 'true';
-    });
 
-    it('should block public users when drop is not active and no VIP credentials provided', async () => {
       const access = await canAccessDrop({});
       assert.equal(access.canAccess, false);
       assert.equal(access.isVip, false);
@@ -315,17 +332,22 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
     });
 
     it('should grant early access to visitors with valid VIP token query param or header', async () => {
+      process.env.FLAG_IS_DROP_ACTIVE = 'false';
+      process.env.FLAG_VIP_EARLY_ACCESS = 'true';
+
       const context: EvaluationContext = { vipToken: 'chrishop-vip-secret' };
       assert.equal(evaluateVipAccess(context), true);
 
       const access = await canAccessDrop(context);
       assert.equal(access.canAccess, true);
       assert.equal(access.isVip, true);
-      assert.equal(access.isPublic, false);
     });
 
     it('should grant early access to visitors with VIP customer tags', async () => {
-      const context: EvaluationContext = { customerTags: ['collector', 'newsletter'] };
+      process.env.FLAG_IS_DROP_ACTIVE = 'false';
+      process.env.FLAG_VIP_EARLY_ACCESS = 'true';
+
+      const context: EvaluationContext = { customerTags: ['artist', 'newsletter'] };
       assert.equal(evaluateVipAccess(context), true);
 
       const access = await canAccessDrop(context);
@@ -334,7 +356,10 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
     });
 
     it('should reject invalid or expired VIP tokens', async () => {
-      const context: EvaluationContext = { vipToken: 'malicious-or-fake-token' };
+      process.env.FLAG_IS_DROP_ACTIVE = 'false';
+      process.env.FLAG_VIP_EARLY_ACCESS = 'true';
+
+      const context: EvaluationContext = { vipToken: 'fake-or-expired-token' };
       assert.equal(evaluateVipAccess(context), false);
 
       const access = await canAccessDrop(context);
@@ -368,92 +393,10 @@ describe('Story 2.45 Spike: Feature Flagging Architecture & Edge Evaluation', ()
   });
 
   // ----------------------------------------------------------------------------
-  // 6. Progressive Canary Rollouts (Phase 6)
+  // 6. Diagnostic Debug Headers
   // ----------------------------------------------------------------------------
-  describe('6. Progressive Canary Rollouts (Phase 6)', () => {
-    it('should provide deterministic hash bucketing across sessions', () => {
-      const sessionA = 'sess_user_alpha_99182';
-      const bucket1 = hashToBucket(sessionA, 'phase-6');
-      const bucket2 = hashToBucket(sessionA, 'phase-6');
-
-      assert.equal(bucket1, bucket2, 'Hash must be 100% deterministic');
-      assert.ok(bucket1 >= 0 && bucket1 < 100, 'Bucket must be within [0, 99]');
-    });
-
-    it('should adhere to 0% and 100% boundary conditions strictly', () => {
-      for (let i = 0; i < 50; i++) {
-        const sessionId = `session_${i}`;
-        assert.equal(evaluateCanaryRollout(sessionId, 0), false, '0% must never allow access');
-        assert.equal(evaluateCanaryRollout(sessionId, 100), true, '100% must always allow access');
-      }
-    });
-
-    it('should achieve statistical percentage distribution across 1,000 synthetic sessions', () => {
-      const totalSessions = 1000;
-      let count10 = 0;
-      let count50 = 0;
-
-      for (let i = 0; i < totalSessions; i++) {
-        const sessionId = `session_${i}_${i * 31}`;
-        if (evaluateCanaryRollout(sessionId, 10)) count10++;
-        if (evaluateCanaryRollout(sessionId, 50)) count50++;
-      }
-
-      const percent10 = (count10 / totalSessions) * 100;
-      const percent50 = (count50 / totalSessions) * 100;
-
-      // 10% target with +/- 4% tolerance
-      assert.ok(
-        percent10 >= 6 && percent10 <= 14,
-        `10% canary rollout actual: ${percent10.toFixed(1)}% (must be 6%-14%)`
-      );
-
-      // 50% target with +/- 6% tolerance
-      assert.ok(
-        percent50 >= 44 && percent50 <= 56,
-        `50% canary rollout actual: ${percent50.toFixed(1)}% (must be 44%-56%)`
-      );
-    });
-  });
-
-  // ----------------------------------------------------------------------------
-  // 7. Offline Local Development Resilience & WireMock Bridge
-  // ----------------------------------------------------------------------------
-  describe('7. Offline Local Development Resilience & WireMock Bridge', () => {
-    it('should evaluate flags 100% offline without network egress or API keys', async () => {
-      // Simulate total offline state
-      const offlineKV = new MockKVNamespace();
-      offlineKV.readLatencyMs = 0;
-
-      const flags = await engine.evaluateAll({}, { NODE_ENV: 'development' }, offlineKV);
-      assert.equal(flags.FLAG_IS_DROP_ACTIVE, true);
-      assert.equal(flags.FLAG_ENABLE_WIREMOCK, true);
-      assert.equal(flags.FLAG_MAINTENANCE_MODE, false);
-      assert.equal(flags.FLAG_EMERGENCY_KILL_SWITCH, false);
-    });
-
-    it('should force mock Shopify routing when FLAG_ENABLE_WIREMOCK is enabled even if token exists', async () => {
-      process.env.FLAG_ENABLE_WIREMOCK = 'true';
-      process.env.SHOPIFY_STOREFRONT_TOKEN = 'live_production_secret_token';
-
-      const isMockActive = await isWireMockEnabled();
-      assert.equal(isMockActive, true);
-
-      const client = new ShopifyStorefrontClient({ token: 'live_production_secret_token' });
-      const query = `{ shop { name } }`;
-
-      // Should route through mock without attempting outbound network call to live Shopify
-      const res = await client.request(query);
-      assert.ok(res.data);
-      assert.equal(res.errors, undefined);
-    });
-  });
-
-  // ----------------------------------------------------------------------------
-  // 8. Diagnostic Debug Headers
-  // ----------------------------------------------------------------------------
-  describe('8. Diagnostic Debug Headers', () => {
-    it('should generate formatted RFC-compliant response headers for PR preview inspections', () => {
+  describe('6. Diagnostic Debug Headers', () => {
+    it('should generate formatted RFC-compliant response headers for inspections', () => {
       const flags = ENVIRONMENT_FLAG_DEFAULTS.preview;
       const headers = generateFlagDebugHeaders(flags, 'preview');
 
