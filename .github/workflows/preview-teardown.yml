@@ -12,8 +12,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Teardown Isolated PR Worker Stack
-        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+      - name: Teardown Isolated PR Worker Stack (Unmerged PRs Only)
+        if: github.event.pull_request.merged == false && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
@@ -23,4 +23,9 @@ jobs:
       - name: Log Teardown Summary
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          echo "Ephemeral PR preview stack teardown completed for PR #${PR_NUM}."
+          MERGED=${{ github.event.pull_request.merged }}
+          if [ "$MERGED" = "true" ]; then
+            echo "PR #${PR_NUM} was merged into staging. Ephemeral preview worker chrishop-preview-pr-${PR_NUM} is preserved for post-merge verification and link integrity."
+          else
+            echo "Ephemeral PR preview stack teardown completed for unmerged PR #${PR_NUM}."
+          fi

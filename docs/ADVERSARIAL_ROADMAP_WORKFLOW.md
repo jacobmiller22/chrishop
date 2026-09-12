@@ -48,6 +48,16 @@ A GitHub milestone CANNOT be closed until:
 2. The corresponding `creator-review` story (Story 1.8 for Phase 1, Story 2.7 for Phase 2, Story 3.7 for Phase 3) has recorded explicit client sign-off.
 3. Monorepo verification pipeline passes cleanly (`pnpm run verify:local`).
 
+### Pillar 6: Two-Stage Git Promotion & Deployment Gates
+Code promotion to live environments is governed by strict git branch hierarchy:
+1. **Feature branches** target `staging` (repository default branch).
+2. **Release promotion** from `staging` into `production` requires:
+   - PR originating exclusively from `staging` (enforced via `enforce-promotion-rules` CI check).
+   - Automated staging deployment and live edge health verification (`staging-chrishop.jacobmiller22.com/api/health`).
+   - Human approval gate in GitHub Actions `production` environment (`jacobmiller22`).
+   - Post-deployment edge health probe against `https://chrishop.jacobmiller22.com/api/health`.
+   - See [docs/runbooks/PRODUCTION_PROMOTION.md](runbooks/PRODUCTION_PROMOTION.md) for standard operating procedures.
+
 ---
 
 ## 3. Automated Tooling & CLI Commands

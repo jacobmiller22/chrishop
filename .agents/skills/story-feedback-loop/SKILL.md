@@ -165,6 +165,10 @@ gh issue comment <IssueNumber> --body "🔀 **Pull Request Opened**
 - **PR Link**: https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>
 - **Branch**: \`feature/story-<X>-<Y>-<shortname>\`
 - **Issue Association**: \`Fixes #<IssueNumber>\`
+- **Ephemeral Preview Environment**:
+  - *Storefront*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+  - *Payload Admin*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+  - *Edge Health Probe*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
 - **CI Status**: Triggered and monitoring..."
 ```
 
@@ -177,6 +181,10 @@ If CI fails or succeeds:
 gh issue comment <IssueNumber> --body "🟢 **CI Verification Passed**
 
 - All automated checks on PR https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER> passed successfully.
+- **Verified Live Preview Environment**:
+  - *Storefront*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+  - *Payload CMS Admin*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+  - *Edge Health Probe*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
 - Ready for completion documentation and story finalization."
 
 # On CI Failure / Resolution:
@@ -352,6 +360,14 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
 ### 📦 Summary of Accomplishments & Deliverables
 <Provide an exhaustive breakdown of what was implemented, how it satisfies the architectural intent, and any key design choices made during development.>
 
+### 🌐 Live Environments & Verification Links
+- **Ephemeral Storefront Preview**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+- **Ephemeral Payload Admin**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+- **Edge API Health Probe**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
+- **Pull Request**: https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER> (\`Fixes #<IssueNumber>\`)
+- **Commit SHA**: \`<CommitSHA>\`
+- **CI Status**: \`PASSING\` (All checks verified via \`gh pr checks <PR_NUMBER>\`)
+
 ### 📁 Detailed Breakdown of Changes
 - **New Files**:
   - \`packages/shared-ui/src/components/FilterDrawer.tsx\`: Responsive filter drawer with accessible keyboard navigation.
@@ -405,7 +421,46 @@ Once the comprehensive comment has been posted:
 
 ---
 
-## 8. Mandatory Checklist for Story Loop Execution
+## 8. Final User Handoff Report Protocol (Mandatory Links)
+
+When concluding a story and reporting back to the user in chat, the agent **MUST ALWAYS** include a dedicated, prominent **Live Environment & Verification Links** section at the very top of the final response.
+
+Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitHub PR comments:
+
+```markdown
+# ✅ Story <X>.<Y> Completed: <Story Title>
+
+### 🌐 Live Environment & Verification Links
+- **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
+- **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
+- **Staging Edge API Health Probe**: [https://staging-chrishop.jacobmiller22.com/api/health](https://staging-chrishop.jacobmiller22.com/api/health)
+- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
+- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
+- **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
+- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`Closed / Completed`)
+- **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)
+
+### 📦 Summary of Accomplishments
+<Key deliverables and architectural advancements>
+
+### 📁 Modified & Created Files
+<Concise bullet list of touched files with brief descriptions>
+
+### 🧪 Verification & Validation Results
+- **Turnkey Verification**: \`pnpm run verify:local\` (7/7 checks passed)
+- **Typecheck & Lint**: \`pnpm run check\` (0 errors)
+- **Automated Tests**: \`pnpm run test:all\` (<X> unit + <Y> integration tests passing)
+- **Production Build**: \`pnpm run build\` (passed)
+- **CI Status**: All remote GitHub Actions checks passed
+
+### 🔮 Unblocked Next Stories
+1. **Story A.B (#N)**: Title
+2. **Story C.D (#M)**: Title
+```
+
+---
+
+## 9. Mandatory Checklist for Story Loop Execution
 
 Every agent executing a user story must systematically complete and verify every item on this checklist:
 
@@ -423,16 +478,18 @@ Every agent executing a user story must systematically complete and verify every
 - [ ] **Pull Request & Bidirectional Linking**:
   - [ ] Pushed branch to remote repository.
   - [ ] Created PR with `Fixes #<IssueNumber>` in the PR body and issue reference in the title.
-  - [ ] Posted Milestone 6 comment on the issue with full PR link: `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`.
+  - [ ] Posted Milestone 6 comment on the issue with full PR link and ephemeral preview links: `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`.
   - [ ] Verified that GitHub displays the PR in the issue's "Development" section.
 - [ ] **CI Verification**:
   - [ ] Verified that CI checks passed on PR using `gh pr checks <PR_NUMBER>`.
-  - [ ] Posted Milestone 7 comment confirming CI pass.
+  - [ ] Posted Milestone 7 comment confirming CI pass and verified live preview links.
 - [ ] **High-Detail Completion Update & Status Finalization**:
-  - [ ] Posted high-detail completion comment on GitHub issue (deliverables, file list, verification results, PR link, follow-up issues).
+  - [ ] Included live ephemeral preview links (Storefront, Admin, API health probe) in Milestone 6/7 comments, GitHub issue completion comment, and final user handoff report in chat.
+  - [ ] Posted high-detail completion comment on GitHub issue (deliverables, file list, verification results, PR link, preview links, follow-up issues).
   - [ ] Updated issue label to `status:completed` (removed `status:in-progress`).
   - [ ] Closed GitHub issue via `gh issue close <IssueNumber> --reason "completed"`.
   - [ ] Verified Project v2 card transitioned to `Done`.
+  - [ ] Delivered final user handoff report with live preview and PR links in chat.
 - [ ] **Worktree Teardown & Cleanup**:
   - [ ] Switched back to main monorepo worktree: `wt switch main`.
   - [ ] Reaped running processes and removed worktree: `wt remove --reap feature/story-<X>-<Y>-<shortname>`.
