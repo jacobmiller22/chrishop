@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
+import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 
 export const dynamic = 'force-static';
 export const revalidate = 10;
@@ -182,8 +183,18 @@ export default async function ProductsPage(props: ProductsPageProps) {
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={imageUrl}
+                      src={buildCloudflareImageUrl(imageUrl, {
+                        width: 640,
+                        quality: 75,
+                        format: 'auto',
+                        fit: 'cover',
+                        onerror: 'redirect',
+                      })}
+                      srcSet={generateCloudflareImageSrcset(imageUrl, [320, 480, 640])}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       alt={product.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (

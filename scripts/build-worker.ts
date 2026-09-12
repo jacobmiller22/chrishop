@@ -877,7 +877,7 @@ export default {
             if (r2Object.httpEtag) {
               headers.set('etag', r2Object.httpEtag);
             }
-            headers.set('cache-control', 'public, max-age=31536000, immutable');
+            headers.set('cache-control', 'public, max-age=604800');
             if (!headers.has('content-type')) {
               headers.set('content-type', 'image/jpeg');
             }
@@ -896,6 +896,16 @@ export default {
       try {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {
+          // Ensure media assets served via static bridge carry 1-week caching header
+          if (url.pathname.startsWith('/media/')) {
+            const mediaHeaders = new Headers(assetResponse.headers);
+            mediaHeaders.set('cache-control', 'public, max-age=604800');
+            return new Response(assetResponse.body, {
+              status: assetResponse.status,
+              statusText: assetResponse.statusText,
+              headers: mediaHeaders,
+            });
+          }
           return assetResponse;
         }
       } catch (err) {
