@@ -3,7 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 
-export type StorefrontVibe = 'field_workshop' | 'alpine_minimal' | 'hardware_vault';
+export type StorefrontVibe =
+  | 'field_workshop'
+  | 'alpine_minimal'
+  | 'hardware_vault'
+  | 'noir_minimal';
 
 interface VibeSwitcherBarProps {
   activeVibe: StorefrontVibe;
@@ -32,6 +36,12 @@ const VIBE_METADATA: Record<
     subtitle: 'Dense blueprint catalog at top fold, live batch stock meters & telemetry (R2 hero anchored in /about)',
     tag: 'Vollebak · Acronym · Teenage Engineering',
   },
+  noir_minimal: {
+    label: 'Option D: Noir Minimalist',
+    icon: '🖤',
+    subtitle: 'Full-viewport cinematic screen hero, pure pitch-black palette & zero-tech luxury outdoor editorial',
+    tag: 'Veilance · High-End Minimalist Editorial',
+  },
 };
 
 export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, onSelectVibe }) => {
@@ -47,7 +57,7 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
             Vibe Switcher:
           </span>
 
-          {(['field_workshop', 'alpine_minimal', 'hardware_vault'] as const).map((vibe) => {
+          {(['field_workshop', 'alpine_minimal', 'hardware_vault', 'noir_minimal'] as const).map((vibe) => {
             const meta = VIBE_METADATA[vibe];
             const isActive = activeVibe === vibe;
             return (

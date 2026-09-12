@@ -6,6 +6,7 @@ import { VibeSwitcherBar, type StorefrontVibe } from './VibeSwitcherBar';
 import { FieldWorkshopLayout } from './layouts/FieldWorkshopLayout';
 import { AlpineMinimalLayout } from './layouts/AlpineMinimalLayout';
 import { HardwareVaultLayout } from './layouts/HardwareVaultLayout';
+import { NoirMinimalLayout } from './layouts/NoirMinimalLayout';
 
 interface StorefrontVibeContainerProps {
   products: StorefrontProduct[];
@@ -22,11 +23,12 @@ export const StorefrontVibeContainer: React.FC<StorefrontVibeContainerProps> = (
     // Check URL searchParams for ?vibe=
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const urlVibe = params.get('vibe');
+      const urlVibe = params.get('vibe') as StorefrontVibe | null;
       if (
         urlVibe === 'field_workshop' ||
         urlVibe === 'alpine_minimal' ||
-        urlVibe === 'hardware_vault'
+        urlVibe === 'hardware_vault' ||
+        urlVibe === 'noir_minimal'
       ) {
         setActiveVibe(urlVibe);
         return;
@@ -34,11 +36,12 @@ export const StorefrontVibeContainer: React.FC<StorefrontVibeContainerProps> = (
 
       // Check cookie for persistent vibe preference
       const cookieMatch = document.cookie.match(/(?:^|;\s*)chrishop_storefront_vibe=([^;]+)/);
-      const cookieVibe = cookieMatch?.[1];
+      const cookieVibe = cookieMatch?.[1] as StorefrontVibe | undefined;
       if (
         cookieVibe === 'field_workshop' ||
         cookieVibe === 'alpine_minimal' ||
-        cookieVibe === 'hardware_vault'
+        cookieVibe === 'hardware_vault' ||
+        cookieVibe === 'noir_minimal'
       ) {
         setActiveVibe(cookieVibe);
       }
@@ -67,6 +70,7 @@ export const StorefrontVibeContainer: React.FC<StorefrontVibeContainerProps> = (
       {activeVibe === 'field_workshop' && <FieldWorkshopLayout products={products} />}
       {activeVibe === 'alpine_minimal' && <AlpineMinimalLayout products={products} />}
       {activeVibe === 'hardware_vault' && <HardwareVaultLayout products={products} />}
+      {activeVibe === 'noir_minimal' && <NoirMinimalLayout products={products} />}
     </div>
   );
 };

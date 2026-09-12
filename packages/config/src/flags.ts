@@ -32,7 +32,7 @@ export const flagSchema = z.object({
   FLAG_PHASE_6_CANARY_PERCENT: z.number().min(0).max(100).default(0),
   /** Controls storefront layout and aesthetic archetype */
   FLAG_STOREFRONT_VIBE: z
-    .enum(['field_workshop', 'alpine_minimal', 'hardware_vault'])
+    .enum(['field_workshop', 'alpine_minimal', 'hardware_vault', 'noir_minimal'])
     .default('field_workshop'),
 });
 
@@ -307,7 +307,12 @@ export class EdgeFeatureFlagEngine {
     }
     if (key === 'FLAG_STOREFRONT_VIBE') {
       const val = raw.trim().toLowerCase();
-      if (val === 'alpine_minimal' || val === 'hardware_vault' || val === 'field_workshop') {
+      if (
+        val === 'alpine_minimal' ||
+        val === 'hardware_vault' ||
+        val === 'field_workshop' ||
+        val === 'noir_minimal'
+      ) {
         return val;
       }
       return 'field_workshop';
