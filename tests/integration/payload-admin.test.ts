@@ -79,4 +79,27 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     const gqlContent = fs.readFileSync(gqlPath, 'utf-8');
     assert.ok(gqlContent.includes('GRAPHQL_POST'), 'GraphQL route must export GRAPHQL_POST');
   });
+
+  it('should verify open-next.config.ts configures function splitting for admin and storefront', () => {
+    const configPath = path.join(rootDir, 'apps/web/open-next.config.ts');
+    assert.ok(fs.existsSync(configPath), 'open-next.config.ts must exist');
+    const content = fs.readFileSync(configPath, 'utf-8');
+    assert.ok(content.includes('functions:'), 'Must declare functions map');
+    assert.ok(content.includes('admin:'), 'Must declare admin function');
+    assert.ok(content.includes('app/(payload)/admin/[[...segments]]/page'), 'Must map admin page route');
+    assert.ok(content.includes('app/(payload)/api/[...slug]/route'), 'Must map payload api route');
+    assert.ok(content.includes('app/(payload)/api/graphql/route'), 'Must map payload graphql route');
+    assert.ok(content.includes('admin/*'), 'Must pattern match admin/*');
+  });
+
+  it('should compile and extract authentic Payload CMS native CSS stylesheet into assets', () => {
+    const payloadCssPath = path.join(
+      rootDir,
+      '.open-next/assets/_next/static/css/payload.css'
+    );
+    assert.ok(fs.existsSync(payloadCssPath), 'payload.css must exist in .open-next/assets');
+    const content = fs.readFileSync(payloadCssPath, 'utf-8');
+    assert.ok(content.length > 50000, `payload.css must be substantial (>50KB), got ${content.length}`);
+    assert.ok(content.includes('payload-default') || content.includes('--theme-elevation-'), 'Must contain authentic Payload design tokens');
+  });
 });
