@@ -1,20 +1,20 @@
 {
-  "description": "Cloudflare Image Resizing and R2 Media Asset Edge Caching Rules (Story 2.42)",
+  "description": "Cloudflare Image Resizing and R2 Media Asset Edge Caching Rules (Story 1.19 / 2.42)",
   "rules": [
     {
       "id": "chrishop-image-resizing-edge-cache",
-      "description": "Immutably cache all Cloudflare Image Resizing transforms for 1 year at edge and in browser with Vary: Accept",
+      "description": "Cache all Cloudflare Image Resizing transforms for 1 week at edge and in browser with Vary: Accept",
       "expression": "(http.request.uri.path starts_with \"/cdn-cgi/image/\")",
       "action": "set_cache_settings",
       "action_parameters": {
         "cache": true,
         "edge_ttl": {
           "mode": "override_origin",
-          "default": 31536000
+          "default": 604800
         },
         "browser_ttl": {
           "mode": "override_origin",
-          "default": 31536000
+          "default": 604800
         },
         "cache_reserve": {
           "eligible": true,
@@ -29,28 +29,28 @@
           }
         },
         "headers": {
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=604800",
           "Vary": "Accept"
         }
       }
     },
     {
       "id": "chrishop-r2-public-media-cache",
-      "description": "Cache original R2 media assets at media.chrishop.jacobmiller22.com for 1 year immutable",
+      "description": "Cache original R2 media assets at media.chrishop.jacobmiller22.com for 1 week",
       "expression": "(http.host eq \"media.chrishop.jacobmiller22.com\")",
       "action": "set_cache_settings",
       "action_parameters": {
         "cache": true,
         "edge_ttl": {
           "mode": "override_origin",
-          "default": 31536000
+          "default": 604800
         },
         "browser_ttl": {
           "mode": "override_origin",
-          "default": 31536000
+          "default": 604800
         },
         "headers": {
-          "Cache-Control": "public, max-age=31536000, immutable"
+          "Cache-Control": "public, max-age=604800"
         }
       }
     }

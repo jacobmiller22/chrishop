@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
+import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 
 export const revalidate = 60;
 
@@ -99,8 +100,17 @@ export default async function HomePage() {
                 {flagshipImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={flagshipImageUrl}
+                    src={buildCloudflareImageUrl(flagshipImageUrl, {
+                      width: 768,
+                      quality: 80,
+                      format: 'auto',
+                      onerror: 'redirect',
+                    })}
+                    srcSet={generateCloudflareImageSrcset(flagshipImageUrl, [384, 640, 768, 1024])}
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     alt={featuredProduct.title}
+                    loading="eager"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -222,7 +232,21 @@ export default async function HomePage() {
                   <div className="relative aspect-video bg-[#101317] flex items-center justify-center border-b border-stone-800">
                     {itemImg ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={itemImg} alt={item.title} className="w-full h-full object-cover" />
+                      <img
+                        src={buildCloudflareImageUrl(itemImg, {
+                          width: 640,
+                          quality: 75,
+                          format: 'auto',
+                          fit: 'cover',
+                          onerror: 'redirect',
+                        })}
+                        srcSet={generateCloudflareImageSrcset(itemImg, [320, 480, 640])}
+                        sizes="(max-width: 640px) 100vw, 33vw"
+                        alt={item.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <span className="text-4xl">🎒</span>
                     )}

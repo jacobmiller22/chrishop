@@ -5,8 +5,8 @@
  *
  * Verifies:
  * 1. Cloudflare Image Resizing responds to canonical /cdn-cgi/image/... transformation requests.
- * 2. Edge caching headers enforce 1-year immutable caching:
- *    Cache-Control: public, max-age=31536000, immutable
+ * 2. Edge caching headers enforce 1-week caching (calibrated for performance testing / active iteration):
+ *    Cache-Control: public, max-age=604800
  * 3. Dynamic format auto-negotiation (format=auto):
  *    - AVIF served when requested (Accept: image/avif,image/webp,...)
  *    - WebP served when requested (Accept: image/webp,...)
@@ -72,7 +72,7 @@ export interface VerificationReport {
 }
 
 /**
- * Validate Cache-Control header for 1-year immutable edge policy
+ * Validate Cache-Control header for 1-week edge policy (calibrated for performance testing / active iteration)
  */
 export function validateCacheControlHeader(headerValue: string | null | undefined): {
   valid: boolean;
@@ -84,21 +84,19 @@ export function validateCacheControlHeader(headerValue: string | null | undefine
 
   const normalized = headerValue.toLowerCase();
   const isPublic = normalized.includes('public');
-  const isImmutable = normalized.includes('immutable');
 
   // Match max-age=<seconds>
   const maxAgeMatch = normalized.match(/max-age=(\d+)/);
   const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 0;
 
-  // 1 year in seconds = 31536000
-  const isOneYearOrMore = maxAge >= 31536000;
+  // 1 week in seconds = 604800 (7 days)
+  const isOneWeekOrMore = maxAge >= 604800;
 
   if (!isPublic) return { valid: false, reason: 'Cache-Control missing "public" directive' };
-  if (!isImmutable) return { valid: false, reason: 'Cache-Control missing "immutable" directive' };
-  if (!isOneYearOrMore) {
+  if (!isOneWeekOrMore) {
     return {
       valid: false,
-      reason: `Cache-Control max-age is ${maxAge}s, expected at least 31536000s (1 year)`,
+      reason: `Cache-Control max-age is ${maxAge}s, expected at least 604800s (1 week)`,
     };
   }
 
@@ -174,7 +172,7 @@ export async function runPipelineVerification(
 ): Promise<VerificationReport> {
   const isMock = options.mock ?? (!options.live);
   const baseUrl = (options.baseUrl || 'https://chrishop.jacobmiller22.com').replace(/\/+$/, '');
-  const imagePath = options.imagePath || 'uploads/sculpture-01.jpg';
+  const imagePath = options.imagePath || 'media/bushwhack-storm-anorak/camo-variation.jpeg';
   const widths = options.widths || [320, 640, 1280];
   const quality = options.quality || 80;
   const verbose = !!options.verbose;
@@ -226,11 +224,11 @@ export async function runPipelineVerification(
       actual: 'HTTP 200',
     });
 
-    // Check 3.2: 1-Year Immutable Caching
+    // Check 3.2: 1-Week Edge Caching
     const mockCacheControl = EDGE_CACHE_CONTROL_HEADER;
     const cacheValidation = validateCacheControlHeader(mockCacheControl);
     results.push({
-      name: '1-Year Immutable Caching Policy',
+      name: '1-Week Edge Caching Policy',
       passed: cacheValidation.valid,
       detail: `Cache-Control header: ${mockCacheControl}`,
       expected: EDGE_CACHE_CONTROL_HEADER,
@@ -310,10 +308,10 @@ export async function runPipelineVerification(
       const cacheControl = avifRes.headers.get('cache-control');
       const cacheValidation = validateCacheControlHeader(cacheControl);
       results.push({
-        name: '1-Year Immutable Caching Policy',
+        name: '1-Week Edge Caching Policy',
         passed: cacheValidation.valid,
         detail: `Cache-Control header: ${cacheControl || '(none)'}`,
-        expected: 'public, max-age=31536000, immutable',
+        expected: 'public, max-age=604800',
         actual: cacheControl || '(none)',
       });
 

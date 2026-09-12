@@ -5,8 +5,8 @@
  * Verifies:
  * 1. Canonical transformation URI convention:
  *    /cdn-cgi/image/width={width},quality={quality},format=auto/{r2_asset_path}
- * 2. 1-year immutable edge caching policy:
- *    Cache-Control: public, max-age=31536000, immutable
+ * 2. 1-week edge caching policy:
+ *    Cache-Control: public, max-age=604800
  * 3. Format auto-negotiation (format=auto) with client Accept header & Vary: Accept
  * 4. Zero-sharp edge runtime constraint across Cloudflare Workers codebase
  * 5. Automated verification script (scripts/verify-image-pipeline.ts) functionality
@@ -125,8 +125,8 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
   // 2. Edge Caching Policies & Header Verification
   // ---------------------------------------------------------------------------
   describe('2. Edge Cache Headers & Caching Policies', () => {
-    it('should define EDGE_CACHE_CONTROL_HEADER as 1-year immutable', () => {
-      assert.equal(EDGE_CACHE_CONTROL_HEADER, 'public, max-age=31536000, immutable');
+    it('should define EDGE_CACHE_CONTROL_HEADER as 1-week policy', () => {
+      assert.equal(EDGE_CACHE_CONTROL_HEADER, 'public, max-age=604800');
     });
 
     it('should define VARY_HEADER as Accept', () => {
@@ -134,18 +134,17 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
     });
 
     it('should validate conforming Cache-Control headers', () => {
-      const check1 = validateCacheControlHeader('public, max-age=31536000, immutable');
+      const check1 = validateCacheControlHeader('public, max-age=604800');
       assert.ok(check1.valid);
 
-      const check2 = validateCacheControlHeader('public, max-age=63072000, immutable, stale-while-revalidate=86400');
+      const check2 = validateCacheControlHeader('public, max-age=31536000, immutable');
       assert.ok(check2.valid);
     });
 
     it('should reject non-conforming Cache-Control headers', () => {
       assert.ok(!validateCacheControlHeader(null).valid);
-      assert.ok(!validateCacheControlHeader('private, max-age=31536000, immutable').valid);
-      assert.ok(!validateCacheControlHeader('public, max-age=3600, immutable').valid);
-      assert.ok(!validateCacheControlHeader('public, max-age=31536000').valid);
+      assert.ok(!validateCacheControlHeader('private, max-age=604800').valid);
+      assert.ok(!validateCacheControlHeader('public, max-age=3600').valid);
     });
 
     it('should validate Vary header containing Accept', () => {
@@ -177,17 +176,16 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
       assert.ok(parsed.rules.length >= 2, 'Must contain at least 2 rules');
     });
 
-    it('should configure 1-year immutable caching on /cdn-cgi/image/ in cache-rules-images.json', () => {
+    it('should configure 1-week caching on /cdn-cgi/image/ in cache-rules-images.json', () => {
       const config = JSON.parse(fs.readFileSync(cacheRulesPath, 'utf-8'));
       const imageRule = config.rules.find((r: any) =>
         r.expression.includes('/cdn-cgi/image/')
       );
 
       assert.ok(imageRule, 'Rule for /cdn-cgi/image/ must exist');
-      assert.equal(imageRule.action_parameters.edge_ttl.default, 31536000);
-      assert.equal(imageRule.action_parameters.browser_ttl.default, 31536000);
-      assert.ok(imageRule.action_parameters.headers['Cache-Control'].includes('immutable'));
-      assert.ok(imageRule.action_parameters.headers['Cache-Control'].includes('31536000'));
+      assert.equal(imageRule.action_parameters.edge_ttl.default, 604800);
+      assert.equal(imageRule.action_parameters.browser_ttl.default, 604800);
+      assert.ok(imageRule.action_parameters.headers['Cache-Control'].includes('604800'));
       assert.equal(imageRule.action_parameters.headers.Vary, 'Accept');
     });
 
@@ -262,7 +260,7 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
       });
 
       assert.ok(output.includes('Cloudflare Image Resizing edge pipeline verified successfully'));
-      assert.ok(output.includes('1-Year Immutable Caching Policy'));
+      assert.ok(output.includes('1-Week Edge Caching Policy'));
       assert.ok(output.includes('Format Auto-Negotiation: AVIF'));
       assert.ok(output.includes('Format Auto-Negotiation: WebP Fallback'));
     });
@@ -298,8 +296,8 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
         'Must document /cdn-cgi/image/ transformation prefix'
       );
       assert.ok(
-        content.includes('31536000') || content.includes('immutable'),
-        'Must document 1-year immutable caching'
+        content.includes('604800') || content.includes('31536000') || content.includes('immutable'),
+        'Must document edge caching policy (604800s)'
       );
       assert.ok(
         content.includes('Vary') || content.includes('format=auto'),
