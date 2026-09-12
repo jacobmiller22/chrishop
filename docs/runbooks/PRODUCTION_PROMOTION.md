@@ -54,34 +54,35 @@ This runbook defines the standard operating procedure for promoting code through
 
 ---
 
-### Phase B: Promoting Staging into Production (Release PR)
+### Phase B: Promoting Staging into Production (Automated Release PR)
 
-1. **Confirm Staging Health**:
+1. **Automated Release PR Generation & Continuous Rolling Changelog**:
+   - Every push/merge to `staging` automatically triggers `.github/workflows/staging-release-pr.yml`.
+   - The workflow invokes `pnpm run release:notes` (`scripts/compose-release-notes.ts`) to compose the release manifest from `origin/production..origin/staging`.
+   - If an open Release PR (`staging ➔ production`) exists, its body is continuously updated with the latest commits, merged PRs, resolved issues, changed monorepo workspaces, and pending D1 migrations.
+   - If no Release PR exists, one is automatically created:
+     `chore(release): Promote staging to production [Pending Review]`
+     with labels `type:release`, `status:needs-review`, and reviewer `jacobmiller22` assigned.
+   - Alternatively, maintainers can manually compose or inspect release notes locally:
+     ```bash
+     pnpm run release:notes --base origin/production --head origin/staging
+     ```
+
+2. **Confirm Staging Health & Preflight Checks**:
    - Verify staging edge returns HTTP 200:
      ```bash
      curl -s -f https://staging-chrishop.jacobmiller22.com/api/health | jq .
      ```
-2. **Open Release Promotion PR**:
-   - Open PR from `staging` targeting `production`:
-     ```bash
-     gh pr create \
-       --base production \
-       --head staging \
-       --title "chore(release): Promote Staging to Production ($(date +%Y-%m-%d))" \
-       --body "## Release Candidate Summary
-     Promoting validated staging integration changes to production edge.
+   - Review preflight promotion checklist items inside the Release PR description.
 
-     ### Preflight Checklist
-     - [x] Staging integration tests passed.
-     - [x] Ephemeral previews verified.
-     - [x] Staging edge health verified at https://staging-chrishop.jacobmiller22.com/api/health.
-     - [ ] Production deployment approved via GitHub Actions environment gate."
-     ```
 3. **Automated CI Validation**:
-   - `Enforce Staged Promotion Rules` verifies `head == staging`.
+   - `Enforce Staged Promotion Rules` in `.github/workflows/ci.yml` verifies `head == staging`.
    - `Lint, Typecheck, Test & Build` completes 100% cleanly.
-4. **Merge Release PR**:
-   - Merge `staging` into `production` (approved review required).
+
+4. **Review, Approve & Merge Release PR**:
+   - Designated maintainer (`jacobmiller22`) approves the Release PR on GitHub.
+   - Merge `staging` into `production` (rebase or squash-and-merge).
+
 
 ---
 
