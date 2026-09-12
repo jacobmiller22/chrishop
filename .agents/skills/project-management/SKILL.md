@@ -99,14 +99,19 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`).
 4. **Post Comprehensive Completion Comment & Close GitHub Issue**:
    - Post a comprehensive completion comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
+     - **Merge & Human Review Status Header**: Explicitly state status (`🟡 HUMAN INPUT REQUIRED BEFORE MERGE`, `🟢 MERGED / NO INPUT NEEDED`, `🔴 BLOCKED / PENDING`, or `❌ ACTION REQUIRED / FAILING`).
+     - **Verification Links with Proper Descriptive Anchors**: Include markdown links with descriptive text (never naked URLs) for the PR (`[PR #<N>: <Title>](...)`), Issue (`[Issue #<N>: <Title>](...)`), CI Run (`[CI Run #<ID>](...)`), and Ephemeral Preview with deep route anchors (`[Storefront (/)]`, `[Admin (/admin)]`, `[Health (/api/health)]`).
      - **Completion Status & Deliverables Summary** (created/modified files, interfaces, endpoints, verification outputs).
-     - **Linked Pull Requests & Commit References** (PR URL e.g. `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`, commit SHA).
-     - **Verification Results** (typecheck, lint, build, test outputs).
-     - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, deployment notes).
+     - **Verification Results** (typecheck, lint, build, unit and ephemeral integration test outputs).
+     - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, staging/production deployment notes).
    - Update issue label to `status:completed` and close the issue (`gh issue close <IssueNumber>`).
-5. **Update Progress & Unblocked Dependencies**:
+5. **Update Progress & Deliver Structured Summary to User**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
-   - Present a concise report to the user with completed work, PR/commit references, and unblocked next steps.
+   - Present a structured handoff report to the user following [story-feedback-loop](../story-feedback-loop/SKILL.md) Section 7.2:
+     - **Prominent Status Indicator**: Explicitly state if human input is needed before merge, if already merged, if blocked, or if failing.
+     - **Verification Links Table**: All links formatted with proper markdown anchors and deep preview routes.
+     - **Verification Evidence & Deliverables**.
+     - **Copy-pasteable Next Steps / Merge Command**.
 6. **Worktree Teardown & Process Reaping**:
    - Switch back to the main monorepo worktree: `wt switch main`.
    - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.

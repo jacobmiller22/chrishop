@@ -65,6 +65,15 @@ def is_shovel_ready(issue, closed_numbers):
 
     return True, "Shovel-ready"
 
+def extract_model_recommendation(body):
+    if not body:
+        return "Medium", "Gemini 3.8 Flash (Medium Thinking)"
+    match = re.search(r'\*\*Thinking Level\*\*:\s*([A-Za-z]+)', body, re.IGNORECASE)
+    level = match.group(1).capitalize() if match else "Medium"
+    model_match = re.search(r'\*\*Recommended Model\*\*:\s*([^\n]+)', body, re.IGNORECASE)
+    model_desc = model_match.group(1).strip() if model_match else f"Gemini 3.8 Flash ({level} Thinking)"
+    return level, model_desc
+
 def rank_key(issue):
     labels = [l['name'] for l in issue.get('labels', [])]
     
@@ -119,6 +128,8 @@ def main():
                 "title": i["title"],
                 "labels": [l["name"] for l in i.get("labels", [])],
                 "milestone": (i.get("milestone") or {}).get("title"),
+                "thinking_level": extract_model_recommendation(i.get("body", ""))[0],
+                "recommended_model": extract_model_recommendation(i.get("body", ""))[1],
                 "body": i.get("body", "")
             }
             for i in selected
@@ -135,8 +146,10 @@ def main():
         phase = next((l for l in labels if l.startswith('epic:')), 'No Phase')
         prio = next((l for l in labels if l.startswith('priority:')), 'No Priority')
         size = next((l for l in labels if l.startswith('size:')), 'No Size')
+        thinking_level, rec_model = extract_model_recommendation(issue.get('body', ''))
         print(f"[{rank}] Issue #{issue['number']}: {issue['title']}")
-        print(f"    Phase: {phase} | Priority: {prio} | Size: {size}")
+        print(f"    Phase: {phase} | Priority: {prio} | Size: {size} | Thinking: {thinking_level}")
+        print(f"    Model: {rec_model}")
         print(f"    URL: https://github.com/{args.repo}/issues/{issue['number']}")
         print()
 

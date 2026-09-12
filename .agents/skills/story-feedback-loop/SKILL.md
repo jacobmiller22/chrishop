@@ -65,26 +65,30 @@ flowchart TD
 Before modifying any source code for a story:
 
 1. **Verify Tooling**: Confirm Git 2.43+ and `wt` (worktrunk) are available in `PATH` (`export PATH="/opt/homebrew/bin:$PATH"`).
-2. **Transition Issue Status to `In Progress`**:
+2. **Inspect Model & Thinking Level Recommendation**:
+   - Check the issue header for the recommended model configuration (e.g. `> **Recommended Model**: Gemini 3.8 Flash (<Level> Thinking)`).
+   - Calibrate the Implementor's and SME Judge's reasoning depth and token expenditure to match the assigned thinking budget (see Section 4.3).
+3. **Transition Issue Status to `In Progress`**:
    - Apply the `status:in-progress` label to the GitHub Issue:
      ```bash
      gh issue edit <IssueNumber> --add-label "status:in-progress"
      ```
    - If a GitHub Project v2 board is active, ensure the issue card moves from `Backlog` to `In Progress`.
-3. **Post Start-of-Work Comment**: Post an explicit initialization comment on the GitHub Issue:
+4. **Post Start-of-Work Comment**: Post an explicit initialization comment on the GitHub Issue:
    ```bash
    gh issue comment <IssueNumber> --body "🚀 **Status**: In Progress
 
    - **Worktree**: \`feature/story-<X>-<Y>-<shortname>\`
+   - **Model & Thinking Tier**: Gemini 3.8 Flash (<Level> Thinking)
    - **Implementor**: AI Agent
    - **Technical Strategy**: <Brief breakdown of architectural approach, components to create/modify, and design decisions>
    - **Target Acceptance Criteria**: <Specific checklist items and intent objectives being addressed>"
    ```
-4. **Provision Isolated Worktree**: Create and switch to a dedicated isolated worktree and branch for the story using `wt`:
+5. **Provision Isolated Worktree**: Create and switch to a dedicated isolated worktree and branch for the story using `wt`:
    ```bash
    wt switch --create feature/story-<X>-<Y>-<short-description>
    ```
-5. **Verify Clean Workspace**: Confirm clean worktree state before beginning code modifications (`git status`).
+6. **Verify Clean Workspace**: Confirm clean worktree state before beginning code modifications (`git status`).
 
 ---
 
@@ -251,6 +255,22 @@ The SME Judge is an architectural authority who ensures stories do not merely ch
    - Ensure all periodic comments have been posted to the issue audit trail.
    - Post the comprehensive completion comment (see Section 7).
    - Finalize issue status and close the issue.
+
+### 4.3 Model & Thinking Budget Alignment (Calibrated Reasoning Depth)
+
+Every story specifies a recommended model tier and thinking budget in its GitHub issue header (`> [!NOTE] > **Recommended Model**: Gemini 3.8 Flash (<Level> Thinking)`). The Implementor and SME Judge must adapt their execution depth accordingly:
+
+1. **Low Thinking (Low Complexity / Narrow Scope / Routine Docs)**:
+   - **Implementor**: Focus on rapid, direct implementation of the acceptance criteria checklist. Avoid speculative over-engineering, unrequested abstractions, or excessive internal debate.
+   - **SME Judge**: Verify acceptance criteria conformance, basic sanity checks, and type/test passing. Approve promptly without demanding unnecessary architectural refactoring.
+
+2. **Medium Thinking (Standard Features / UI State / Typical API Integrations)**:
+   - **Implementor**: Ensure clean component modularity, proper error boundaries, and integration tests using ephemeral D1/KV fixtures.
+   - **SME Judge**: Evaluate architectural intent, check error resilience and user feedback states, and guide non-blocking ideas into follow-up issues.
+
+3. **High Thinking (Complex Pipelines / Security / Concurrency / Reversible Migrations / Critical Bugs)**:
+   - **Implementor**: Apply exhaustive analytical rigor. Deeply analyze edge-case failure modes, race conditions, raw cryptographic byte streams, idempotency locks, and backward-compatible schema evolutions.
+   - **SME Judge**: Enforce stringent adversarial critique. Challenge architectural assumptions, demand concrete integration proof under failure simulations, and ensure zero regressions.
 
 ---
 
@@ -430,6 +450,11 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 ```markdown
 # ✅ Story <X>.<Y> Completed: <Story Title>
 
+### 🚦 Merge & Human Review Status
+> [!IMPORTANT]
+> **Status**: <🟡 HUMAN INPUT REQUIRED BEFORE MERGE | 🟢 MERGED / NO INPUT NEEDED | 🔴 BLOCKED / PENDING | ❌ ACTION REQUIRED / FAILING>
+> *(Run `gh pr merge <PR_NUMBER> --squash` after human review if required)*
+
 ### 🌐 Live Environment & Verification Links
 - **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
 - **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
@@ -447,10 +472,10 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 <Concise bullet list of touched files with brief descriptions>
 
 ### 🧪 Verification & Validation Results
-- **Turnkey Verification**: \`pnpm run verify:local\` (7/7 checks passed)
-- **Typecheck & Lint**: \`pnpm run check\` (0 errors)
-- **Automated Tests**: \`pnpm run test:all\` (<X> unit + <Y> integration tests passing)
-- **Production Build**: \`pnpm run build\` (passed)
+- **Turnkey Verification**: `pnpm run verify:local` (7/7 checks passed)
+- **Typecheck & Lint**: `pnpm run check` (0 errors)
+- **Automated Tests**: `pnpm run test:all` (<X> unit + <Y> integration tests passing)
+- **Production Build**: `pnpm run build` (passed)
 - **CI Status**: All remote GitHub Actions checks passed
 
 ### 🔮 Unblocked Next Stories
@@ -465,9 +490,10 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 Every agent executing a user story must systematically complete and verify every item on this checklist:
 
 - [ ] **Story Initialization**:
+  - [ ] Inspected issue header for recommended model tier and thinking budget (Low / Medium / High).
   - [ ] Applied `status:in-progress` label to GitHub issue.
   - [ ] Moved Project v2 board card to `In Progress`.
-  - [ ] Posted start-of-work comment on GitHub issue detailing technical plan and target criteria.
+  - [ ] Posted start-of-work comment on GitHub issue detailing technical plan, assigned model tier, and target criteria.
   - [ ] Created and switched to isolated worktree: `wt switch --create feature/story-<X>-<Y>-<shortname>`.
 - [ ] **Periodic Progress Updates**:
   - [ ] Posted Milestone 2 comment upon reaching core component/scaffolding milestone.
