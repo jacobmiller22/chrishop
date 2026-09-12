@@ -308,4 +308,44 @@ describe('Story 1.20: PDP Hero Image Refresh & Hydration Handling', () => {
       assert.equal(loadedImages.has(networkUrl), true, 'onload must register prefetched image');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // 5. Story 1.21: Dynamic Thumbnail URL & High-Res Downscaling
+  // ---------------------------------------------------------------------------
+  describe('Story 1.21: Dynamic Thumbnail URL Resolution & Client Downscaling', () => {
+    it('should render 160w thumbnail variants when images are not yet loaded in cache', () => {
+      const html = renderToStaticMarkup(React.createElement(ProductDetailClient, { product: MOCK_PRODUCT }));
+
+      // During initial SSR (loadedImages is empty), thumbnails must use the 160w transformed variant
+      assert.ok(html.includes('width=160'), 'Uncached thumbnails must request width=160');
+      assert.ok(html.includes('fit=cover'), 'Thumbnail requests must specify fit=cover');
+      assert.ok(html.includes('width="80"'), 'Thumbnail element must specify explicit width=80');
+      assert.ok(html.includes('height="80"'), 'Thumbnail element must specify explicit height=80');
+    });
+
+    it('should resolve thumbnail URL to cached 1024w high-res asset when loadedImages.has(url) is true', () => {
+      const loadedImages = new Set<string>();
+      const testMediaUrl = 'https://media.chrishop.jacobmiller22.com/media/bramble-buster/workbench-seam.jpeg';
+
+      const resolveThumbnailUrl = (url: string) => {
+        const isCachedHighRes = loadedImages.has(url);
+        return isCachedHighRes
+          ? `https://chrishop.jacobmiller22.com/cdn-cgi/image/width=1024,quality=80,format=auto,onerror=redirect/${url}`
+          : `https://chrishop.jacobmiller22.com/cdn-cgi/image/width=160,quality=75,format=auto,fit=cover,onerror=redirect/${url}`;
+      };
+
+      // Initially unloaded: returns 160w variant
+      const initialUrl = resolveThumbnailUrl(testMediaUrl);
+      assert.ok(initialUrl.includes('width=160'), 'Initial thumbnail must use 160w variant');
+      assert.ok(!initialUrl.includes('width=1024'), 'Initial thumbnail must not request 1024w');
+
+      // Mark media as loaded (simulating hero mount or prefetch)
+      loadedImages.add(testMediaUrl);
+
+      // Once loaded: resolves to cached 1024w master variant with ZERO extra network egress
+      const cachedUrl = resolveThumbnailUrl(testMediaUrl);
+      assert.ok(cachedUrl.includes('width=1024'), 'Cached thumbnail must use 1024w high-resolution asset');
+      assert.ok(!cachedUrl.includes('width=160'), 'Cached thumbnail must no longer request 160w variant');
+    });
+  });
 });

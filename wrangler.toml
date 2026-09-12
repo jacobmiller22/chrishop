@@ -28,6 +28,12 @@ id = "8e448bf8d94d4d8ea2cba989f193343d"
 binding = "BUCKET"
 bucket_name = "chrishop-media-prod"
 
+# Production Feature Flags (ADR-001)
+# Cloudflare Flagship Binding: Uncomment and set app_id when app is created in Cloudflare Dashboard
+# [[flagship]]
+# binding = "FLAGS"
+# app_id = "<PRODUCTION_FLAGSHIP_APP_ID>"
+
 [vars]
 NODE_ENV = "production"
 SITE_URL = "https://chrishop.jacobmiller22.com"
@@ -65,6 +71,11 @@ id = "0f39e4af03e344eaa160d11b047d09b6"
 [[env.staging.r2_buckets]]
 binding = "BUCKET"
 bucket_name = "chrishop-media-staging"
+
+# Staging Feature Flags (ADR-001)
+# [[env.staging.flagship]]
+# binding = "FLAGS"
+# app_id = "<STAGING_FLAGSHIP_APP_ID>"
 
 [env.staging.vars]
 NODE_ENV = "staging"
@@ -140,6 +151,11 @@ id = "71a3223ebcda4e03a4b79bd5df7311c5"
 [[env.preview.r2_buckets]]
 binding = "BUCKET"
 bucket_name = "chrishop-media-preview"
+
+# Ephemeral Preview Feature Flags (ADR-001)
+# [[env.preview.flagship]]
+# binding = "FLAGS"
+# app_id = "<PREVIEW_FLAGSHIP_APP_ID>"
 
 [env.preview.vars]
 NODE_ENV = "preview"
