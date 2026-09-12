@@ -1,25 +1,35 @@
 const fs = require('fs');
 const path = require('path');
 
+const candidatePaths = [
+  process.cwd(),
+  path.join(process.cwd(), 'apps/web'),
+  path.join(__dirname, '../apps/web'),
+  __dirname
+];
+
 // 1. Patch @next/env CJS/ESM interop
 try {
-  const envPath = require.resolve('@next/env');
-  let content = fs.readFileSync(envPath, 'utf8');
-  if (!content.includes('n.default=n;')) {
-    fs.writeFileSync(envPath, content.replace('module.exports=n', 'n.default=n;module.exports=n'));
-    console.log('[patch-dependencies] Patched @next/env');
+  const envPath = require.resolve('@next/env', { paths: candidatePaths });
+  if (fs.existsSync(envPath)) {
+    let content = fs.readFileSync(envPath, 'utf8');
+    if (!content.includes('n.default=n;')) {
+      fs.writeFileSync(envPath, content.replace('module.exports=n', 'n.default=n;module.exports=n'));
+      console.log('[patch-dependencies] Patched @next/env at', envPath);
+    } else {
+      console.log('[patch-dependencies] @next/env already patched at', envPath);
+    }
   }
 } catch (err) {
-  // ignore if not found
+  console.warn('[patch-dependencies] Could not resolve @next/env:', err.message);
 }
 
 // 2. Patch @opennextjs/cloudflare AST vercel-og patcher for multi-worker route splitting
 try {
-  const openNextPkg = require.resolve('@opennextjs/cloudflare/package.json', {
-    paths: [process.cwd(), path.join(process.cwd(), 'apps/web')]
-  });
+  const openNextEntry = require.resolve('@opennextjs/cloudflare', { paths: candidatePaths });
+  const pkgDir = path.resolve(path.dirname(openNextEntry), '../..');
   const patchFilePath = path.join(
-    path.dirname(openNextPkg),
+    pkgDir,
     'dist/cli/build/patches/ast/patch-vercel-og-library.js'
   );
   if (fs.existsSync(patchFilePath)) {
@@ -62,9 +72,11 @@ try {
 
     if (modified) {
       fs.writeFileSync(patchFilePath, content, 'utf8');
-      console.log('[patch-dependencies] Patched @opennextjs/cloudflare patch-vercel-og-library.js');
+      console.log('[patch-dependencies] Patched @opennextjs/cloudflare patch-vercel-og-library.js at', patchFilePath);
+    } else {
+      console.log('[patch-dependencies] @opennextjs/cloudflare already patched at', patchFilePath);
     }
   }
 } catch (err) {
-  // ignore
+  console.warn('[patch-dependencies] Could not resolve @opennextjs/cloudflare:', err.message);
 }
