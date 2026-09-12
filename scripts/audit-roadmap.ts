@@ -293,7 +293,7 @@ export function auditDeliverables(
         // Check if context in text indicates intentional removal/deprecation or if issue is superseded
         const escaped = relPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const removalRegex = new RegExp(
-          `(?:remove|delete|deprecat|supersed|decommission|cleanup|replace)[^\\n]*${escaped}|${escaped}[^\\n]*(?:removed|deleted|deprecated|superseded|decommissioned|replaced)`,
+          `(?:remove|delete|deprecat|supersed|decommission|cleanup|replace|archive)[^\\n]*${escaped}|${escaped}[^\\n]*(?:removed|deleted|deprecated|superseded|decommissioned|replaced|archived)`,
           'i'
         );
         if (isSupersededStory || removalRegex.test(allText)) {

@@ -67,6 +67,8 @@ jobs:
 
       - name: Run Local In-Memory Integration Tests
         run: pnpm run test:integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Monorepo Workspaces
         run: pnpm run build
