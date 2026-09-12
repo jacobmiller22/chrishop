@@ -14,6 +14,7 @@ const VALID_VIBES: Set<string> = new Set([
   'seventies_retro',
 ]);
 
+export const dynamic = 'force-static';
 export const revalidate = 60;
 
 export default async function HomePage(props: {
