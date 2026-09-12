@@ -43,11 +43,13 @@ def get_issues(repo):
 def is_shovel_ready(issue, closed_numbers):
     labels = [l['name'] for l in issue.get('labels', [])]
     
-    # Skip blocked, in-progress, or touchpoint review stories
+    # Skip blocked, in-progress, completed (PR awaiting merge), or touchpoint review stories
     if 'blocked' in labels:
         return False, "Has 'blocked' label"
     if 'status:in-progress' in labels:
         return False, "Already 'in-progress'"
+    if 'status:completed' in labels:
+        return False, "Already completed (PR awaiting merge)"
     if 'creator-review' in labels:
         return False, "Human Creator Review touchpoint"
     if 'needs-refinement' in labels:

@@ -133,13 +133,13 @@ You MUST strictly follow the protocol defined in `.agents/skills/story-feedback-
 6. Pull Request & Linking: Push branch, create PR targeting `staging` (`gh pr create --base staging`) with `Fixes #<ISSUE_NUMBER>` in the PR body. Post PR link comment on the issue.
 7. CI Verification: Verify automated checks pass via `gh pr checks <PR_NUMBER>`.
 8. High-Detail Completion Documentation: Post a comprehensive completion comment on GitHub Issue #<ISSUE_NUMBER> detailing deliverables, file list, verification outputs, and PR link.
-9. Finalize Status: Remove "status:in-progress", apply "status:completed", and close the issue via `gh issue close <ISSUE_NUMBER> --reason "completed"`.
+9. Finalize Status: Remove "status:in-progress" and apply "status:completed". **DO NOT close the issue until the PR has been merged.** If the PR is open / pending merge, leave the issue OPEN. Only if the PR is confirmed merged should the issue be closed via `gh issue close <ISSUE_NUMBER> --reason "completed"`.
 10. Worktree Teardown: Switch back (`wt switch staging` or `wt switch main`), reap background processes, and remove the worktree via `wt remove --reap feature/story-<X>-<Y>-<slug>`. Run `git worktree prune`.
 
 When complete, message the Orchestrator with:
-- PR URL and Commit SHA
+- PR URL, Commit SHA, and PR merge status (Merged vs Open / Awaiting Merge)
 - Ephemeral Preview Environment URLs (Storefront, Admin, API health probe)
-- Issue closure confirmation
+- Issue status confirmation (Open with `status:completed` awaiting PR merge, or Closed if PR merged)
 - Monorepo verification evidence (including `pnpm run verify:local` summary)
 - Any unblocked next steps or deferred scope
 - Any blockers encountered that prevent completion
@@ -166,7 +166,7 @@ When a worker reports completion, the Orchestrator MUST NOT take its word at fac
 ```markdown
 ### Chief Judge Audit Checklist
 
-- [ ] 1. **Issue State**: Is Issue #<N> closed on GitHub (`gh issue view <N> --json state`)? Does it have `status:completed`?
+- [ ] 1. **Issue & PR Lifecycle State**: Does Issue #<N> have `status:completed` (with `status:in-progress` removed)? Ensure the issue has **NOT** been closed prematurely while its PR is still open. If the PR is open, the issue MUST remain OPEN. If the PR is merged, the issue MUST be closed.
 - [ ] 2. **Audit Trail**: Were progress comments posted on the issue? Does the final comment include a full breakdown of deliverables, modified files, verification evidence, PR URL, and live ephemeral preview links?
 - [ ] 3. **PR & Linking**: Is the PR open/merged on GitHub? Does the PR description include `Fixes #<N>`? Did CI checks pass (`gh pr checks <PR_NUMBER>`)?
 - [ ] 4. **Live Preview Verification**: Did the ephemeral preview deploy successfully? Are the preview URL (`https://pr-<N>-chrishop.jacobmiller22.com`) and admin route accessible and verified?
@@ -202,7 +202,7 @@ Once all workers have completed and passed audit (or reported insurmountable blo
 
 | Story | PR | Staging & Ephemeral Preview Environments | Commit | Issue | Status |
 | --- | --- | --- | --- | --- | --- |
-| **Story X.Y: Title** | [#100](https://github.com/...) | [Staging](https://staging-chrishop.jacobmiller22.com) · [Admin](https://staging-chrishop.jacobmiller22.com/admin)<br/>[PR Preview](https://pr-100-chrishop.jacobmiller22.com) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
+| **Story X.Y: Title** | [#100](https://github.com/...) | [Staging](https://staging-chrishop.jacobmiller22.com) · [Admin](https://staging-chrishop.jacobmiller22.com/admin)<br/>[PR Preview](https://pr-100-chrishop.jacobmiller22.com) | `abc1234` | [#42](https://github.com/...) | PR Open (Issue Open) / PR Merged (Issue Closed) ✅ |
 
 ### 🔍 Chief Judge Audit Findings
 

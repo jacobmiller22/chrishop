@@ -53,9 +53,12 @@ flowchart TD
     O -- CI Failing --> P[Implementor: Resolve Failures & Push Fixes]
     P --> O
     O -- CI Passing --> Q[8. Post High-Detail Completion Comment on Issue]
-    Q --> R[9. Finalize Issue Status: status:completed & gh issue close]
+    Q --> R[9. Update Issue Status: Apply status:completed (Keep Issue Open)]
     R --> S[10. Worktree Teardown: wt switch main & wt remove --reap]
-    S --> T[11. Final Summary Handoff to User]
+    S --> T[11. Final Summary Handoff to User with PR & Live Preview Links]
+    T --> U{PR Merged?}
+    U -- Yes --> V[Close GitHub Issue: gh issue close --reason completed]
+    U -- Awaiting Merge / Review --> W[Keep Issue Open until PR is merged]
 ```
 
 ---
@@ -419,7 +422,7 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
   - To test locally: checkout \`feature/story-<X>-<Y>-<shortname>\`, run \`pnpm install\`, then \`pnpm dev\`."
 ```
 
-### 7.2 Finalizing Story Status & Issue Closure
+### 7.2 Finalizing Story Status & PR-Gated Issue Closure
 
 Once the comprehensive comment has been posted:
 
@@ -430,14 +433,28 @@ Once the comprehensive comment has been posted:
    gh issue edit <IssueNumber> --remove-label "status:in-progress" --add-label "status:completed"
    ```
 
-2. **Close the GitHub Issue**:
+2. **CRITICAL GATE: DO NOT Close the GitHub Issue Until the PR is Merged**:
+   > [!IMPORTANT]
+   > **Never close a GitHub issue while its associated pull request is still open or pending review.**
+   > The issue must remain **OPEN** with label `status:completed` as long as the PR is open.
 
+   Check PR merge status:
    ```bash
-   gh issue close <IssueNumber> --reason "completed"
+   gh pr view <PR_NUMBER> --json state,merged -q '{state: .state, merged: .merged}'
    ```
 
+   - **If PR is NOT yet merged** (`merged: false`):
+     **DO NOT close the issue.** Leave the issue open. The issue card on the Project board transitions to `In Review` (handled by `board-sync.yml` or manual update). The issue will be closed once the pull request has been merged.
+   - **If PR IS already merged** (`merged: true`):
+     Close the issue if not already closed automatically by GitHub via `Fixes #<IssueNumber>`:
+     ```bash
+     gh issue close <IssueNumber> --reason "completed"
+     ```
+
 3. **Update GitHub Project v2 Board**:
-   If a GitHub Project v2 board is in use, verify that the card status is transitioned to `Done` (either through GitHub Action `board-sync.yml` automation via the linked PR or manually via `gh project item-edit`).
+   If a GitHub Project v2 board is in use:
+   - While the PR is open, the card stays in or moves to `In Review`.
+   - Once the PR is merged, the card transitions to `Done` (either through GitHub Action `board-sync.yml` automation via the linked PR or manually via `gh project item-edit`).
 
 ---
 
@@ -462,7 +479,7 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 - **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
 - **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
 - **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
-- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`Closed / Completed`)
+- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`status:completed` · Open awaiting PR merge / Closed if PR merged)
 - **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)
 
 ### 📦 Summary of Accomplishments
@@ -513,8 +530,8 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Included live ephemeral preview links (Storefront, Admin, API health probe) in Milestone 6/7 comments, GitHub issue completion comment, and final user handoff report in chat.
   - [ ] Posted high-detail completion comment on GitHub issue (deliverables, file list, verification results, PR link, preview links, follow-up issues).
   - [ ] Updated issue label to `status:completed` (removed `status:in-progress`).
-  - [ ] Closed GitHub issue via `gh issue close <IssueNumber> --reason "completed"`.
-  - [ ] Verified Project v2 card transitioned to `Done`.
+  - [ ] **Issue Closure Gate**: Verified PR merge status before closing. If PR is open/pending merge, kept issue **OPEN** with `status:completed`. Only closed via `gh issue close <IssueNumber> --reason "completed"` if the PR has already been merged.
+  - [ ] Verified Project v2 card reflects correct status (`In Review` if PR is open; `Done` once PR is merged).
   - [ ] Delivered final user handoff report with live preview and PR links in chat.
 - [ ] **Worktree Teardown & Cleanup**:
   - [ ] Switched back to main monorepo worktree: `wt switch main`.

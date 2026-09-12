@@ -104,6 +104,41 @@ function fetchIssues(): Issue[] {
   return JSON.parse(raw);
 }
 
+interface PullRequest {
+  number: number;
+  state: string;
+  mergedAt: string | null;
+  title: string;
+}
+
+function fetchPullRequests(): PullRequest[] {
+  try {
+    const raw = runGh(
+      'gh pr list --state all --limit 200 --json number,state,mergedAt,title'
+    );
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function findAssociatedPr(issue: Issue, prs: PullRequest[]): PullRequest | undefined {
+  const exactIssueMatch = prs.find(
+    (pr) => pr.title.includes(`(#${issue.number})`) || pr.title.includes(`#${issue.number}`)
+  );
+  if (exactIssueMatch) return exactIssueMatch;
+
+  const storyMatch = issue.title.match(/Story\s+([\d.]+)/i);
+  if (storyMatch) {
+    const storyId = storyMatch[1];
+    const prWithStory = prs.find((pr) =>
+      new RegExp(`Story\\s+${storyId}\\b`, 'i').test(pr.title)
+    );
+    if (prWithStory) return prWithStory;
+  }
+  return undefined;
+}
+
 interface MissingDeliverableItem {
   issueNumber: number;
   title: string;
@@ -175,6 +210,10 @@ function analyzeDependenciesAndReadiness(issues: Issue[]): DependencyAnalysis {
     const title = issue.title;
     const body = issue.body || '';
     const labelNames = issue.labels.map((l) => l.name);
+    if (labelNames.includes('status:completed') || labelNames.includes('status:in-progress')) {
+      // Story is actively in progress or completed and awaiting PR merge
+      continue;
+    }
 
     if (labelNames.includes('needs-refinement') || body.trim().length < 80) {
       needsRefinement.push({
@@ -291,10 +330,26 @@ function auditRoadmap() {
     (i) => !i.labels.some((l) => VALID_PRIORITIES.includes(l.name))
   );
 
-  // 4. Completed Left Open
-  const completedLeftOpen = openIssues.filter((i) =>
+  const prs = fetchPullRequests();
+
+  // 4. Completed Issues Lifecycle Sync
+  // Stories marked status:completed remain open while PR is open/pending review.
+  // An issue is only considered improperly left open if its PR has already been merged (or no open PR).
+  const completedIssues = openIssues.filter((i) =>
     i.labels.some((l) => l.name === 'status:completed')
   );
+
+  const awaitingPrMerge: Array<{ issue: Issue; pr?: PullRequest }> = [];
+  const completedLeftOpen: Array<{ issue: Issue; pr?: PullRequest }> = [];
+
+  for (const issue of completedIssues) {
+    const pr = findAssociatedPr(issue, prs);
+    if (pr && pr.state === 'OPEN') {
+      awaitingPrMerge.push({ issue, pr });
+    } else {
+      completedLeftOpen.push({ issue, pr });
+    }
+  }
 
   // 5. Deliverables on disk
   const missingDeliverables = skipDiskCheck ? [] : auditDeliverablesOnDisk(issues, repoRoot);
@@ -385,17 +440,28 @@ function auditRoadmap() {
     }
   }
 
-  // Completed left open
+  // Completed left open / awaiting PR merge
   if (completedLeftOpen.length === 0) {
     console.log(
-      `  ${colors.green}✅ Issue Lifecycle Sync:${colors.reset} No completed stories left open on GitHub.`
+      `  ${colors.green}✅ Issue Lifecycle Sync:${colors.reset} No completed stories with merged PRs left open on GitHub.`
     );
   } else {
     console.log(
-      `  ${colors.red}❌ Completed Stories Left Open on GitHub:${colors.reset}`
+      `  ${colors.red}❌ Completed Stories Left Open on GitHub (PR Merged / Unclosed):${colors.reset}`
     );
     for (const c of completedLeftOpen) {
-      console.log(`     - #${c.number}: "${c.title}"`);
+      const prInfo = c.pr ? `(PR #${c.pr.number} is ${c.pr.state})` : '(No active PR)';
+      console.log(`     - #${c.issue.number}: "${c.issue.title}" ${prInfo}`);
+    }
+  }
+
+  if (awaitingPrMerge.length > 0) {
+    console.log(
+      `  ${colors.cyan}⏳ Stories Completed & Awaiting PR Merge (${awaitingPrMerge.length}):${colors.reset}`
+    );
+    for (const item of awaitingPrMerge) {
+      const prInfo = item.pr ? `(PR #${item.pr.number}: ${item.pr.title})` : '';
+      console.log(`     - #${item.issue.number}: "${item.issue.title}" ${prInfo}`);
     }
   }
 
@@ -466,7 +532,8 @@ function auditRoadmap() {
     mdLines.push(`- **Milestones with Legacy Drift**: ${milestoneDrift.length}`);
     mdLines.push(`- **Orphaned Issues**: ${orphanedIssues.length}`);
     mdLines.push(`- **Issues Missing Priority**: ${missingPriority.length}`);
-    mdLines.push(`- **Completed Left Open**: ${completedLeftOpen.length}`);
+    mdLines.push(`- **Completed Left Open (PR Merged)**: ${completedLeftOpen.length}`);
+    mdLines.push(`- **Stories Awaiting PR Merge**: ${awaitingPrMerge.length}`);
     mdLines.push(`- **Shovel-Ready Candidates**: ${shovelReady.length}`);
     mdLines.push(`- **Blocked Stories**: ${blocked.length}`);
     mdLines.push('');
