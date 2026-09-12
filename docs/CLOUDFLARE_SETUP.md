@@ -344,19 +344,25 @@ Every pull request triggers an automated preview deployment via `.github/workflo
 
 ---
 
-## 10. CI/CD Deployment Pipeline (Staging & Production)
+## 10. CI/CD Staged Promotion Pipeline (Staging ➔ Production)
 
-Deployments are automated through `.github/workflows/deploy.yml`:
+Deployments are governed by `.github/workflows/deploy.yml` across two promotion stages:
 
-- **Push to `staging` branch**:
-  - Triggers automated quality validation (`check`, `test:unit`, `build`).
-  - Deploys to staging environment via `pnpm exec wrangler deploy --env staging`.
-  - Routes traffic to `https://staging-chrishop.jacobmiller22.com`.
+- **Stage 1: Staging Integration (`staging` branch)**:
+  - Feature branches target `staging` by default.
+  - On push to `staging`, `deploy.yml` executes:
+    1. `build-and-validate`: Lint, typecheck, unit tests, security audit (`pnpm audit --audit-level=high`), and Next.js / OpenNext bundle build.
+    2. `deploy-staging`: Deploys worker bundle to staging via `wrangler deploy --env staging`.
+    3. `test-staging`: Executes automated health probe loop verifying `https://staging-chrishop.jacobmiller22.com/api/health` returns HTTP 200.
 
-- **Push to `main` branch**:
-  - Triggers automated quality validation.
-  - Deploys to production environment via `pnpm exec wrangler deploy --env production`.
-  - Routes traffic to `https://chrishop.jacobmiller22.com` and `https://shop.jacobmiller22.com`.
+- **Stage 2: Production Promotion (`staging` ➔ `production` Release PR)**:
+  - Direct pushes or PRs to `production` from any branch other than `staging` are strictly rejected by `enforce-promotion-rules` in `.github/workflows/ci.yml`.
+  - Merging a release PR from `staging` into `production` triggers the full gated CD pipeline:
+    1. `build-and-validate`: Full build and test suite execution.
+    2. `deploy-staging`: Deploys bundle to staging edge.
+    3. `test-staging`: Confirms 100% healthy staging probe results.
+    4. `deploy-production` (**✋ Human Approval Gate**): Enters waiting state in GitHub Actions `environment: production`, requiring explicit human reviewer approval (`jacobmiller22`). Once approved, executes `wrangler deploy --env production`.
+    5. `verify-production`: Automatically probes `https://chrishop.jacobmiller22.com/api/health` verifying live edge availability.
 
 - **Health Verification**:
   ```bash
@@ -366,6 +372,8 @@ Deployments are automated through `.github/workflows/deploy.yml`:
   # Check Production Health
   curl -s -f https://chrishop.jacobmiller22.com/api/health | jq .
   ```
+
+For full details, see the operational runbook: [docs/runbooks/PRODUCTION_PROMOTION.md](docs/runbooks/PRODUCTION_PROMOTION.md).
 
 ---
 

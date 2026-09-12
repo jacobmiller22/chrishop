@@ -118,6 +118,7 @@ You MUST strictly follow the protocol defined in `.agents/skills/story-feedback-
 
 When complete, message the Orchestrator with:
 - PR URL and Commit SHA
+- Ephemeral Preview Environment URLs (Storefront, Admin, API health probe)
 - Issue closure confirmation
 - Monorepo verification evidence (including `pnpm run verify:local` summary)
 - Any unblocked next steps or deferred scope
@@ -140,24 +141,25 @@ After launching worker subagents:
 
 ## 5. Stage 4: Chief Judge Adversarial Audit Protocol
 
-When a worker reports completion, the Orchestrator MUST NOT take its word at face value. The Orchestrator conducts an **Adversarial Audit** across 6 criteria before accepting the deliverable:
+When a worker reports completion, the Orchestrator MUST NOT take its word at face value. The Orchestrator conducts an **Adversarial Audit** across 7 criteria before accepting the deliverable:
 
 ```markdown
 ### Chief Judge Audit Checklist
 
 - [ ] 1. **Issue State**: Is Issue #<N> closed on GitHub (`gh issue view <N> --json state`)? Does it have `status:completed`?
-- [ ] 2. **Audit Trail**: Were progress comments posted on the issue? Does the final comment include a full breakdown of deliverables, modified files, verification evidence, and the PR URL?
+- [ ] 2. **Audit Trail**: Were progress comments posted on the issue? Does the final comment include a full breakdown of deliverables, modified files, verification evidence, PR URL, and live ephemeral preview links?
 - [ ] 3. **PR & Linking**: Is the PR open/merged on GitHub? Does the PR description include `Fixes #<N>`? Did CI checks pass (`gh pr checks <PR_NUMBER>`)?
-- [ ] 4. **Worktree Hygiene**: Did the worker clean up after itself? Run `wt list` — verify that `feature/story-X-Y` is NOT lingering in the active worktree list.
-- [ ] 5. **Monorepo Integrity**: Run `pnpm run check && pnpm run test:unit` at repository root to ensure zero cross-workspace TypeScript errors or test regressions.
-- [ ] 6. **Local Runtime Verification**: Did the worker provide evidence of passing `pnpm run verify:local` (ephemeral D1/KV integration tests, unit tests, build, and secrets hygiene)? Reject any deliverables that only rely on compilation without runtime validation.
+- [ ] 4. **Live Preview Verification**: Did the ephemeral preview deploy successfully? Are the preview URL (`https://pr-<N>-chrishop.jacobmiller22.com`) and admin route accessible and verified?
+- [ ] 5. **Worktree Hygiene**: Did the worker clean up after itself? Run `wt list` — verify that `feature/story-X-Y` is NOT lingering in the active worktree list.
+- [ ] 6. **Monorepo Integrity**: Run `pnpm run check && pnpm run test:unit` at repository root to ensure zero cross-workspace TypeScript errors or test regressions.
+- [ ] 7. **Local Runtime Verification**: Did the worker provide evidence of passing `pnpm run verify:local` (ephemeral D1/KV integration tests, unit tests, build, and secrets hygiene)? Reject any deliverables that only rely on compilation without runtime validation.
 ```
 
 ### Remediation Protocol
 
 If an audit item fails:
 
-1. Send a message to the worker subagent specifying the exact deficiency (e.g. _"Worktree was not reaped; please run `wt switch main && wt remove --reap ...`"_ or _"Completion comment missing file breakdown"_).
+1. Send a message to the worker subagent specifying the exact deficiency (e.g. _"Worktree was not reaped; please run `wt switch main && wt remove --reap ...`"_ or _"Completion comment missing file breakdown or live preview links"_).
 2. Allow the worker to remedy the deficiency and report back.
 
 ---
@@ -178,9 +180,9 @@ Once all workers have completed and passed audit (or reported insurmountable blo
 
 ### 📦 Completed Stories
 
-| Story                | PR                             | Commit    | Issue                         | Status               |
-| -------------------- | ------------------------------ | --------- | ----------------------------- | -------------------- |
-| **Story X.Y: Title** | [#100](https://github.com/...) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
+| Story | PR | Staging & Ephemeral Preview Environments | Commit | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| **Story X.Y: Title** | [#100](https://github.com/...) | [Staging](https://staging-chrishop.jacobmiller22.com) · [Admin](https://staging-chrishop.jacobmiller22.com/admin)<br/>[PR Preview](https://pr-100-chrishop.jacobmiller22.com) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
 
 ### 🔍 Chief Judge Audit Findings
 
