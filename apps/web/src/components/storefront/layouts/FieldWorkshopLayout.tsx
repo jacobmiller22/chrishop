@@ -26,7 +26,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                   BANKBEATERS
                 </span>
                 <span className="text-[10px] tracking-[0.2em] text-[#8C9A8E] uppercase font-mono-workshop pt-1">
-                  Field Workshop · Ed. 2024
+                  Adventure Gear · Field Workshop
                 </span>
               </div>
             </Link>
@@ -52,7 +52,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
               href="/cart"
               className="px-3.5 py-1.5 border border-[#445348] hover:border-[#E55B24] bg-[#171D18] text-[#EBE6DD] hover:text-[#E55B24] transition-all flex items-center gap-2 rounded-xs"
             >
-              <span className="text-[11px] font-bold">Kit Bag</span>
+              <span className="text-[11px] font-bold">Gear Roll</span>
               <span className="text-[10px] bg-[#222C24] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
             </Link>
           </nav>
@@ -90,7 +90,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                 href="#bench-builds"
                 className="px-8 py-4 bg-[#E55B24] hover:bg-[#F26E38] text-[#101311] font-display-workshop text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-sm shadow-lg shadow-[#E55B24]/20"
               >
-                Inspect Workshop Roster ({products.length})
+                Explore Gear Roster ({products.length})
               </a>
               <Link
                 href="/about"
@@ -359,7 +359,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
           </div>
 
           <div>
-            <p>© {new Date().getFullYear()} BankBeaters Gear Co. Single-Needle Assembled. Free Bench Repair.</p>
+            <p>© {new Date().getFullYear()} BankBeaters Adventure Gear. Single-Needle Assembled. Free Bench Repair.</p>
           </div>
         </div>
       </footer>

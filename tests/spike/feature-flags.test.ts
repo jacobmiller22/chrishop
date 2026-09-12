@@ -232,7 +232,8 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
 
       const totalDurationMs = performance.now() - start;
       const avgLatencyMs = totalDurationMs / iterations;
-
+      assert.ok(
+        avgLatencyMs < 0.05,
         `Average Flagship decision latency (${avgLatencyMs.toFixed(5)}ms) must be < 0.05ms`
       );
     });
