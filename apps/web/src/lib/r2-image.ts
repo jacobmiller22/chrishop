@@ -60,6 +60,10 @@ export interface CloudflareImageOptions {
   background?: string;
   /** Sharpen amount (0-10) */
   sharpen?: number;
+  /** Blur radius (1-250) for progressive placeholders */
+  blur?: number;
+  /** Error handling behavior: redirect falls back to source original */
+  onerror?: 'redirect' | 'none';
 }
 
 /**
@@ -93,9 +97,15 @@ export interface CloudflareImageOptions {
 export const CANONICAL_IMAGE_PREFIX = '/cdn-cgi/image/';
 
 /**
- * Standard 1-year immutable edge caching header for transformed media
+ * Standard 1-week edge caching TTL in seconds (604,800s / 7 days)
+ * Calibrated for active performance testing and responsive catalog iteration.
  */
-export const EDGE_CACHE_CONTROL_HEADER = 'public, max-age=31536000, immutable';
+export const EDGE_CACHE_TTL_SECONDS = 604800;
+
+/**
+ * Standard 1-week edge caching header for transformed media
+ */
+export const EDGE_CACHE_CONTROL_HEADER = 'public, max-age=604800';
 
 /**
  * Vary header for dynamic AVIF/WebP content negotiation
@@ -148,6 +158,8 @@ export function buildCloudflareImageUrl(
   if (options.fit !== undefined) params.push(`fit=${options.fit}`);
   if (options.background !== undefined) params.push(`background=${options.background}`);
   if (options.sharpen !== undefined) params.push(`sharpen=${options.sharpen}`);
+  if (options.blur !== undefined) params.push(`blur=${options.blur}`);
+  if (options.onerror !== undefined) params.push(`onerror=${options.onerror}`);
 
   // Default to auto format for modern browser optimization (WebP/AVIF negotiation)
   if (options.format === undefined) params.push('format=auto');
