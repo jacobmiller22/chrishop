@@ -203,6 +203,24 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     );
   });
 
+  it('should verify CI workflow runs worker bundle budgeting gate and dry-run deployment validation', () => {
+    assert.ok(fs.existsSync(ciWorkflowPath), 'ci.yml must exist');
+    const content = fs.readFileSync(ciWorkflowPath, 'utf-8');
+
+    assert.ok(
+      content.includes('run: pnpm run check:bundle'),
+      'CI workflow must execute bundle size check gate'
+    );
+    assert.ok(
+      content.includes('run: pnpm wrangler deploy --dry-run --env preview'),
+      'CI workflow must validate Cloudflare Worker deployment via dry-run'
+    );
+    assert.ok(
+      content.includes("if: github.event_name == 'pull_request'"),
+      'Dry-run deployment check must run on pull requests'
+    );
+  });
+
   it('should verify ephemeral PR preview deploy workflow triggers and notifications', () => {
     assert.ok(fs.existsSync(previewWorkflowPath), 'preview-deploy.yml must exist');
     const content = fs.readFileSync(previewWorkflowPath, 'utf-8');

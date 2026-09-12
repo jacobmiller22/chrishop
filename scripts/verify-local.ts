@@ -195,7 +195,12 @@ function verifyBuild() {
   execSync('pnpm run build', { stdio: 'pipe' });
 }
 
-// Stage 6: Git Hygiene & Worktree Cleanliness
+// Stage 7: Cloudflare Worker Bundle Size Budget Gate
+function verifyBundleBudget() {
+  execSync('pnpm run check:bundle', { stdio: 'pipe' });
+}
+
+// Stage 8: Git Hygiene & Worktree Cleanliness
 function verifyGitHygiene() {
   const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
   const leakedArtifacts = status
@@ -272,7 +277,16 @@ async function main() {
     skipReason: '--skip-build flag provided',
   });
 
-  await runStep('7. Git Worktree & Artifact Hygiene', verifyGitHygiene);
+  await runStep(
+    '7. Worker Bundle Size Budget Gate (check:bundle)',
+    verifyBundleBudget,
+    {
+      skip: skipBuild,
+      skipReason: '--skip-build flag provided',
+    }
+  );
+
+  await runStep('8. Git Worktree & Artifact Hygiene', verifyGitHygiene);
 
   printSummary();
 }

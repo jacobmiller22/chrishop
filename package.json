@@ -14,6 +14,7 @@
     "dev:types": "wrangler types",
     "dev:db": "tsx scripts/seed-db.ts",
     "check": "turbo run check",
+    "check:bundle": "tsx scripts/check-bundle-budget.ts",
     "test": "turbo run test",
     "test:unit": "turbo run test && tsx --test tests/integration/dependency-control.test.ts",
     "test:integration": "tsx --test tests/integration/**/*.test.ts tests/spike/**/*.test.ts",

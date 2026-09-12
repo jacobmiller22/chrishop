@@ -70,3 +70,10 @@ jobs:
 
       - name: Build Monorepo Workspaces
         run: pnpm run build
+
+      - name: Check Worker Bundle Size Budget Gate
+        run: pnpm run check:bundle
+
+      - name: Validate Cloudflare Worker Deployment (Dry-Run)
+        if: github.event_name == 'pull_request'
+        run: pnpm wrangler deploy --dry-run --env preview
