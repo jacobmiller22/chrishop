@@ -65,8 +65,29 @@ export const StorefrontVibeContainer: React.FC<StorefrontVibeContainerProps> = (
       const url = new URL(window.location.href);
       url.searchParams.set('vibe', vibe);
       window.history.pushState({}, '', url.toString());
+
+      // Jump back to the top of the page immediately upon choosing a vibe
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+
+      // Ensure that after DOM reconciliation / layout mount, scroll remains pinned at top
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
     }
   };
+
+  // Guarantee viewport reset to top whenever active vibe changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [activeVibe]);
 
   return (
     <div className="min-h-screen w-full relative">

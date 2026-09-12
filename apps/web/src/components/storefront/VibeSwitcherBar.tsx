@@ -212,8 +212,14 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
                   <button
                     key={vibe}
                     onClick={() => {
-                      onSelectVibe(vibe);
+                      // Release body scroll lock immediately so scrollTo is unblocked
+                      document.body.style.overflow = '';
+                      document.body.style.touchAction = '';
                       setIsOpen(false);
+                      onSelectVibe(vibe);
+                      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                      document.documentElement.scrollTop = 0;
+                      document.body.scrollTop = 0;
                     }}
                     className={`w-full text-left p-2.5 sm:p-3 rounded-xl border transition-all flex flex-col gap-1 sm:gap-1.5 touch-pan-y ${
                       isActive
