@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge, Button, CartDrawer, type CartItem } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/assets';
 import { shopify } from '@/lib/shopify';
+import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 
 interface ProductDetailClientProps {
   product: StorefrontProduct;
@@ -33,6 +34,38 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const variations: StorefrontVariation[] = product.variations || [];
   const [selectedVariationId, setSelectedVariationId] = useState<string>(variations[0]?.id || '');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+
+  const markImageLoaded = useCallback((url: string) => {
+    if (!url) return;
+    setLoadedImages((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+  }, []);
+
+  const prefetchFullImage = useCallback(
+    (url: string) => {
+      if (typeof window !== 'undefined' && url && !loadedImages.has(url)) {
+        const img = new window.Image();
+        img.src = buildCloudflareImageUrl(url, {
+          width: 1024,
+          quality: 80,
+          format: 'auto',
+          onerror: 'redirect',
+        });
+        if (img.complete && img.naturalWidth > 0) {
+          markImageLoaded(url);
+        } else {
+          img.onload = () => markImageLoaded(url);
+          img.onerror = () => markImageLoaded(url);
+        }
+      }
+    },
+    [loadedImages, markImageLoaded]
+  );
 
   const selectedVariation = variations.find((v) => v.id === selectedVariationId) || variations[0];
 
@@ -93,6 +126,40 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const activeMedia = mediaList[selectedImageIndex] || mediaList[0];
   const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🌲';
+
+  const heroImageRef = useRef<HTMLImageElement | null>(null);
+
+  const handleHeroImageRef = useCallback(
+    (el: HTMLImageElement | null) => {
+      heroImageRef.current = el;
+      if (el && el.complete && el.naturalWidth > 0 && activeMedia?.url) {
+        markImageLoaded(activeMedia.url);
+      }
+    },
+    [activeMedia?.url, markImageLoaded]
+  );
+
+  useEffect(() => {
+    const el = heroImageRef.current;
+    if (!el || !activeMedia?.url) return;
+
+    if (el.complete && el.naturalWidth > 0) {
+      markImageLoaded(activeMedia.url);
+      return;
+    }
+
+    if ('decode' in el && typeof el.decode === 'function') {
+      el.decode()
+        .then(() => {
+          if (activeMedia?.url) {
+            markImageLoaded(activeMedia.url);
+          }
+        })
+        .catch(() => {
+          // Ignore cancellation when switching images
+        });
+    }
+  }, [activeMedia?.url, markImageLoaded]);
 
   // Price resolution
   const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
@@ -225,12 +292,52 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
         <div className="lg:col-span-7 space-y-4">
           <div className="relative aspect-square w-full rounded-2xl bg-[#15191E] border border-stone-800 overflow-hidden flex items-center justify-center shadow-2xl">
             {activeMedia ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={activeMedia.url}
-                alt={activeMedia.label}
-                className="w-full h-full object-cover"
-              />
+              <div className="relative w-full h-full">
+                {/* Instant Low-Quality Blurred Placeholder (0ms paint, eliminates scanlines) */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={buildCloudflareImageUrl(activeMedia.url, {
+                    width: 32,
+                    quality: 30,
+                    blur: 50,
+                    format: 'auto',
+                    onerror: 'redirect',
+                  })}
+                  alt=""
+                  aria-hidden="true"
+                  className={`absolute inset-0 w-full h-full object-cover filter blur-lg scale-105 transition-opacity duration-700 pointer-events-none z-0 ${
+                    loadedImages.has(activeMedia.url) ? 'opacity-0' : 'opacity-100'
+                  }`}
+                />
+
+                {/* Prioritized High-Fidelity Active Hero Image with Responsive Srcset */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={handleHeroImageRef}
+                  key={activeMedia.url}
+                  src={buildCloudflareImageUrl(activeMedia.url, {
+                    width: 1024,
+                    quality: 80,
+                    format: 'auto',
+                    onerror: 'redirect',
+                  })}
+                  srcSet={generateCloudflareImageSrcset(activeMedia.url, [384, 640, 768, 1024, 1536])}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  alt={activeMedia.label}
+                  fetchPriority="high"
+                  loading="eager"
+                  decoding="async"
+                  onLoad={() => {
+                    markImageLoaded(activeMedia.url);
+                  }}
+                  onError={() => {
+                    markImageLoaded(activeMedia.url);
+                  }}
+                  className={`relative z-10 w-full h-full object-cover transition-opacity duration-500 ease-out ${
+                    loadedImages.has(activeMedia.url) ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              </div>
             ) : (
               <div className="text-center p-8 space-y-4">
                 <span className="text-8xl select-none inline-block filter drop-shadow-lg">
@@ -281,23 +388,46 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           {/* Gallery Thumbnails */}
           {mediaList.length > 1 && (
             <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              {mediaList.map((m, idx) => (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                    selectedImageIndex === idx
-                      ? 'border-[#E55B24] shadow-md shadow-orange-500/20'
-                      : 'border-stone-800 opacity-60 hover:opacity-100 hover:border-stone-600'
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={m.label} className="w-full h-full object-cover" />
-                  <span className="absolute bottom-0 inset-x-0 bg-stone-950/80 text-[9px] font-mono text-stone-300 truncate px-1 text-center">
-                    {m.tag}
-                  </span>
-                </button>
-              ))}
+              {mediaList.map((m, idx) => {
+                const thumbUrl = buildCloudflareImageUrl(m.url, {
+                  width: 160,
+                  quality: 75,
+                  format: 'auto',
+                  fit: 'cover',
+                  onerror: 'redirect',
+                });
+
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedImageIndex(idx);
+                      prefetchFullImage(m.url);
+                    }}
+                    onMouseEnter={() => prefetchFullImage(m.url)}
+                    onTouchStart={() => prefetchFullImage(m.url)}
+                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
+                      selectedImageIndex === idx
+                        ? 'border-[#E55B24] shadow-md shadow-orange-500/20'
+                        : 'border-stone-800 opacity-60 hover:opacity-100 hover:border-stone-600'
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thumbUrl}
+                      alt={m.label}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-0 inset-x-0 bg-stone-950/80 text-[9px] font-mono text-stone-300 truncate px-1 text-center">
+                      {m.tag}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 

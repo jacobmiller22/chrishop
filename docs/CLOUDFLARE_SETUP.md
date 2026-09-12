@@ -443,7 +443,7 @@ flowchart LR
     CFCache -->|No: Fetch Origin| R2[Cloudflare R2 Bucket / Custom Domain]
     R2 -->|3. Return Master JPEG/PNG| CFResizer[Cloudflare Image Resizing Service]
     CFResizer -->|4. Transcode to WebP/AVIF + Resize| CFEdge
-    CFEdge -->|5. Cache 1 Year (max-age=31536000, immutable)| CFCache
+    CFEdge -->|5. Cache 1 Week (max-age=604800)| CFCache
     CFEdge -->|6. Return Transformed Media| Client
 ```
 
@@ -487,11 +487,34 @@ All image requests conform to the canonical Cloudflare Image Resizing URL struct
 /cdn-cgi/image/width=1024,quality=80,format=auto/https://media.chrishop.jacobmiller22.com/uploads/pottery.png
 ```
 
-### 12.3 Cloudflare Zone Configuration (Image Resizing Enablement)
+### 12.3 Cloudflare Zone Configuration (Image Resizing & Transformations Enablement)
 
-Cloudflare Image Resizing must be enabled on the primary zone (`jacobmiller22.com`).
+Cloudflare Image Transformations must be enabled on the primary zone (`jacobmiller22.com`).
 
-#### Option A: Automated Configuration via Monorepo Script
+#### Cloudflare Images Free Tier Allocation
+- **5,000 Unique Transformations / Month Included at $0.00**:
+  - Applies to remote assets stored outside Cloudflare Images (e.g. Cloudflare R2).
+  - Format auto-negotiation (`format=auto`) counts as **only 1 transformation** across both AVIF and WebP deliveries.
+  - Repeat requests within the month are cached and do not count toward quota.
+  - ChrisShop catalog scale (24 photos × 4 variants = 96 monthly transforms) consumes **< 2% of the free tier**.
+  - Exceeding limit returns `9422` error or falls back via `onerror=redirect` without unexpected charges.
+
+#### Cloudflare API Token Permissions Matrix
+- **Storefront & Client Browsers (Runtime)**:
+  - **No token required**. Browsers request public `/cdn-cgi/image/...` URLs; Cloudflare edge authenticates against the zone setting.
+- **CI/CD Automation & Setup Scripts (`setup-image-resizing.sh`)**:
+  - `Zone > Zone Settings: Edit` — Allows API to toggle image resizing on/off (`PATCH /zones/:id/settings/image_resizing`).
+  - `Zone > Cache Rules: Edit` — Allows declarative cache rule management (`infra/r2/cache-rules-images.json`).
+- **Account-level Cloudflare Images Token**:
+  - Not required for ChrisShop runtime operations because master photos are stored in Cloudflare R2, not Cloudflare Images hosted storage.
+
+#### Option A: Cloudflare Dashboard (Recommended)
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/) and select the account owning `jacobmiller22.com`.
+2. Navigate to **Images** > **Transformations** (or **Stream** > **Transformations**).
+3. Under **Zones**, locate `jacobmiller22.com` and toggle **Enable**.
+4. In **Sources / Allowed Origins**, ensure zone preview domains and custom domains (`*.jacobmiller22.com`) are permitted.
+
+#### Option B: Automated Configuration via Monorepo Script
 ```bash
 # Dry run validation
 infra/scripts/setup-image-resizing.sh --dry-run
@@ -503,7 +526,7 @@ CLOUDFLARE_API_TOKEN="<token>" infra/scripts/setup-image-resizing.sh --zone-name
 CLOUDFLARE_API_TOKEN="<token>" infra/scripts/setup-image-resizing.sh --verify
 ```
 
-#### Option B: Cloudflare REST API
+#### Option C: Cloudflare REST API
 ```bash
 # Enable Image Resizing on the zone
 curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/settings/image_resizing" \
@@ -512,19 +535,15 @@ curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/settings
   --data '{"value":"on"}' | jq .
 ```
 
-#### Option C: Cloudflare Dashboard
-1. Log in to the Cloudflare Dashboard and select the `jacobmiller22.com` zone.
-2. Navigate to **Speed** > **Optimization** > **Content Optimization**.
-3. Under **Image Resizing**, toggle the setting to **On** (or **Open**).
-
 ### 12.4 Edge Caching & Content Negotiation Policies
 
-Transformed assets at the Cloudflare edge are governed by strict caching and content negotiation directives defined in `infra/r2/cache-rules-images.json`:
+Transformed assets at the Cloudflare edge are governed by caching and content negotiation directives defined in `infra/r2/cache-rules-images.json`:
 
-1. **1-Year Immutable Caching**:
-   - `Cache-Control: public, max-age=31536000, immutable`
-   - Configured for both `/cdn-cgi/image/*` transformations and source assets on `media.chrishop.jacobmiller22.com`.
-   - Browser and Cloudflare edge caches retain the optimized image for 1 year without origin revalidation.
+1. **1-Week Caching Policy (Performance Testing & Active Iteration)**:
+   - `Cache-Control: public, max-age=604800` (7 days / 604,800s)
+   - Configured for both `/cdn-cgi/image/*` transformations and source assets on `/media/*`.
+   - Browser and Cloudflare edge caches retain the optimized image for 1 week.
+   - Prevents stale image lockup during catalog photography iterations while providing instant edge cache hits for performance benchmarks.
 2. **Dynamic Format Negotiation & Cache Key Variation (`format=auto`)**:
    - Cloudflare inspects the incoming client `Accept` request header:
      - If client supports `image/avif`: Transcodes and returns AVIF format.
@@ -542,16 +561,16 @@ An automated probing script validates the end-to-end edge resizing pipeline:
 # Run automated in-memory simulation / test harness
 pnpm run verify:images -- --mock
 
-# Probe live staging or production edge environment
-pnpm run verify:images -- --live --url https://staging-chrishop.jacobmiller22.com
+# Probe live staging or preview edge environment
+pnpm run verify:images -- --live --url https://pr-202-chrishop.jacobmiller22.com --image-path media/bushwhack-storm-anorak/camo-variation.jpeg
 
 # Probe specific asset key with verbose output
-pnpm run verify:images -- --live --url https://chrishop.jacobmiller22.com --image-path uploads/sculpture-01.jpg --verbose
+pnpm run verify:images -- --live --url https://chrishop.jacobmiller22.com --image-path media/bushwhack-storm-anorak/camo-variation.jpeg --verbose
 ```
 
 The script verifies:
 - `HTTP 200 OK` response from `/cdn-cgi/image/...`
-- `Cache-Control: public, max-age=31536000, immutable` header presence
+- `Cache-Control: public, max-age=604800` header presence (>= 7 days)
 - `Vary: Accept` header presence
 - Format auto-negotiation (`image/avif` and `image/webp` responses)
 - Absence of native `sharp` imports across `apps/web/src`
