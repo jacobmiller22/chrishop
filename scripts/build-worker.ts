@@ -19,6 +19,7 @@ const webNextStaticDir = path.join(webAppDir, '.next/static');
 const webPublicDir = path.join(webAppDir, 'public');
 const webIndexHtmlPath = path.join(webAppDir, '.next/server/app/index.html');
 const webProductsHtmlPath = path.join(webAppDir, '.next/server/app/products.html');
+const webAboutHtmlPath = path.join(webAppDir, '.next/server/app/about.html');
 const webProductsDir = path.join(webAppDir, '.next/server/app/products');
 
 function copyRecursiveSync(src: string, dest: string): void {
@@ -128,6 +129,11 @@ export function buildWorker(): void {
   let productsHtml = '';
   if (fs.existsSync(webProductsHtmlPath)) {
     productsHtml = fs.readFileSync(webProductsHtmlPath, 'utf-8');
+  }
+
+  let aboutHtml = '';
+  if (fs.existsSync(webAboutHtmlPath)) {
+    aboutHtml = fs.readFileSync(webAboutHtmlPath, 'utf-8');
   }
 
   const productPages: Record<string, string> = {};
@@ -817,6 +823,7 @@ function renderPayloadAdmin(pathname) {
 
 const STOREFRONT_HTML = ${JSON.stringify(storefrontHtml)};
 const PRODUCTS_HTML = ${JSON.stringify(productsHtml)};
+const ABOUT_HTML = ${JSON.stringify(aboutHtml)};
 const PRODUCT_PAGES = ${JSON.stringify(productPages)};
 
 ${payloadAdminRenderer}
@@ -943,6 +950,17 @@ export default {
 
     if (pathname === '/') {
       return new Response(STOREFRONT_HTML, {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'public, max-age=60, s-maxage=300',
+        },
+      });
+    }
+
+    if (pathname === '/about') {
+      const html = ABOUT_HTML || STOREFRONT_HTML;
+      return new Response(html, {
         status: 200,
         headers: {
           'content-type': 'text/html; charset=utf-8',

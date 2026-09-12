@@ -30,6 +30,20 @@ export const flagSchema = z.object({
   FLAG_VERBOSE_DEBUG_HEADERS: z.boolean().default(false),
   /** Percentage (0-100) of visitor sessions bucketed into Phase 6 canary features */
   FLAG_PHASE_6_CANARY_PERCENT: z.number().min(0).max(100).default(0),
+  /** Controls storefront layout and aesthetic archetype */
+  FLAG_STOREFRONT_VIBE: z
+    .enum([
+      'field_workshop',
+      'alpine_minimal',
+      'hardware_vault',
+      'noir_minimal',
+      'cartographer_dispatch',
+      'brutalist_foundry',
+      'wabi_sabi',
+      'swiss_modernist',
+      'seventies_retro',
+    ])
+    .default('field_workshop'),
 });
 
 export type FeatureFlags = z.infer<typeof flagSchema>;
@@ -51,6 +65,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 100,
+    FLAG_STOREFRONT_VIBE: 'field_workshop',
   },
   staging: {
     FLAG_IS_DROP_ACTIVE: true,
@@ -61,6 +76,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 50,
+    FLAG_STOREFRONT_VIBE: 'field_workshop',
   },
   production: {
     FLAG_IS_DROP_ACTIVE: false,
@@ -71,6 +87,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: false,
     FLAG_VERBOSE_DEBUG_HEADERS: false,
     FLAG_PHASE_6_CANARY_PERCENT: 0,
+    FLAG_STOREFRONT_VIBE: 'field_workshop',
   },
   development: {
     FLAG_IS_DROP_ACTIVE: true,
@@ -81,6 +98,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 100,
+    FLAG_STOREFRONT_VIBE: 'field_workshop',
   },
   test: {
     FLAG_IS_DROP_ACTIVE: false,
@@ -91,6 +109,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: false,
     FLAG_VERBOSE_DEBUG_HEADERS: false,
     FLAG_PHASE_6_CANARY_PERCENT: 0,
+    FLAG_STOREFRONT_VIBE: 'field_workshop',
   },
 };
 
