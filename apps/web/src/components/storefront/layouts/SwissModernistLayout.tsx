@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface SwissModernistLayoutProps {
@@ -15,7 +14,14 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
       <header className="sticky top-0 z-40 w-full bg-[#0A0B0E]/95 backdrop-blur-md border-b border-[#20242C]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <span className="w-6 h-6 sm:w-7 sm:h-7 bg-[#002FA7] text-white font-bold flex items-center justify-center text-xs shrink-0">
                 CH
               </span>
@@ -27,7 +33,7 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
                   Adventure Gear · System 10,152&apos;
                 </span>
               </div>
-            </Link>
+            </a>
             <span className="hidden xl:inline-block text-[11px] font-mono-swiss text-[#64748B] uppercase border-l border-[#20242C] pl-6">
               LEADVILLE, CO // GEODETIC DATUM 39.2508° N, 106.2925° W
             </span>
@@ -37,19 +43,15 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
             <a href="#system-matrix" className="hover:text-white transition-colors hidden sm:inline">
               [01 / MATRIX]
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden md:inline">
-              [02 / OUTERWEAR]
-            </Link>
-            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
-              [04 / ABOUT]
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#334155] hover:border-[#002FA7] bg-[#11141A] text-white hover:bg-[#002FA7] transition-all flex items-center gap-1.5 sm:gap-2 shrink-0"
+            <a href="#system-principles" className="hover:text-white transition-colors hidden sm:inline">
+              [02 / PRINCIPLES]
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#334155] bg-[#11141A] text-white flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px]">GEAR ROLL</span>
               <span className="text-[10px] bg-[#1E2430] px-1.5 py-0.5 rounded text-[#38BDF8]">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -87,12 +89,12 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#system-principles"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border border-[#334155] hover:border-white bg-[#11141A] text-white font-mono-swiss text-xs uppercase tracking-wider transition-all duration-200"
               >
-                System Dossier (/about)
-              </Link>
+                System Principles
+              </a>
             </div>
 
             {/* Strict Tabular Specifications */}
@@ -147,7 +149,7 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
       </section>
 
       {/* 3. Three Functional System Principles */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#20242C] bg-[#0C0E12]">
+      <section id="system-principles" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#20242C] bg-[#0C0E12]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.3em] font-mono-swiss text-[#38BDF8] font-bold">
@@ -216,12 +218,11 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
                 EQUIPMENT MATRIX
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-wider text-[#94A3B8] hover:text-white transition-colors"
+            <span
+              className="text-xs uppercase tracking-wider text-[#94A3B8] select-none font-mono-swiss"
             >
-              [FULL CATALOG // {products.length} UNITS] →
-            </Link>
+              [FULL CATALOG // {products.length} UNITS] · VERIFIED
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -230,10 +231,9 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#0F1218] border border-[#202632] hover:border-[#002FA7] transition-all duration-300 p-4 sm:p-5 space-y-4"
+                  className="group block bg-[#0F1218] border border-[#202632] hover:border-[#002FA7]/70 transition-all duration-300 p-4 sm:p-5 space-y-4 cursor-default"
                 >
                   <div className="flex items-center justify-between text-xs font-mono-swiss text-[#64748B] border-b border-[#1A202A] pb-2">
                     <span className="text-[#38BDF8]">SYSTEM-0{idx + 1}</span>
@@ -263,12 +263,12 @@ export const SwissModernistLayout: React.FC<SwissModernistLayoutProps> = ({ prod
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[11px] font-mono-swiss uppercase tracking-wider text-[#64748B] group-hover:text-white flex items-center justify-between border-t border-[#1A202A]">
-                      <span>INSPECT DATA</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[11px] font-mono-swiss uppercase tracking-wider text-[#64748B] flex items-center justify-between border-t border-[#1A202A] select-none">
+                      <span>DATA VERIFIED</span>
+                      <span className="text-[#38BDF8]">■</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

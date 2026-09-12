@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 export type StorefrontVibe =
   | 'field_workshop'
@@ -259,12 +258,10 @@ export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, on
 
             {/* Footer */}
             <div className="border-t border-stone-800/80 px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between text-[11px] font-mono text-stone-400 shrink-0 bg-stone-950">
-              <Link
-                href="/about"
-                className="hover:text-white transition-colors underline underline-offset-2 flex items-center gap-1"
-              >
-                <span>The Maker&apos;s Story (/about) →</span>
-              </Link>
+              <div className="flex items-center gap-1.5 text-stone-300">
+                <span>🏔️</span>
+                <span>Leadville, CO · Elev 10,152&apos;</span>
+              </div>
               <button
                 onClick={() => {
                   setIsOpen(false);

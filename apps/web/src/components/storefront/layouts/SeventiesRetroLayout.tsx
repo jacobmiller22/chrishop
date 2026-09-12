@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface SeventiesRetroLayoutProps {
@@ -22,7 +21,14 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E5A93C] flex items-center justify-center font-display-retro font-black text-[#0F1A13] text-base sm:text-lg shadow-md shrink-0">
                 74
               </div>
@@ -34,7 +40,7 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
                   Adventure Gear · Leadville Backcountry Catalog
                 </span>
               </div>
-            </Link>
+            </a>
             <span className="hidden xl:inline-block text-[10px] tracking-widest text-[#6E8575] uppercase border-l border-[#203426] pl-6 font-bold">
               EST. LEADVILLE, CO · 10,152 FT
             </span>
@@ -44,19 +50,15 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
             <a href="#catalog-items" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
               The Catalog
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-[#E5A93C] transition-colors hidden md:inline">
-              Outerwear
-            </Link>
-            <Link href="/about" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
+            <a href="#clean-angling-ethic" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
               Mountain Ethic
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border-2 border-[#E5A93C] bg-[#16271D] hover:bg-[#E5A93C] text-[#F3EAD7] hover:text-[#0F1A13] transition-all flex items-center gap-1.5 sm:gap-2 rounded-sm font-bold shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border-2 border-[#E5A93C] bg-[#16271D] text-[#F3EAD7] flex items-center gap-1.5 sm:gap-2 rounded-sm font-bold shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px]">Gear Roll</span>
               <span className="text-[10px] bg-[#0F1A13] text-[#E5A93C] px-1.5 py-0.5 rounded">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -94,12 +96,12 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#clean-angling-ethic"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-[#B84A28] hover:border-[#E5A93C] bg-[#16271D] hover:bg-[#1E3326] text-[#F3EAD7] font-display-retro text-xs sm:text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm"
               >
                 The Dirtbag Manifesto
-              </Link>
+              </a>
             </div>
 
             {/* Vintage Tri-Spec Ledger */}
@@ -160,7 +162,7 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
       </section>
 
       {/* 3. The Clean Angling & Dirtbag Ethic (3 Pillars) */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b-2 border-[#203426] bg-[#142319]">
+      <section id="clean-angling-ethic" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b-2 border-[#203426] bg-[#142319]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.3em] text-[#E5A93C] font-bold">
@@ -229,13 +231,12 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
                 Mountain Equipment Catalog
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-widest text-[#E5A93C] hover:text-[#FAF4E8] transition-colors flex items-center gap-2 font-bold"
+            <span
+              className="text-xs uppercase tracking-widest text-[#E5A93C] flex items-center gap-2 font-bold select-none"
             >
-              <span>View Full 1974 Catalog ({products.length})</span>
-              <span>→</span>
-            </Link>
+              <span>1974 Catalog Archive ({products.length})</span>
+              <span>· Colorado</span>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -244,10 +245,9 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#16271D] border-2 border-[#264230] hover:border-[#E5A93C] transition-all duration-300 p-4 sm:p-5 rounded-sm space-y-4"
+                  className="group block bg-[#16271D] border-2 border-[#264230] hover:border-[#E5A93C]/70 transition-all duration-300 p-4 sm:p-5 rounded-sm space-y-4 cursor-default"
                 >
                   <div className="flex items-center justify-between text-[11px] text-[#93A89A] border-b border-[#1E3326] pb-2 font-bold">
                     <span className="text-[#E5A93C]">ITEM-0{idx + 1}</span>
@@ -279,12 +279,12 @@ export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ prod
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#BDCEBF] group-hover:text-[#E5A93C] flex items-center gap-1 font-bold border-t border-[#1E3326]">
-                      <span>Examine Catalog Item</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#BDCEBF] flex items-center gap-1 font-bold border-t border-[#1E3326] select-none">
+                      <span>Item Spec Locked</span>
+                      <span className="text-[#E5A93C]">·</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface AlpineMinimalLayoutProps {
@@ -15,12 +14,19 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
       <header className="sticky top-0 z-40 w-full bg-[#070A0E]/90 backdrop-blur-md border-b border-[#1E293B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-2.5">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer"
+            >
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-[#38BDF8] rotate-45 group-hover:scale-110 transition-transform shrink-0" />
               <span className="font-sans-alpine text-lg sm:text-xl font-bold uppercase tracking-wider text-white group-hover:text-[#38BDF8] transition-colors">
                 BANKBEATERS
               </span>
-            </Link>
+            </a>
             <div className="hidden lg:flex items-center gap-3 text-[11px] font-mono-alpine text-[#64748B] border-l border-[#1E293B] pl-6">
               <span className="text-[#38BDF8]">10,152&apos; ELV</span>
               <span>·</span>
@@ -34,22 +40,19 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
             <a href="#spec-matrix" className="hover:text-white transition-colors hidden xs:inline">
               Spec Matrix
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden sm:inline">
+            <a href="#spec-matrix" className="hover:text-white transition-colors hidden sm:inline">
               Outerwear
-            </Link>
-            <Link href="/products?category=packs-carry" className="hover:text-white transition-colors hidden md:inline">
+            </a>
+            <a href="#spec-matrix" className="hover:text-white transition-colors hidden md:inline">
               Modular Carry
-            </Link>
-            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
+            </a>
+            <a href="#standards" className="hover:text-white transition-colors hidden sm:inline">
               Field Notes
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#334155] hover:border-[#38BDF8] bg-[#0F172A]/80 text-[#F8FAFC] hover:text-[#38BDF8] transition-all flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0"
-            >
+            </a>
+            <div className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#334155] bg-[#0F172A]/80 text-[#F8FAFC] flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0 cursor-default select-none">
               <span className="text-[10px] sm:text-[11px]">Roster</span>
               <span className="text-[9px] sm:text-[10px] bg-[#1E293B] px-1.5 py-0.5 rounded text-[#38BDF8]">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -101,12 +104,12 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
             >
               Inspect Spec Matrix ({products.length} Units)
             </a>
-            <Link
-              href="/about"
+            <a
+              href="#standards"
               className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-9 py-3.5 sm:py-4 border border-[#334155] text-white font-mono-alpine font-medium text-xs uppercase tracking-wider transition-all duration-200 hover:border-[#38BDF8] hover:bg-[#0F172A]"
             >
               Alpine Field Notes
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -121,7 +124,7 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
       </section>
 
       {/* 3. Three Technical Standards */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#1E293B] bg-[#0B0F17]">
+      <section id="standards" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#1E293B] bg-[#0B0F17]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8">
           <div className="space-y-3 sm:space-y-4 p-5 sm:p-6 bg-[#0E1420] border border-[#1E293B]">
             <span className="text-xs font-mono-alpine text-[#38BDF8] block">
@@ -176,12 +179,9 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
                 Specification Matrix
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs font-mono-alpine uppercase tracking-wider text-[#94A3B8] hover:text-[#38BDF8] transition-colors"
-            >
-              Full Roster ({products.length}) →
-            </Link>
+            <span className="text-xs font-mono-alpine uppercase tracking-wider text-[#38BDF8]">
+              Full Roster ({products.length} Units)
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -190,10 +190,9 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#0B0F17] border border-[#1E293B] hover:border-[#38BDF8] transition-all duration-300 p-4 sm:p-5 space-y-4 sm:space-y-5"
+                  className="group block bg-[#0B0F17] border border-[#1E293B] hover:border-[#38BDF8] transition-all duration-300 p-4 sm:p-5 space-y-4 sm:space-y-5 cursor-default"
                 >
                   <div className="flex items-center justify-between text-xs font-mono-alpine text-[#64748B] border-b border-[#1E293B] pb-2">
                     <span className="text-[#38BDF8]">{product.category?.name || 'FIELD UTILITY'}</span>
@@ -225,10 +224,10 @@ export const AlpineMinimalLayout: React.FC<AlpineMinimalLayoutProps> = ({ produc
 
                     <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between text-[10px] sm:text-[11px] font-mono-alpine text-[#64748B] group-hover:text-white transition-colors">
                       <span>SPEC INSPECT</span>
-                      <span>→</span>
+                      <span>LEADVILLE LOT // 0{products.indexOf(product) + 1}</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

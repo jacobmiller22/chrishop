@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface HardwareVaultLayoutProps {
@@ -15,7 +14,14 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
       <header className="sticky top-0 z-40 w-full bg-[#08090B]/95 backdrop-blur-md border-b border-[#1E232A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#181B20] border border-[#F59E0B]/50 flex items-center justify-center text-[#F59E0B] font-bold text-xs shrink-0">
                 &gt;_
               </div>
@@ -27,7 +33,7 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
                   SYS_VER: 2.4.0 · D2C PROTOCOL
                 </span>
               </div>
-            </Link>
+            </a>
             <div className="hidden lg:flex items-center gap-3 text-[11px] text-[#64748B] border-l border-[#1E232A] pl-6">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-emerald-400 font-bold">STATUS: VAULT_ONLINE</span>
@@ -40,22 +46,19 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
             <a href="#schematics" className="hover:text-[#F59E0B] transition-colors hidden xs:inline">
               [SCHEMATICS]
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-[#F59E0B] transition-colors hidden sm:inline">
+            <a href="#schematics" className="hover:text-[#F59E0B] transition-colors hidden sm:inline">
               [OUTERWEAR]
-            </Link>
-            <Link href="/products?category=packs-carry" className="hover:text-[#F59E0B] transition-colors hidden md:inline">
+            </a>
+            <a href="#schematics" className="hover:text-[#F59E0B] transition-colors hidden md:inline">
               [CARRY_RIGS]
-            </Link>
-            <Link href="/about" className="hover:text-[#F59E0B] transition-colors hidden sm:inline">
+            </a>
+            <a href="#recon-dossier" className="hover:text-[#F59E0B] transition-colors hidden sm:inline">
               [RECON_DATA]
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#F59E0B]/40 bg-[#12151A] hover:bg-[#F59E0B] text-[#F59E0B] hover:text-black font-bold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0"
-            >
+            </a>
+            <div className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#F59E0B]/40 bg-[#12151A] text-[#F59E0B] font-bold flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-default select-none">
               <span className="text-[10px] sm:text-[11px]">PAYLOAD</span>
               <span className="text-[9px] sm:text-[10px] bg-black/50 px-1.5 py-0.5 rounded text-white">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -118,12 +121,12 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
               >
                 Access Equipment Vault ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#recon-dossier"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border border-[#334155] hover:border-[#F59E0B] bg-[#12151A] hover:bg-[#181B20] text-white font-cypher-vault text-sm sm:text-base uppercase font-bold tracking-wider transition-all duration-200"
               >
-                Inspect Recon Dossier (/about)
-              </Link>
+                Inspect Recon Dossier
+              </a>
             </div>
 
             {/* Tactical Live Specs */}
@@ -138,7 +141,7 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
               </div>
               <div className="flex sm:flex-col justify-between sm:justify-start items-center sm:items-start">
                 <span className="block text-[#F59E0B] font-bold text-xs sm:text-sm uppercase">SERIALIZED</span>
-                <span className="text-[10px] sm:text-[11px]">2 to 6 Units Per Drop</span>
+                <span className="text-[10px] sm:text-[11px]">Numbered Batches</span>
               </div>
             </div>
           </div>
@@ -185,7 +188,7 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
       </section>
 
       {/* 4. Three Hardware Engineering Standards */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#1E232A] bg-[#0A0C10]">
+      <section id="recon-dossier" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#1E232A] bg-[#0A0C10]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8">
           <div className="bg-[#0E1117] border border-[#1E232A] p-5 sm:p-6 space-y-3 sm:space-y-4">
             <span className="text-xs text-[#F59E0B] font-bold block uppercase">
@@ -202,27 +205,27 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
 
           <div className="bg-[#0E1117] border border-[#1E232A] p-5 sm:p-6 space-y-3 sm:space-y-4">
             <span className="text-xs text-[#F59E0B] font-bold block uppercase">
-              MODULE 02 // SEAM BONDING INTEGRITY
+              MODULE 02 // SEVERE WATERPROOFING
             </span>
             <h3 className="font-cypher-vault text-lg sm:text-xl font-bold uppercase text-white">
-              Single-Needle Lockstitch
+              20K Japanese Membrane
             </h3>
             <p className="text-xs text-[#94A3B8] leading-relaxed">
-              Every seam is sewn on an industrial Juki machine using bonded synthetic thread.
-              Felled lockstitching prevents unraveling even if an outer stitch is severed by barbed wire.
+              Toray 3-layer laminated construction ensures impervious rain barrier without trapping
+              perspiration during steep bushwhacks.
             </p>
           </div>
 
           <div className="bg-[#0E1117] border border-[#1E232A] p-5 sm:p-6 space-y-3 sm:space-y-4">
             <span className="text-xs text-[#F59E0B] font-bold block uppercase">
-              MODULE 03 // LIFETIME DEPOT REPAIR
+              MODULE 03 // LIFETIME DEPOT SERVICE
             </span>
             <h3 className="font-cypher-vault text-lg sm:text-xl font-bold uppercase text-white">
-              Direct Maker Servicing
+              Direct Workshop Repairs
             </h3>
             <p className="text-xs text-[#94A3B8] leading-relaxed">
-              No warranty third-parties. Any damaged gear is returned directly to the Leadville
-              depot for overhaul, patch reinforcement, or zip replacement free of charge.
+              If barb wire or razor granite breaches a seam, return the specimen to Leadville.
+              Chris re-stitches and reinforces on the original Juki bench for life.
             </p>
           </div>
         </div>
@@ -240,12 +243,9 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
                 Equipment Schematics
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-wider text-[#F59E0B] hover:text-white transition-colors"
-            >
-              [VIEW COMPLETE CATALOG // {products.length} UNITS] →
-            </Link>
+            <span className="text-xs uppercase tracking-wider text-[#F59E0B]">
+              [CATALOG INVENTORY // {products.length} HARDWARE UNITS]
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -256,7 +256,7 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
               return (
                 <div
                   key={product.id}
-                  className="bg-[#0D1016] border border-[#1E232A] hover:border-[#F59E0B] transition-all duration-300 p-4 sm:p-5 space-y-4 sm:space-y-5 flex flex-col justify-between"
+                  className="bg-[#0D1016] border border-[#1E232A] hover:border-[#F59E0B] transition-all duration-300 p-4 sm:p-5 space-y-4 sm:space-y-5 flex flex-col justify-between cursor-default"
                 >
                   <div className="flex items-center justify-between text-xs border-b border-[#1E232A] pb-2 text-[#64748B]">
                     <span className="text-[#F59E0B] font-bold">SPEC-0{idx + 1}</span>
@@ -300,12 +300,9 @@ export const HardwareVaultLayout: React.FC<HardwareVaultLayoutProps> = ({ produc
                       <span className="text-sm sm:text-base font-bold text-white font-cypher-vault">
                         ${product.base_price.toFixed(2)}
                       </span>
-                      <Link
-                        href={`/products/${product.slug}`}
-                        className="px-3 sm:px-3.5 py-1.5 bg-[#181B20] hover:bg-[#F59E0B] text-[#94A3B8] hover:text-black text-xs font-bold transition-colors border border-[#334155]"
-                      >
-                        [INSPECT SPEC] →
-                      </Link>
+                      <span className="px-3 sm:px-3.5 py-1.5 bg-[#181B20] text-[#94A3B8] text-xs font-bold border border-[#334155]">
+                        [BATCH SPEC // VERIFIED]
+                      </span>
                     </div>
                   </div>
                 </div>

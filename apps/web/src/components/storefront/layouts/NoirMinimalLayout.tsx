@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface NoirMinimalLayoutProps {
@@ -15,11 +14,18 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
       <header className="sticky top-0 z-40 w-full bg-black/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="group flex items-center gap-2">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 cursor-pointer"
+            >
               <span className="font-serif-editorial text-xl sm:text-2xl tracking-[0.2em] sm:tracking-[0.25em] uppercase text-white font-bold group-hover:text-zinc-300 transition-colors">
                 BANKBEATERS
               </span>
-            </Link>
+            </a>
             <span className="hidden lg:inline-block text-[10px] tracking-[0.35em] text-zinc-500 uppercase font-light border-l border-white/10 pl-6">
               Leadville, CO · Elev 10,152 FT
             </span>
@@ -29,22 +35,15 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
             <a href="#archive" className="hover:text-white transition-colors hidden xs:inline">
               Archive
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden sm:inline">
-              Outerwear
-            </Link>
-            <Link href="/products?category=packs-carry" className="hover:text-white transition-colors hidden md:inline">
-              Carry
-            </Link>
-            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
+            <a href="#workshop-ethic" className="hover:text-white transition-colors hidden sm:inline">
               Workshop
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-white/20 hover:border-white text-white transition-all flex items-center gap-1.5 sm:gap-2 shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-white/20 text-white flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px]">Bag</span>
               <span className="text-[9px] sm:text-[10px] text-zinc-400">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -91,12 +90,12 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
             >
               Explore Equipment ({products.length})
             </a>
-            <Link
-              href="/about"
+            <a
+              href="#workshop-ethic"
               className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-4 border border-white/40 text-white font-medium text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] transition-all duration-300 hover:border-white hover:bg-white/10"
             >
               The Maker&apos;s Story
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -108,7 +107,7 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
       </section>
 
       {/* 3. Editorial Brand Statement */}
-      <section className="py-14 sm:py-28 px-4 sm:px-6 lg:px-12 border-b border-white/10 bg-black">
+      <section id="workshop-ethic" className="py-14 sm:py-28 px-4 sm:px-6 lg:px-12 border-b border-white/10 bg-black">
         <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 text-center">
           <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.35em] text-zinc-500 font-light block">
             Craftsmanship Philosophy
@@ -186,12 +185,11 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
                 Equipment Archive
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-zinc-400 hover:text-white transition-colors"
+            <span
+              className="text-xs uppercase tracking-[0.2em] sm:tracking-[0.25em] text-zinc-400 select-none"
             >
-              View Full Catalog ({products.length}) →
-            </Link>
+              Archive Roster ({products.length}) · Serialized
+            </span>
           </div>
 
           {/* Clean Editorial Gallery Grid */}
@@ -202,10 +200,9 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
               const activeVariation = product.variations?.[0];
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block space-y-4 sm:space-y-5"
+                  className="group block space-y-4 sm:space-y-5 cursor-default"
                 >
                   <div className="aspect-[4/5] bg-zinc-950 overflow-hidden relative border border-white/10 group-hover:border-white/30 transition-colors duration-500">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -236,12 +233,12 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] text-zinc-500 group-hover:text-white transition-colors flex items-center gap-1.5 font-light">
-                      <span>Inspect Piece</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] text-zinc-500 flex items-center gap-1.5 font-light select-none">
+                      <span>Serialized Spec // Verified</span>
+                      <span>·</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

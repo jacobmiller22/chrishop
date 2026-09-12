@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface WabiSabiLayoutProps {
@@ -15,7 +14,14 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
       <header className="sticky top-0 z-40 w-full bg-[#09111C]/90 backdrop-blur-md border-b border-[#1C293A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <span className="font-serif-wabisabi text-lg sm:text-xl text-[#C95D3B] font-bold shrink-0">
                 山
               </span>
@@ -27,7 +33,7 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
                   Adventure Gear · Leadville Mountain Sanctuary
                 </span>
               </div>
-            </Link>
+            </a>
             <span className="hidden xl:inline-block text-[10px] tracking-[0.3em] text-[#55697D] uppercase border-l border-[#1C293A] pl-6 font-light">
               ELEV 10,152 FT · SLOW HIGH-ALTITUDE CRAFT
             </span>
@@ -37,19 +43,15 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
             <a href="#equipment-archive" className="hover:text-white transition-colors hidden sm:inline">
               The Collection
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-white transition-colors hidden md:inline">
-              Outerwear
-            </Link>
-            <Link href="/about" className="hover:text-white transition-colors hidden sm:inline">
+            <a href="#slow-craft-philosophy" className="hover:text-white transition-colors hidden sm:inline">
               Mountain Notes
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#2B3B4E] hover:border-[#C95D3B] bg-[#111C2B] text-[#EDE8E1] hover:text-[#C95D3B] transition-all flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#2B3B4E] bg-[#111C2B] text-[#EDE8E1] flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px] tracking-wider">Gear Roll</span>
               <span className="text-[10px] bg-[#1C2C3F] px-1.5 py-0.5 rounded text-[#C95D3B]">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -87,12 +89,12 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#slow-craft-philosophy"
                 className="w-full sm:w-auto text-center px-6 sm:px-9 py-3.5 sm:py-4 border border-[#2B3B4E] hover:border-white bg-[#111C2B] text-white font-serif-wabisabi text-xs sm:text-sm uppercase tracking-[0.2em] transition-all duration-300 rounded-sm"
               >
                 The Maker&apos;s Story
-              </Link>
+              </a>
             </div>
 
             {/* Poetic Craft Pillars */}
@@ -140,7 +142,7 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
       </section>
 
       {/* 3. The Philosophy of Slow Craft (3 Pillars) */}
-      <section className="py-12 sm:py-24 px-4 sm:px-6 lg:px-12 border-b border-[#1C293A] bg-[#0B1420]">
+      <section id="slow-craft-philosophy" className="py-12 sm:py-24 px-4 sm:px-6 lg:px-12 border-b border-[#1C293A] bg-[#0B1420]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-16">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.35em] text-[#C95D3B] font-light">
@@ -209,13 +211,12 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
                 The Equipment Collection
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-[0.2em] text-[#8696A8] hover:text-[#C95D3B] transition-colors flex items-center gap-2 font-light"
+            <span
+              className="text-xs uppercase tracking-[0.2em] text-[#8696A8] flex items-center gap-2 font-light select-none"
             >
-              <span>Explore Entire Catalog ({products.length})</span>
-              <span>→</span>
-            </Link>
+              <span>The Archive Collection ({products.length})</span>
+              <span>· Serialized</span>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -224,10 +225,9 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#0F1A27] border border-[#1F2F43] hover:border-[#C95D3B] transition-all duration-300 p-4 sm:p-5 space-y-4"
+                  className="group block bg-[#0F1A27] border border-[#1F2F43] hover:border-[#C95D3B]/70 transition-all duration-300 p-4 sm:p-5 space-y-4 cursor-default"
                 >
                   <div className="flex items-center justify-between text-xs font-light text-[#8696A8] border-b border-[#1A2838] pb-2">
                     <span className="text-[#C95D3B]">PIECE 0{idx + 1}</span>
@@ -257,12 +257,12 @@ export const WabiSabiLayout: React.FC<WabiSabiLayoutProps> = ({ products }) => {
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[11px] uppercase tracking-[0.2em] text-[#B3C3D4] group-hover:text-white flex items-center justify-between font-light border-t border-[#1A2838]">
-                      <span>Examine Piece</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[11px] uppercase tracking-[0.2em] text-[#B3C3D4] flex items-center justify-between font-light border-t border-[#1A2838] select-none">
+                      <span>Spec Locked // Verified</span>
+                      <span className="text-[#C95D3B]">·</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

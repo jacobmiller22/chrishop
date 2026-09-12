@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface BrutalistFoundryLayoutProps {
@@ -15,7 +14,14 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
       <header className="sticky top-0 z-40 w-full bg-[#111315]/95 backdrop-blur-md border-b-2 border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#FACC15] text-black font-display-brutalist text-lg sm:text-xl flex items-center justify-center font-bold tracking-tighter shrink-0">
                 BF
               </div>
@@ -27,7 +33,7 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
                   Adventure Gear · Leadville Plant 10,152&apos;
                 </span>
               </div>
-            </Link>
+            </a>
             <div className="hidden xl:flex items-center gap-2 text-[11px] text-[#64748B] border-l-2 border-white/20 pl-6 uppercase">
               <span className="w-2 h-2 bg-[#FACC15]" />
               <span>SPEC: HEAVY_DUTY // SHALE &amp; ALDER RATED</span>
@@ -38,19 +44,15 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
             <a href="#equipment-spec" className="hover:text-[#FACC15] transition-colors hidden sm:inline">
               [SPECS]
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-[#FACC15] transition-colors hidden md:inline">
-              [OUTERWEAR]
-            </Link>
-            <Link href="/about" className="hover:text-[#FACC15] transition-colors hidden sm:inline">
+            <a href="#foundry-standards" className="hover:text-[#FACC15] transition-colors hidden sm:inline">
               [FOUNDRY_LOG]
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border-2 border-[#FACC15] bg-[#FACC15] text-black font-bold hover:bg-white hover:border-white transition-all flex items-center gap-1.5 sm:gap-2 shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border-2 border-[#FACC15] bg-[#FACC15] text-black font-bold flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px]">GEAR ROLL</span>
               <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-none font-mono">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -87,12 +89,12 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#foundry-standards"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border-2 border-white/40 hover:border-[#FACC15] bg-[#111315] hover:bg-[#1A1D22] text-white font-display-brutalist text-sm sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]"
               >
-                Foundry Dossier (/about)
-              </Link>
+                Foundry Dossier
+              </a>
             </div>
 
             {/* Industrial Stamped Ratings */}
@@ -149,7 +151,7 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
       </section>
 
       {/* 3. Three Industrial Engineering Standards */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b-2 border-white/20 bg-[#14171B]">
+      <section id="foundry-standards" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b-2 border-white/20 bg-[#14171B]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.3em] text-[#FACC15] font-bold">
@@ -218,13 +220,12 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
                 EQUIPMENT SPEC SHEETS
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-widest text-[#FACC15] hover:text-white transition-colors flex items-center gap-2 font-bold"
+            <span
+              className="text-xs uppercase tracking-widest text-[#FACC15] flex items-center gap-2 font-bold select-none"
             >
-              <span>[VIEW ALL SPEC SHEETS // {products.length}]</span>
-              <span>→</span>
-            </Link>
+              <span>[EQUIPMENT ARCHIVE // {products.length} SILHOUETTES]</span>
+              <span>· VERIFIED</span>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -233,10 +234,9 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#181C22] border-2 border-white/20 hover:border-[#FACC15] transition-all duration-300 p-4 sm:p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)]"
+                  className="group block bg-[#181C22] border-2 border-white/20 hover:border-[#FACC15]/70 transition-all duration-300 p-4 sm:p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.05)] cursor-default"
                 >
                   <div className="flex items-center justify-between text-xs border-b-2 border-white/10 pb-2 text-[#94A3B8]">
                     <span className="font-bold text-[#FACC15]">SPEC-0{idx + 1}</span>
@@ -266,12 +266,12 @@ export const BrutalistFoundryLayout: React.FC<BrutalistFoundryLayoutProps> = ({ 
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-xs uppercase tracking-wider text-white group-hover:text-[#FACC15] flex items-center justify-between font-bold border-t-2 border-white/10">
-                      <span>[INSPECT SPEC SHEET]</span>
-                      <span>→</span>
+                    <div className="pt-2 text-xs uppercase tracking-wider text-white flex items-center justify-between font-bold border-t-2 border-white/10 select-none">
+                      <span>[SPEC LOCKED // VERIFIED]</span>
+                      <span className="text-[#FACC15]">■</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

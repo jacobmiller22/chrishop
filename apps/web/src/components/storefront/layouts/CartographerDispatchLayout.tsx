@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface CartographerDispatchLayoutProps {
@@ -15,7 +14,14 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       <header className="sticky top-0 z-40 w-full bg-[#151311]/95 backdrop-blur-md border-b border-[#2C2621]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-[#C85A32] flex items-center justify-center font-serif-cartographer text-base sm:text-lg font-bold text-[#151311] shrink-0">
                 🧭
               </span>
@@ -27,7 +33,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
                   Adventure Gear · Field Survey 10,152&apos;
                 </span>
               </div>
-            </Link>
+            </a>
             <span className="hidden xl:inline-block text-[10px] tracking-widest text-[#7C7364] uppercase border-l border-[#2C2621] pl-6">
               LEADVILLE QUADRANGLE · 39.2508° N, 106.2925° W
             </span>
@@ -37,22 +43,15 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
             <a href="#survey-plates" className="hover:text-[#C85A32] transition-colors hidden xs:inline">
               Survey Plates
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-[#C85A32] transition-colors hidden sm:inline">
-              Outerwear
-            </Link>
-            <Link href="/products?category=packs-carry" className="hover:text-[#C85A32] transition-colors hidden md:inline">
-              Field Packs
-            </Link>
-            <Link href="/about" className="hover:text-[#C85A32] transition-colors hidden sm:inline">
+            <a href="#survey-journal" className="hover:text-[#C85A32] transition-colors hidden sm:inline">
               Surveyor Log
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#443B33] hover:border-[#C85A32] bg-[#1E1B18] text-[#EDE6DA] hover:text-[#C85A32] transition-all flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#443B33] bg-[#1E1B18] text-[#EDE6DA] flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px] font-bold">Gear Roll</span>
               <span className="text-[9px] sm:text-[10px] bg-[#2E2822] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -90,12 +89,12 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#survey-journal"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border border-[#443B33] hover:border-[#D4A373] bg-[#1E1B18] hover:bg-[#25211D] text-[#EDE6DA] font-serif-cartographer text-sm sm:text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-xs"
               >
                 Surveyor Field Notes
-              </Link>
+              </a>
             </div>
 
             {/* Field Dispatch Gauge Ticker */}
@@ -161,7 +160,7 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
       </section>
 
       {/* 3. Surveyor Field Ledger (3 Craft Standards) */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#2C2621] bg-[#181613]">
+      <section id="survey-journal" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#2C2621] bg-[#181613]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-xs uppercase tracking-[0.3em] text-[#C85A32] font-bold">
@@ -230,13 +229,12 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
                 Survey Catalog Plates
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-widest text-[#D4A373] hover:text-[#C85A32] transition-colors flex items-center gap-2"
+            <span
+              className="text-xs uppercase tracking-widest text-[#D4A373] flex items-center gap-2 select-none"
             >
-              <span>Inspect All Plates ({products.length})</span>
-              <span>→</span>
-            </Link>
+              <span>Survey Catalog Plates ({products.length})</span>
+              <span>· Archival</span>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -245,10 +243,9 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#1C1916] border border-[#2E271F] hover:border-[#C85A32] transition-all duration-300 p-4 sm:p-5 space-y-4"
+                  className="group block bg-[#1C1916] border border-[#2E271F] hover:border-[#C85A32]/60 transition-all duration-300 p-4 sm:p-5 space-y-4 cursor-default"
                 >
                   <div className="flex items-center justify-between text-[11px] text-[#9E9484] border-b border-[#262019] pb-2">
                     <span className="font-bold text-[#C85A32]">PLATE-0{idx + 1}</span>
@@ -280,12 +277,12 @@ export const CartographerDispatchLayout: React.FC<CartographerDispatchLayoutProp
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#B5ABA0] group-hover:text-[#C85A32] flex items-center gap-1 font-bold">
-                      <span>Examine Field Plate</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#B5ABA0] flex items-center gap-1 font-bold select-none">
+                      <span>Survey Spec Locked</span>
+                      <span>·</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

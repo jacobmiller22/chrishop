@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 
 interface FieldWorkshopLayoutProps {
@@ -17,7 +16,14 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
       <header className="sticky top-0 z-40 w-full bg-[#101311]/95 backdrop-blur-md border-b border-[#2A342D]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'instant' });
+              }}
+              className="group flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+            >
               <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-[#E55B24] flex items-center justify-center font-display-workshop text-base sm:text-lg font-black text-black tracking-tighter shrink-0">
                 BB
               </span>
@@ -29,7 +35,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                   Adventure Gear · Field Workshop
                 </span>
               </div>
-            </Link>
+            </a>
             <span className="hidden xl:inline-block text-[10px] tracking-widest text-[#6E7B70] uppercase border-l border-[#2A342D] pl-6">
               LEADVILLE, CO · ELEV 10,152 FT
             </span>
@@ -39,22 +45,15 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
             <a href="#bench-builds" className="hover:text-[#E55B24] transition-colors hidden xs:inline">
               Bench Builds
             </a>
-            <Link href="/products?category=outerwear" className="hover:text-[#E55B24] transition-colors hidden sm:inline">
-              Outerwear
-            </Link>
-            <Link href="/products?category=packs-carry" className="hover:text-[#E55B24] transition-colors hidden md:inline">
-              Carry Rigs
-            </Link>
-            <Link href="/about" className="hover:text-[#E55B24] transition-colors hidden sm:inline">
+            <a href="#workshop-story" className="hover:text-[#E55B24] transition-colors hidden sm:inline">
               Maker&apos;s Story
-            </Link>
-            <Link
-              href="/cart"
-              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#445348] hover:border-[#E55B24] bg-[#171D18] text-[#EBE6DD] hover:text-[#E55B24] transition-all flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0"
+            </a>
+            <div
+              className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 border border-[#445348] bg-[#171D18] text-[#EBE6DD] flex items-center gap-1.5 sm:gap-2 rounded-xs shrink-0 cursor-default select-none"
             >
               <span className="text-[10px] sm:text-[11px] font-bold">Gear Roll</span>
               <span className="text-[9px] sm:text-[10px] bg-[#222C24] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -92,12 +91,12 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
               >
                 Explore Gear Roster ({products.length})
               </a>
-              <Link
-                href="/about"
+              <a
+                href="#workshop-story"
                 className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 sm:py-4 border border-[#445348] hover:border-[#D4A373] bg-[#171D18] hover:bg-[#1C241F] text-[#EBE6DD] font-display-workshop text-sm sm:text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-sm"
               >
                 The Maker&apos;s Bench
-              </Link>
+              </a>
             </div>
 
             {/* Quick Workbench Metrics */}
@@ -156,7 +155,7 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
       </section>
 
       {/* 3. The Maker's Bench Provenance (3 Craft Pillars) */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#2A342D] bg-[#141815]">
+      <section id="workshop-story" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-12 border-b border-[#2A342D] bg-[#141815]">
         <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3">
             <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] text-[#E55B24] font-bold">
@@ -225,13 +224,12 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                 Active Bench Builds
               </h2>
             </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-widest text-[#D4A373] hover:text-[#E55B24] transition-colors flex items-center gap-2"
+            <span
+              className="text-xs uppercase tracking-widest text-[#D4A373] flex items-center gap-2 select-none"
             >
-              <span>View All Silhouettes ({products.length})</span>
-              <span>→</span>
-            </Link>
+              <span>Bench Catalog ({products.length})</span>
+              <span>· Archive</span>
+            </span>
           </div>
 
           {/* Flagship Highlight Banner */}
@@ -280,12 +278,11 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                   <span className="font-display-workshop text-2xl sm:text-3xl font-bold text-[#F7F2EB]">
                     ${flagship.base_price.toFixed(2)}
                   </span>
-                  <Link
-                    href={`/products/${flagship.slug}`}
-                    className="w-full sm:w-auto text-center px-6 py-3 bg-[#E55B24] hover:bg-[#F26E38] text-black font-display-workshop uppercase font-bold text-sm tracking-wider transition-colors"
+                  <div
+                    className="w-full sm:w-auto text-center px-6 py-3 bg-[#E55B24] text-black font-display-workshop uppercase font-bold text-sm tracking-wider cursor-default select-none"
                   >
-                    Examine Build Spec →
-                  </Link>
+                    Build Spec // Verified
+                  </div>
                 </div>
               </div>
             </div>
@@ -298,10 +295,9 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                 product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
 
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group block bg-[#151B16] border border-[#2D382F] hover:border-[#E55B24] transition-all duration-300 p-4 sm:p-5 rounded-sm space-y-3 sm:space-y-4"
+                  className="group block bg-[#151B16] border border-[#2D382F] hover:border-[#E55B24]/60 transition-all duration-300 p-4 sm:p-5 rounded-sm space-y-3 sm:space-y-4 cursor-default"
                 >
                   <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-[#8C9A8E] border-b border-[#252F27] pb-2">
                     <span className="font-bold text-[#E55B24]">BENCH-0{idx + 1}</span>
@@ -333,12 +329,12 @@ export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ produc
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#A2B1A4] group-hover:text-[#E55B24] flex items-center gap-1 font-bold">
-                      <span>View Specs &amp; Sizing</span>
-                      <span>→</span>
+                    <div className="pt-2 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#A2B1A4] flex items-center gap-1 font-bold select-none">
+                      <span>Workshop Spec Locked</span>
+                      <span>·</span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
