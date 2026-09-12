@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/api-schemas/main/schemas/ruleset.json",
+  "name": "Payload CMS Container Fallback Origin Rules",
+  "description": "Routes Payload CMS v3 /admin and /api/payload endpoints to containerized Node.js origin while maintaining Next.js storefront on Cloudflare Workers edge isolates with zero storefront impact.",
+  "kind": "zone",
+  "phase": "http_request_origin",
+  "rules": [
+    {
+      "action": "route",
+      "action_parameters": {
+        "origin": {
+          "host": "payload-origin.fly.dev",
+          "port": 443
+        },
+        "sni": {
+          "value": "payload-origin.fly.dev"
+        },
+        "headers": [
+          {
+            "name": "X-Forwarded-Host",
+            "operation": "set",
+            "value": "chrishop.jacobmiller22.com"
+          },
+          {
+            "name": "X-Origin-Verify-Secret",
+            "operation": "set",
+            "value": "${ORIGIN_VERIFY_SECRET}"
+          }
+        ]
+      },
+      "description": "Route Payload CMS Admin UI and Internal APIs to Fly.io Node.js Container Origin",
+      "enabled": true,
+      "expression": "(http.request.uri.path eq \"/admin\" or http.request.uri.path starts_with \"/admin/\" or http.request.uri.path starts_with \"/api/payload/\" or http.request.uri.path eq \"/api/graphql\") and (http.host eq \"chrishop.jacobmiller22.com\" or http.host eq \"staging-chrishop.jacobmiller22.com\")"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+# ==============================================================================
+# docker-compose.payload.yml — Local & Orchestrated Container Fallback Topology
+# Architecture Decision: docs/decisions/ADR_PAYLOAD_CONTAINER_FALLBACK.md
+# Reference: Story 2.44 (#190)
+#
+# Simulates the containerized Node.js fallback environment for Payload CMS v3,
+# including local health probes, environment secret propagation, and mock D1
+# HTTP API proxy connectivity.
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Payload CMS v3 Standalone Container (Fallback Engine)
+  # ----------------------------------------------------------------------------
+  payload-cms:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.payload
+      target: runner
+    container_name: chrishop-payload-fallback
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - PAYLOAD_SECRET=${PAYLOAD_SECRET:-chrishop-payload-development-secret-32-chars-min}
+      - NEXT_TELEMETRY_DISABLED=1
+      # Cloudflare D1 Remote HTTP Connectivity
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID:-cf-local-account-id}
+      - CLOUDFLARE_D1_DATABASE_ID=${CLOUDFLARE_D1_DATABASE_ID:-chrishop-prod-db}
+      - CLOUDFLARE_D1_API_TOKEN=${CLOUDFLARE_D1_API_TOKEN:-cf-d1-api-token}
+      # Cloudflare R2 S3-Compatible Media Connectivity
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-chrishop-media-prod}
+      - R2_ENDPOINT=${R2_ENDPOINT:-https://cf-local-account-id.r2.cloudflarestorage.com}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-local-r2-access-key}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-local-r2-secret-key}
+      # Canonical Domains & URLs
+      - SITE_URL=${SITE_URL:-https://chrishop.jacobmiller22.com}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://chrishop.jacobmiller22.com}
+      - CMS_URL=${CMS_URL:-https://chrishop.jacobmiller22.com}
+      # Cloudflare Origin Rule Verification Secret
+      - ORIGIN_VERIFY_SECRET=${ORIGIN_VERIFY_SECRET:-chrishop-origin-verify-secret-token}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - chrishop-fallback-net
+
+  # ----------------------------------------------------------------------------
+  # Mock Cloudflare D1 Remote API Proxy (Optional Local Emulation)
+  # ----------------------------------------------------------------------------
+  d1-api-mock:
+    image: node:22-alpine
+    container_name: chrishop-d1-api-mock
+    restart: unless-stopped
+    command: >
+      node -e '
+        const http = require("http");
+        const server = http.createServer((req, res) => {
+          if (req.url.includes("/query") && req.method === "POST") {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ result: [{ meta: { changes: 1 }, results: [] }], success: true }));
+          } else if (req.url === "/health") {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "healthy", service: "d1-mock" }));
+          } else {
+            res.writeHead(404);
+            res.end();
+          }
+        });
+        server.listen(8788, () => console.log("Mock D1 API listening on 8788"));
+      '
+    ports:
+      - "8788:8788"
+    networks:
+      - chrishop-fallback-net
+
+networks:
+  chrishop-fallback-net:
+    driver: bridge
