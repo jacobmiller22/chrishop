@@ -47,8 +47,8 @@ export default async function ProductsPage(props: ProductsPageProps) {
               directly from Chris&apos;s studio.
             </p>
           </div>
-          <Badge variant="info" className="self-start md:self-auto py-1 px-3 text-xs">
-            Payload CMS & SQLite
+          <Badge variant="success" className="self-start md:self-auto py-1 px-3 text-xs">
+            Handcrafted Edition
           </Badge>
         </div>
 

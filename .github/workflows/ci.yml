@@ -2,14 +2,36 @@ name: CI
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main, staging, production]
   pull_request:
-    branches: [main, staging]
+    branches: [main, staging, production]
 
 jobs:
+  enforce-promotion-rules:
+    name: Enforce Staged Promotion Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Staged Git Promotion Governance
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Target branch (base): ${{ github.base_ref }}"
+            echo "Source branch (head): ${{ github.head_ref }}"
+            if [ "${{ github.base_ref }}" = "production" ] && [ "${{ github.head_ref }}" != "staging" ]; then
+              echo "❌ ERROR: Direct pull requests to 'production' are prohibited."
+              echo "Only the 'staging' branch is permitted to merge into 'production'."
+              echo "Attempted merge from: '${{ github.head_ref }}'"
+              echo "Please retarget your pull request to 'staging' or promote changes via 'staging'."
+              exit 1
+            fi
+            echo "✅ Promotion rule check passed (Base: ${{ github.base_ref }}, Head: ${{ github.head_ref }})."
+          else
+            echo "Push event on ref: ${{ github.ref }}. Promotion check satisfied."
+          fi
+
   lint-and-check:
     name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
+    needs: [enforce-promotion-rules]
 
     steps:
       - name: Checkout Repository

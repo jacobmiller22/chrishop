@@ -1,4 +1,25 @@
 {
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://chrishop.jacobmiller22.com",
+          "https://staging-chrishop.jacobmiller22.com",
+          "https://admin-chrishop.jacobmiller22.com",
+          "https://shop.jacobmiller22.com",
+          "https://staging-shop.jacobmiller22.com",
+          "https://admin-shop.jacobmiller22.com",
+          "https://*-chrishop.jacobmiller22.com",
+          "http://localhost:3000",
+          "http://localhost:8055"
+        ],
+        "methods": ["GET", "PUT", "HEAD", "POST"],
+        "headers": ["*"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ],
   "CORSRules": [
     {
       "AllowedHeaders": ["*"],

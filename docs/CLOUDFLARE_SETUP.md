@@ -203,6 +203,25 @@ pnpm exec wrangler r2 bucket cors set chrishop-media-staging --file infra/r2/cor
 pnpm exec wrangler r2 bucket cors set chrishop-media-prod --file infra/r2/cors-media.json
 ```
 
+### Apply & Monitor Bucket Lifecycle Policies (Story 2.36)
+
+Automate object lifecycle rules, Infrequent Access transitions, and orphan cleanup across production, staging, and preview tiers:
+
+```bash
+# Apply lifecycle rules idempotently across all buckets (or pass --dry-run to validate)
+infra/scripts/deps/r2_apply_lifecycle.sh --env all
+
+# Or apply per-environment using the Wrangler CLI:
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-prod --file infra/r2/lifecycle-prod.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-staging --file infra/r2/lifecycle-staging.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-preview --file infra/r2/lifecycle-preview.json -y
+
+# View and audit active bucket lifecycle configurations:
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-prod
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-staging
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-preview
+```
+
 ---
 
 ## 6. Secret Management & Isolation
@@ -250,6 +269,10 @@ List active secret names (values remain encrypted and hidden):
 pnpm exec wrangler secret list --env staging
 pnpm exec wrangler secret list --env production
 ```
+
+### Architectural Policy & Operational Runbook
+- **Architectural Decision Record**: For architectural rationale, threat modeling, and `@opennextjs/cloudflare` runtime dynamics, see [`docs/decisions/ADR_CLOUDFLARE_SECRETS_EVALUATION.md`](decisions/ADR_CLOUDFLARE_SECRETS_EVALUATION.md).
+- **Secret Rotation Runbook**: For zero-downtime rollover procedures, verification probes, and emergency revocation, see [`docs/runbooks/SECRET_ROTATION.md`](runbooks/SECRET_ROTATION.md).
 
 ---
 
@@ -340,19 +363,25 @@ Every pull request triggers an automated preview deployment via `.github/workflo
 
 ---
 
-## 10. CI/CD Deployment Pipeline (Staging & Production)
+## 10. CI/CD Staged Promotion Pipeline (Staging ➔ Production)
 
-Deployments are automated through `.github/workflows/deploy.yml`:
+Deployments are governed by `.github/workflows/deploy.yml` across two promotion stages:
 
-- **Push to `staging` branch**:
-  - Triggers automated quality validation (`check`, `test:unit`, `build`).
-  - Deploys to staging environment via `pnpm exec wrangler deploy --env staging`.
-  - Routes traffic to `https://staging-chrishop.jacobmiller22.com`.
+- **Stage 1: Staging Integration (`staging` branch)**:
+  - Feature branches target `staging` by default.
+  - On push to `staging`, `deploy.yml` executes:
+    1. `build-and-validate`: Lint, typecheck, unit tests, security audit (`pnpm audit --audit-level=high`), and Next.js / OpenNext bundle build.
+    2. `deploy-staging`: Deploys worker bundle to staging via `wrangler deploy --env staging`.
+    3. `test-staging`: Executes automated health probe loop verifying `https://staging-chrishop.jacobmiller22.com/api/health` returns HTTP 200.
 
-- **Push to `main` branch**:
-  - Triggers automated quality validation.
-  - Deploys to production environment via `pnpm exec wrangler deploy --env production`.
-  - Routes traffic to `https://chrishop.jacobmiller22.com` and `https://shop.jacobmiller22.com`.
+- **Stage 2: Production Promotion (`staging` ➔ `production` Release PR)**:
+  - Direct pushes or PRs to `production` from any branch other than `staging` are strictly rejected by `enforce-promotion-rules` in `.github/workflows/ci.yml`.
+  - Merging a release PR from `staging` into `production` triggers the full gated CD pipeline:
+    1. `build-and-validate`: Full build and test suite execution.
+    2. `deploy-staging`: Deploys bundle to staging edge.
+    3. `test-staging`: Confirms 100% healthy staging probe results.
+    4. `deploy-production` (**✋ Human Approval Gate**): Enters waiting state in GitHub Actions `environment: production`, requiring explicit human reviewer approval (`jacobmiller22`). Once approved, executes `wrangler deploy --env production`.
+    5. `verify-production`: Automatically probes `https://chrishop.jacobmiller22.com/api/health` verifying live edge availability.
 
 - **Health Verification**:
   ```bash
@@ -362,6 +391,8 @@ Deployments are automated through `.github/workflows/deploy.yml`:
   # Check Production Health
   curl -s -f https://chrishop.jacobmiller22.com/api/health | jq .
   ```
+
+For full details, see the operational runbook: [docs/runbooks/PRODUCTION_PROMOTION.md](docs/runbooks/PRODUCTION_PROMOTION.md).
 
 ---
 
