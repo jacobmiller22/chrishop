@@ -10,53 +10,90 @@ interface NoirMinimalLayoutProps {
 
 export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }) => {
   return (
-    <div className="w-full bg-black text-white selection:bg-white selection:text-black">
-      {/* 1. Full-Viewport Edge-to-Edge Cinematic Hero */}
-      <section className="relative left-1/2 -translate-x-1/2 w-screen min-h-[92vh] sm:min-h-screen -mt-8 flex flex-col justify-between overflow-hidden bg-black">
-        {/* Full-Bleed Authentic Cloudflare R2 Hero Photograph */}
+    <div className="w-full min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans-noir">
+      {/* 1. Bespoke Noir Navigation Header */}
+      <header className="sticky top-0 z-40 w-full bg-black/95 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="group flex items-center gap-2">
+              <span className="font-serif-editorial text-2xl tracking-[0.25em] uppercase text-white font-bold group-hover:text-zinc-300 transition-colors">
+                BANKBEATERS
+              </span>
+            </Link>
+            <span className="hidden lg:inline-block text-[10px] tracking-[0.35em] text-zinc-500 uppercase font-light border-l border-white/10 pl-6">
+              Leadville, CO · Elev 10,152 FT
+            </span>
+          </div>
+
+          <nav className="flex items-center gap-8 text-xs uppercase tracking-[0.25em] font-light text-zinc-400">
+            <a href="#archive" className="hover:text-white transition-colors">
+              Archive
+            </a>
+            <Link href="/products?category=outerwear" className="hover:text-white transition-colors">
+              Outerwear
+            </Link>
+            <Link href="/products?category=packs-carry" className="hover:text-white transition-colors">
+              Carry
+            </Link>
+            <Link href="/about" className="hover:text-white transition-colors">
+              Workshop
+            </Link>
+            <Link
+              href="/cart"
+              className="px-3.5 py-1.5 border border-white/20 hover:border-white text-white transition-all flex items-center gap-2"
+            >
+              <span className="text-[11px]">Bag</span>
+              <span className="text-[10px] text-zinc-400">0</span>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* 2. Full-Screen 100vh Viewport Hero */}
+      <section className="relative w-full h-[92vh] sm:h-screen flex flex-col justify-between overflow-hidden bg-black">
+        {/* Authentic Cloudflare R2 Hero Photograph Full-Bleed */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/media/hero/bank-beaters-hero.jpg"
-          alt="BankBeaters Angler Working Remote River Bank on Foot"
-          className="absolute inset-0 w-full h-full object-cover object-center filter brightness-[0.7] contrast-[1.15] transform scale-105 transition-transform duration-1000 ease-out"
+          alt="BankBeaters Angler in High Alpine River Canyon"
+          className="absolute inset-0 w-full h-full object-cover object-center filter brightness-[0.65] contrast-[1.2] transform scale-105 transition-transform duration-1000 ease-out"
         />
 
-        {/* Ambient Noir Overlay Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60" />
+        {/* Ambient Dark Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/70" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/40 hidden md:block" />
 
-        {/* Top Header Eyebrow */}
-        <div className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 pt-12 flex justify-between items-center text-xs tracking-[0.3em] uppercase text-zinc-400 font-light">
-          <span>Leadville, Colorado · 10,152 FT</span>
-          <span className="hidden sm:inline">Crafted in Small Batches</span>
+        {/* Top Eyebrow */}
+        <div className="relative z-10 max-w-7xl w-full mx-auto px-6 lg:px-12 pt-16 flex justify-between items-center text-xs tracking-[0.35em] uppercase text-zinc-400 font-light">
+          <span>Hand-Patterned &amp; Sewn in Colorado</span>
+          <span className="hidden sm:inline">Small-Batch Serialized Editions</span>
         </div>
 
-        {/* Center/Lower Hero Typography */}
-        <div className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 pb-16 space-y-8">
+        {/* Center / Bottom Editorial Typography */}
+        <div className="relative z-10 max-w-7xl w-full mx-auto px-6 lg:px-12 pb-20 space-y-8">
           <div className="space-y-4 max-w-3xl">
-            <span className="text-xs uppercase tracking-[0.35em] text-zinc-400 block font-light">
+            <span className="text-xs uppercase tracking-[0.4em] text-zinc-400 block font-light">
               BankBeaters Adventure Gear
             </span>
-            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black uppercase tracking-tight text-white leading-none">
+            <h1 className="font-serif-editorial text-5xl sm:text-7xl lg:text-9xl font-bold uppercase tracking-tight text-white leading-none">
               Curiosity &gt; Fear.
             </h1>
             <p className="text-base sm:text-xl text-zinc-300 font-light leading-relaxed max-w-2xl pt-2">
               Technical foul-weather outerwear, reinforced guide pants, and modular carry systems.
-              Hand-patterned and sewn by Chris for anglers and explorers who work the bank on foot.
+              Crafted by Chris for backcountry anglers and explorers who work the bank on foot.
             </p>
           </div>
 
-          {/* Minimalist Ghost Actions */}
-          <div className="pt-2 flex flex-wrap items-center gap-5">
+          <div className="pt-2 flex flex-wrap items-center gap-6">
             <a
               href="#archive"
-              className="inline-flex items-center justify-center px-8 py-3.5 bg-white text-black font-medium text-xs uppercase tracking-[0.25em] transition-all duration-300 hover:bg-zinc-200"
+              className="inline-flex items-center justify-center px-10 py-4 bg-white text-black font-medium text-xs uppercase tracking-[0.25em] transition-all duration-300 hover:bg-zinc-200"
             >
               Explore Equipment ({products.length})
             </a>
             <Link
               href="/about"
-              className="inline-flex items-center justify-center px-8 py-3.5 border border-white/40 text-white font-medium text-xs uppercase tracking-[0.25em] transition-all duration-300 hover:border-white hover:bg-white/10"
+              className="inline-flex items-center justify-center px-10 py-4 border border-white/40 text-white font-medium text-xs uppercase tracking-[0.25em] transition-all duration-300 hover:border-white hover:bg-white/10"
             >
               The Maker&apos;s Story
             </Link>
@@ -66,18 +103,18 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
         {/* Delicate Bottom Scroll Cue */}
         <div className="relative z-10 pb-8 flex flex-col items-center gap-2 text-zinc-500 text-[10px] uppercase tracking-[0.3em]">
           <span>Scroll</span>
-          <div className="w-[1px] h-6 bg-gradient-to-b from-zinc-500 to-transparent animate-pulse" />
+          <div className="w-[1px] h-8 bg-gradient-to-b from-zinc-400 to-transparent animate-pulse" />
         </div>
       </section>
 
-      {/* 2. Editorial Brand Statement (Zero Tech Clutter) */}
-      <section className="py-24 px-4 sm:px-8 border-b border-white/10 bg-black">
+      {/* 3. Editorial Brand Statement */}
+      <section className="py-28 px-6 lg:px-12 border-b border-white/10 bg-black">
         <div className="max-w-4xl mx-auto space-y-12 text-center">
           <span className="text-xs uppercase tracking-[0.35em] text-zinc-500 font-light block">
             Craftsmanship Philosophy
           </span>
 
-          <blockquote className="text-2xl sm:text-4xl lg:text-5xl font-light text-zinc-100 uppercase tracking-tight leading-snug">
+          <blockquote className="font-serif-editorial text-3xl sm:text-5xl lg:text-6xl font-light text-zinc-100 uppercase tracking-tight leading-snug">
             &ldquo;We do not build for drift boats or manicured access trails. We craft for remote
             canyons, torrential squalls, and miles on foot.&rdquo;
           </blockquote>
@@ -93,14 +130,14 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
         </div>
       </section>
 
-      {/* 3. Three Minimalist Pillars */}
-      <section className="py-20 px-4 sm:px-8 border-b border-white/10 bg-[#050505]">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 sm:gap-8">
+      {/* 4. Three Minimalist Pillars */}
+      <section className="py-24 px-6 lg:px-12 border-b border-white/10 bg-[#050505]">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 sm:gap-8">
           <div className="space-y-4 border-l border-white/15 pl-6">
             <span className="text-xs font-mono tracking-widest text-zinc-500 block uppercase">
               01 / Workshop Provenance
             </span>
-            <h3 className="text-lg font-bold uppercase tracking-wide text-white">
+            <h3 className="font-serif-editorial text-xl font-bold uppercase tracking-wide text-white">
               Single-Needle Craft
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed font-light">
@@ -113,7 +150,7 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
             <span className="text-xs font-mono tracking-widest text-zinc-500 block uppercase">
               02 / Material Resilience
             </span>
-            <h3 className="text-lg font-bold uppercase tracking-wide text-white">
+            <h3 className="font-serif-editorial text-xl font-bold uppercase tracking-wide text-white">
               Bombproof Textiles
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed font-light">
@@ -126,7 +163,7 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
             <span className="text-xs font-mono tracking-widest text-zinc-500 block uppercase">
               03 / Lifetime Stewardship
             </span>
-            <h3 className="text-lg font-bold uppercase tracking-wide text-white">
+            <h3 className="font-serif-editorial text-xl font-bold uppercase tracking-wide text-white">
               Perpetual Repair
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed font-light">
@@ -137,28 +174,28 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
         </div>
       </section>
 
-      {/* 4. Curated Monochrome Equipment Showcase */}
-      <section id="archive" className="py-24 px-4 sm:px-8 bg-black">
-        <div className="max-w-6xl mx-auto space-y-16">
-          <div className="flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b border-white/10 pb-6">
+      {/* 5. Curated Monochrome Equipment Gallery */}
+      <section id="archive" className="py-28 px-6 lg:px-12 bg-black">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b border-white/10 pb-8">
             <div>
-              <span className="text-xs uppercase tracking-[0.3em] text-zinc-500 block font-light">
-                Selected Work
+              <span className="text-xs uppercase tracking-[0.35em] text-zinc-500 block font-light">
+                Curated Work
               </span>
-              <h2 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight text-white">
+              <h2 className="font-serif-editorial text-4xl sm:text-5xl font-bold uppercase tracking-tight text-white">
                 Equipment Archive
               </h2>
             </div>
             <Link
               href="/products"
-              className="text-xs uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors"
+              className="text-xs uppercase tracking-[0.25em] text-zinc-400 hover:text-white transition-colors"
             >
               View Full Catalog ({products.length}) →
             </Link>
           </div>
 
           {/* Clean Editorial Gallery Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 sm:gap-10">
             {products.map((product) => {
               const displayImage =
                 product.hero_image || product.featured_image || '/media/hero/bank-beaters-hero.jpg';
@@ -168,9 +205,8 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
                 <Link
                   key={product.id}
                   href={`/products/${product.slug}`}
-                  className="group block space-y-4"
+                  className="group block space-y-5"
                 >
-                  {/* Image Container with Quiet Border and Subtle Zoom */}
                   <div className="aspect-[4/5] bg-zinc-950 overflow-hidden relative border border-white/10 group-hover:border-white/30 transition-colors duration-500">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -179,18 +215,16 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
                       className="w-full h-full object-cover object-center filter contrast-105 group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
 
-                    {/* Subtle Edition Micro-Label */}
                     {activeVariation?.edition_badge && (
-                      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md px-2.5 py-1 text-[10px] uppercase tracking-widest text-zinc-300 font-mono border border-white/10">
+                      <div className="absolute top-4 left-4 bg-black/90 backdrop-blur-md px-3 py-1 text-[10px] uppercase tracking-widest text-zinc-300 border border-white/15">
                         {activeVariation.edition_badge}
                       </div>
                     )}
                   </div>
 
-                  {/* Minimalist Details */}
-                  <div className="space-y-1.5 pt-1">
+                  <div className="space-y-2 pt-1">
                     <div className="flex justify-between items-baseline">
-                      <h4 className="text-base font-bold uppercase tracking-wide text-white group-hover:text-zinc-300 transition-colors">
+                      <h4 className="font-serif-editorial text-lg font-bold uppercase tracking-wide text-white group-hover:text-zinc-300 transition-colors">
                         {product.title}
                       </h4>
                       <span className="text-sm font-light text-zinc-300 tracking-wider">
@@ -202,7 +236,7 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
                       {product.description}
                     </p>
 
-                    <div className="pt-2 text-[11px] uppercase tracking-[0.2em] text-zinc-500 group-hover:text-white transition-colors flex items-center gap-1">
+                    <div className="pt-2 text-[11px] uppercase tracking-[0.25em] text-zinc-500 group-hover:text-white transition-colors flex items-center gap-1.5 font-light">
                       <span>Inspect Piece</span>
                       <span>→</span>
                     </div>
@@ -214,29 +248,24 @@ export const NoirMinimalLayout: React.FC<NoirMinimalLayoutProps> = ({ products }
         </div>
       </section>
 
-      {/* 5. Minimalist Workshop Gateway */}
-      <section className="py-24 px-4 sm:px-8 border-t border-white/10 bg-[#050505]">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <span className="text-xs uppercase tracking-[0.35em] text-zinc-500 font-light block">
-            Direct Provenance
-          </span>
-          <h3 className="text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white">
-            Built by Hand in Colorado
-          </h3>
-          <p className="text-sm sm:text-base text-zinc-400 font-light max-w-xl mx-auto leading-relaxed">
-            Read how BankBeaters began on a bench vise in Leadville, our philosophy on technical
-            materials, and our lifetime stitch guarantee.
-          </p>
-          <div className="pt-4">
-            <Link
-              href="/about"
-              className="inline-flex items-center justify-center px-10 py-4 bg-white text-black font-medium text-xs uppercase tracking-[0.25em] transition-all duration-300 hover:bg-zinc-200"
-            >
-              Read The Maker&apos;s Story (/about)
-            </Link>
+      {/* 6. Bespoke Noir Footer */}
+      <footer className="border-t border-white/10 py-16 px-6 lg:px-12 bg-[#050505]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs uppercase tracking-[0.25em] text-zinc-500 font-light">
+          <div className="flex items-center gap-4">
+            <span className="font-serif-editorial text-sm font-bold text-white tracking-widest">
+              BANKBEATERS
+            </span>
+            <span>·</span>
+            <span>Leadville, Colorado</span>
+            <span>·</span>
+            <span>Curiosity &gt; Fear</span>
+          </div>
+
+          <div>
+            <p>© {new Date().getFullYear()} BankBeaters. Single-Needle Lockstitched. Lifetime Repair.</p>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 };

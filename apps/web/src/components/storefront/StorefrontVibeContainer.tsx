@@ -62,8 +62,8 @@ export const StorefrontVibeContainer: React.FC<StorefrontVibeContainerProps> = (
   };
 
   return (
-    <div className="space-y-6">
-      {/* Interactive Sticky Top Switcher Toolbar */}
+    <div className="min-h-screen w-full relative">
+      {/* Interactive Minimizable Switcher Dock */}
       <VibeSwitcherBar activeVibe={activeVibe} onSelectVibe={handleSelectVibe} />
 
       {/* Render Active Archetype */}

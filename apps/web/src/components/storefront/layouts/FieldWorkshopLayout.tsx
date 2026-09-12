@@ -1,236 +1,368 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import { Button, Card, Badge } from '@chrishop/ui';
 import type { StorefrontProduct } from '@/lib/catalog';
 
-interface LayoutProps {
+interface FieldWorkshopLayoutProps {
   products: StorefrontProduct[];
 }
 
-export const FieldWorkshopLayout: React.FC<LayoutProps> = ({ products }) => {
+export const FieldWorkshopLayout: React.FC<FieldWorkshopLayoutProps> = ({ products }) => {
   const flagship = products.find((p) => p.slug === 'bushwhack-storm-anorak') || products[0];
-  const otherProducts = products.filter((p) => p.id !== flagship?.id);
 
   return (
-    <div className="space-y-24 py-4">
-      {/* 1. Asymmetric Editorial Split Hero */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center bg-[#15191E] p-8 sm:p-12 rounded-3xl border border-stone-800/80 shadow-2xl">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Badge variant="warning" className="uppercase tracking-wider font-mono text-[11px]">
-              ⚡ Small-Batch Drop Live
-            </Badge>
-            <Badge variant="olive" className="uppercase tracking-wider font-mono text-[11px]">
-              Leadville, CO · Elev 10,152 ft
-            </Badge>
-            <Badge variant="neutral" className="uppercase tracking-wider font-mono text-[11px]">
-              Single-Needle Lockstitched
-            </Badge>
-          </div>
-
-          <div className="space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#E55B24] font-bold block">
-              Option A // Field Workshop &amp; Maker Archive
-            </span>
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-100 uppercase font-mono leading-none">
-              Curiosity &gt; Fear.
-            </h1>
-          </div>
-
-          <p className="text-base sm:text-lg text-stone-300 leading-relaxed max-w-xl">
-            Technical storm anoraks, convertible lumbar rigs, and field accessories hand-patterned and sewn by Chris
-            for backcountry anglers who leave the boat ramp behind and work the bank on foot.
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center gap-4">
-            <Link href="/products">
-              <Button
-                variant="primary"
-                size="lg"
-                className="font-bold uppercase tracking-wider text-sm shadow-lg shadow-orange-950/40 px-8 py-3.5"
-              >
-                Explore Gear Roster ({products.length})
-              </Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm">
-                The Maker&apos;s Story (/about)
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Right Column: Framed Authentic R2 Hero Image with Archival Stamp */}
-        <div className="lg:col-span-5">
-          <div className="relative rounded-2xl overflow-hidden border border-stone-700/60 shadow-2xl bg-[#101317] group">
-            <div className="aspect-[4/5] relative overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/media/hero/bank-beaters-hero.jpg"
-                alt="BankBeaters Angler in Colorado High Alpine River"
-                className="w-full h-full object-cover object-center filter contrast-105 group-hover:scale-105 transition-transform duration-700 ease-out"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#101317] via-transparent to-transparent opacity-80" />
-            </div>
-
-            {/* Archival Workshop Tag Overlay */}
-            <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-[#0F1215]/90 backdrop-blur-md border border-stone-800/90 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono text-[#E55B24] uppercase tracking-widest block font-bold">
-                  Field Provenance
+    <div className="w-full min-h-screen bg-[#101311] text-[#EBE6DD] selection:bg-[#E55B24] selection:text-white font-mono-workshop">
+      {/* 1. Bespoke Field Workshop Header */}
+      <header className="sticky top-0 z-40 w-full bg-[#101311]/95 backdrop-blur-md border-b border-[#2A342D]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="group flex items-center gap-3">
+              <span className="w-8 h-8 rounded-sm bg-[#E55B24] flex items-center justify-center font-display-workshop text-lg font-black text-black tracking-tighter">
+                BB
+              </span>
+              <div className="flex flex-col">
+                <span className="font-display-workshop text-2xl uppercase tracking-wider text-[#F5EFEB] group-hover:text-[#E55B24] transition-colors leading-none font-bold">
+                  BANKBEATERS
                 </span>
-                <span className="text-xs font-mono text-stone-200 font-semibold block">
-                  Leadville Workshop · Batch 01
+                <span className="text-[10px] tracking-[0.2em] text-[#8C9A8E] uppercase font-mono-workshop pt-1">
+                  Field Workshop · Ed. 2024
                 </span>
               </div>
-              <span className="text-[11px] font-mono text-stone-400 bg-stone-900 px-2 py-1 rounded border border-stone-800">
-                100% Hand-Sewn
+            </Link>
+            <span className="hidden xl:inline-block text-[10px] tracking-widest text-[#6E7B70] uppercase border-l border-[#2A342D] pl-6">
+              LEADVILLE, CO · ELEV 10,152 FT
+            </span>
+          </div>
+
+          <nav className="flex items-center gap-8 text-xs uppercase tracking-widest font-mono-workshop text-[#A2B1A4]">
+            <a href="#bench-builds" className="hover:text-[#E55B24] transition-colors">
+              Bench Builds
+            </a>
+            <Link href="/products?category=outerwear" className="hover:text-[#E55B24] transition-colors hidden sm:inline">
+              Outerwear
+            </Link>
+            <Link href="/products?category=packs-carry" className="hover:text-[#E55B24] transition-colors hidden md:inline">
+              Carry Rigs
+            </Link>
+            <Link href="/about" className="hover:text-[#E55B24] transition-colors">
+              Maker&apos;s Story
+            </Link>
+            <Link
+              href="/cart"
+              className="px-3.5 py-1.5 border border-[#445348] hover:border-[#E55B24] bg-[#171D18] text-[#EBE6DD] hover:text-[#E55B24] transition-all flex items-center gap-2 rounded-xs"
+            >
+              <span className="text-[11px] font-bold">Kit Bag</span>
+              <span className="text-[10px] bg-[#222C24] px-1.5 py-0.5 rounded text-[#D4A373]">0</span>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* 2. Asymmetric Craftsman Hero */}
+      <section className="relative w-full border-b border-[#2A342D] bg-[#121614] py-16 lg:py-24 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          {/* Left Hero Narrative */}
+          <div className="lg:col-span-7 space-y-8">
+            <div className="inline-flex items-center gap-3 bg-[#1C241F] border border-[#354338] px-3.5 py-1.5 rounded-sm">
+              <span className="w-2 h-2 rounded-full bg-[#E55B24] animate-pulse" />
+              <span className="text-xs uppercase tracking-widest text-[#D4A373] font-bold">
+                Small-Batch Drop Live // 3 to 6 Units Per Silhouette
               </span>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 2. Asymmetrical Drop Roster (Large Flagship + Secondary Builds) */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between border-b border-stone-800/80 pb-4">
-          <div>
-            <span className="text-xs font-mono text-[#E55B24] uppercase tracking-widest block font-bold">
-              Active Small-Batch Runs
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-stone-100 uppercase tracking-tight font-mono">
-              Workshop Bench Builds
-            </h2>
-          </div>
-          <Link
-            href="/products"
-            className="text-sm text-[#E55B24] hover:text-orange-400 transition-colors font-mono font-semibold"
-          >
-            All Silhouettes ({products.length}) →
-          </Link>
-        </div>
+            <div className="space-y-4">
+              <span className="text-xs uppercase tracking-[0.25em] text-[#8C9A8E] block">
+                Option A · Field Workshop Archetype
+              </span>
+              <h1 className="font-display-workshop text-5xl sm:text-7xl lg:text-8xl font-bold uppercase tracking-tight text-[#F7F2EB] leading-[0.95]">
+                Curiosity &gt; Fear.
+              </h1>
+              <p className="text-sm sm:text-base text-[#B8C5BA] leading-relaxed max-w-xl pt-2">
+                Technical foul-weather outerwear, reinforced guide trousers, and convertible chest rigs.
+                Hand-patterned and sewn by Chris on an industrial Juki lockstitch machine in Leadville, Colorado
+                for backcountry anglers who bushwhack the bank on foot.
+              </p>
+            </div>
 
-        {flagship && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#15191E] p-6 sm:p-10 rounded-2xl border border-stone-800/80 shadow-2xl">
-            <div className="lg:col-span-6">
-              <Card className="aspect-square flex items-center justify-center bg-[#101317] border-stone-800 overflow-hidden relative p-0 shadow-2xl">
+            <div className="pt-2 flex flex-wrap items-center gap-5">
+              <a
+                href="#bench-builds"
+                className="px-8 py-4 bg-[#E55B24] hover:bg-[#F26E38] text-[#101311] font-display-workshop text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-sm shadow-lg shadow-[#E55B24]/20"
+              >
+                Inspect Workshop Roster ({products.length})
+              </a>
+              <Link
+                href="/about"
+                className="px-8 py-4 border border-[#445348] hover:border-[#D4A373] bg-[#171D18] hover:bg-[#1C241F] text-[#EBE6DD] font-display-workshop text-base uppercase font-bold tracking-wider transition-all duration-200 rounded-sm"
+              >
+                The Maker&apos;s Bench
+              </Link>
+            </div>
+
+            {/* Quick Workbench Metrics */}
+            <div className="pt-6 border-t border-[#252E27] grid grid-cols-3 gap-6 text-xs text-[#8C9A8E]">
+              <div>
+                <span className="block text-[#D4A373] font-bold text-sm font-display-workshop uppercase">
+                  10,152 FT
+                </span>
+                <span className="text-[11px]">Leadville Workshop</span>
+              </div>
+              <div>
+                <span className="block text-[#D4A373] font-bold text-sm font-display-workshop uppercase">
+                  Toray 3-Layer
+                </span>
+                <span className="text-[11px]">20,000mm Membrane</span>
+              </div>
+              <div>
+                <span className="block text-[#D4A373] font-bold text-sm font-display-workshop uppercase">
+                  Perpetual
+                </span>
+                <span className="text-[11px]">Bench Repair Guarantee</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Hero Image: Authentic Cloudflare R2 Hero Photo with Archival Workshop Tag */}
+          <div className="lg:col-span-5">
+            <div className="relative bg-[#171D18] border-2 border-[#354338] p-3 shadow-2xl rounded-sm group">
+              <div className="aspect-[4/5] relative overflow-hidden bg-[#0D100E]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={flagship.featured_image || '/media/bushwhack-storm-anorak/hero.jpeg'}
-                  alt={flagship.title}
-                  className="w-full h-full object-cover object-center"
+                  src="/media/hero/bank-beaters-hero.jpg"
+                  alt="BankBeaters Angler Bushwhacking in Colorado High Alpine River"
+                  className="w-full h-full object-cover object-center filter contrast-105 brightness-95 group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
-                <div className="absolute top-4 left-4">
-                  <Badge variant="warning" className="text-xs font-mono uppercase font-bold">
-                    Featured Silhouette
-                  </Badge>
-                </div>
-              </Card>
-            </div>
-
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="olive">Batch 01/24 · Only 3 Crafted</Badge>
-                <Badge variant="neutral">Lifetime Repair Guarantee</Badge>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#101311] via-transparent to-transparent opacity-60" />
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-3xl sm:text-4xl font-black text-stone-100 uppercase font-mono">
-                  {flagship.title}
-                </h3>
-                <p className="text-stone-300 leading-relaxed text-sm sm:text-base">
-                  {flagship.description}
-                </p>
-              </div>
-
-              {flagship.materials && (
-                <div className="p-4 rounded-xl bg-[#101317] border border-stone-800/80 space-y-1 font-mono text-xs">
-                  <span className="text-[#E55B24] block uppercase font-bold">Technical Spec Overview:</span>
-                  <p className="text-stone-300">· Fabric: {flagship.materials}</p>
-                  {flagship.weight && <p className="text-stone-400">· Finished Weight: {flagship.weight}</p>}
+              {/* Archival Workshop Tag Overlay */}
+              <div className="mt-3 p-4 bg-[#141A15] border border-[#2D382F] rounded-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono-workshop text-[#E55B24] uppercase tracking-widest block font-bold">
+                    ARCHIVAL SPECIMEN 01
+                  </span>
+                  <span className="text-xs font-mono-workshop text-[#EBE6DD] font-semibold block">
+                    High Alpine River Recon · Leadville, CO
+                  </span>
                 </div>
-              )}
-
-              <div className="flex items-baseline gap-4">
-                <span className="text-3xl font-black text-[#E55B24] font-mono">
-                  ${Number(flagship.base_price).toFixed(2)}
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 bg-[#222B24] text-[#D4A373] border border-[#3E4D41]">
+                  100% Hand-Sewn
                 </span>
-                <span className="text-xs text-stone-500 font-mono">Direct Workshop Pricing · Hand-Inspected</span>
-              </div>
-
-              <div className="flex flex-wrap gap-4">
-                <Link href={`/products/${flagship.slug}`}>
-                  <Button variant="primary" size="lg" className="font-bold uppercase tracking-wider text-sm px-8">
-                    Inspect Silhouette &amp; Editions
-                  </Button>
-                </Link>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* Secondary Builds Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {otherProducts.slice(0, 3).map((product) => (
-            <Link key={product.id} href={`/products/${product.slug}`} className="group block">
-              <Card className="bg-[#15191E] border-stone-800/80 hover:border-stone-700 transition-all p-4 space-y-4 rounded-2xl h-full flex flex-col justify-between">
-                <div className="aspect-[4/5] rounded-xl overflow-hidden bg-[#101317] relative">
+      {/* 3. The Maker's Bench Provenance (3 Craft Pillars) */}
+      <section className="py-20 px-6 lg:px-12 border-b border-[#2A342D] bg-[#141815]">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs uppercase tracking-[0.3em] text-[#E55B24] font-bold">
+              Provenance &amp; Integrity
+            </span>
+            <h2 className="font-display-workshop text-3xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2EB]">
+              The Crafting Ledger
+            </h2>
+            <p className="text-xs sm:text-sm text-[#A2B1A4] leading-relaxed">
+              No overseas mass manufacturing, no glued heat-welds that delaminate after two seasons of dense willows.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-[#171D18] border border-[#2D382F] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E55B24] tracking-widest block uppercase">
+                {'// 01. Single-Needle Construction'}
+              </span>
+              <h3 className="font-display-workshop text-2xl font-bold uppercase text-[#F7F2EB]">
+                Industrial Lockstitch
+              </h3>
+              <p className="text-xs text-[#A2B1A4] leading-relaxed">
+                Assembled on a vintage Juki DDL series lockstitch machine with bonded continuous filament nylon thread.
+                Seams are felled to ensure tree bark and rock faces won&apos;t tear your seams.
+              </p>
+            </div>
+
+            <div className="bg-[#171D18] border border-[#2D382F] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E55B24] tracking-widest block uppercase">
+                {'// 02. Curated Bombproof Textiles'}
+              </span>
+              <h3 className="font-display-workshop text-2xl font-bold uppercase text-[#F7F2EB]">
+                Toray 3L &amp; Cordura
+              </h3>
+              <p className="text-xs text-[#A2B1A4] leading-relaxed">
+                Tested against torrential high-country squalls. We pair Japanese waterproof breathable membranes
+                with 500D/1000D Cordura scuff guards on high-friction strike zones.
+              </p>
+            </div>
+
+            <div className="bg-[#171D18] border border-[#2D382F] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E55B24] tracking-widest block uppercase">
+                {'// 03. Lifetime Workshop Guarantee'}
+              </span>
+              <h3 className="font-display-workshop text-2xl font-bold uppercase text-[#F7F2EB]">
+                Perpetual Repair Bench
+              </h3>
+              <p className="text-xs text-[#A2B1A4] leading-relaxed">
+                If you rip an arm on barbwire or blow a zipper during a backcountry portage, send it back to the
+                Leadville workshop. Chris repairs every piece on the original machine for the life of the gear.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Active Small-Batch Drop Roster */}
+      <section id="bench-builds" className="py-24 px-6 lg:px-12 bg-[#101311]">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b border-[#2A342D] pb-6">
+            <div>
+              <span className="text-xs uppercase tracking-[0.25em] text-[#E55B24] font-bold block">
+                Leadville Workbench Output
+              </span>
+              <h2 className="font-display-workshop text-4xl sm:text-5xl font-bold uppercase tracking-tight text-[#F7F2EB]">
+                Active Bench Builds
+              </h2>
+            </div>
+            <Link
+              href="/products"
+              className="text-xs uppercase tracking-widest text-[#D4A373] hover:text-[#E55B24] transition-colors flex items-center gap-2"
+            >
+              <span>View All Silhouettes ({products.length})</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          {/* Flagship Highlight Banner */}
+          {flagship && (
+            <div className="bg-[#151B16] border-2 border-[#38463B] p-8 lg:p-12 rounded-sm grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              <div className="lg:col-span-5">
+                <div className="aspect-[4/5] bg-[#0E120F] border border-[#2D382F] overflow-hidden relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={product.featured_image || '/media/the-cutbank-lumbar-sling-pack/hero.jpeg'}
-                    alt={product.title}
+                    src={flagship.featured_image || '/media/bushwhack-storm-anorak/hero.jpeg'}
+                    alt={flagship.title}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 right-3">
-                    <Badge variant="olive" className="text-[10px] font-mono uppercase">
-                      Micro-Batch
-                    </Badge>
+                  <div className="absolute top-4 left-4 bg-[#E55B24] text-black font-display-workshop font-bold text-xs uppercase px-3 py-1">
+                    Workbench Flagship
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <span className="text-[11px] font-mono text-[#E55B24] uppercase font-bold block">
-                    {product.origin || 'Leadville, CO'}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <span className="bg-[#222C24] text-[#D4A373] px-3 py-1 border border-[#3A4A3D] font-bold">
+                    EDITION 01/24 · 3 UNITS SEWN
                   </span>
-                  <h4 className="text-lg font-bold text-stone-100 uppercase font-mono group-hover:text-[#E55B24] transition-colors">
-                    {product.title}
-                  </h4>
-                  <div className="flex items-center justify-between pt-2 border-t border-stone-800/80">
-                    <span className="text-lg font-black text-stone-200 font-mono">
-                      ${Number(product.base_price).toFixed(2)}
-                    </span>
-                    <span className="text-xs font-mono text-[#E55B24]">Inspect →</span>
-                  </div>
+                  <span className="text-[#8C9A8E]">SINGLE-NEEDLE LOCKSTITCH</span>
                 </div>
-              </Card>
-            </Link>
-          ))}
+
+                <div className="space-y-3">
+                  <h3 className="font-display-workshop text-3xl sm:text-5xl font-bold uppercase text-[#F7F2EB]">
+                    {flagship.title}
+                  </h3>
+                  <p className="text-sm text-[#B8C5BA] leading-relaxed">
+                    {flagship.description}
+                  </p>
+                </div>
+
+                {flagship.materials && (
+                  <div className="p-4 bg-[#111613] border border-[#273229] space-y-1 text-xs text-[#8C9A8E]">
+                    <span className="text-[#E55B24] uppercase font-bold block">Workbench Material Specs:</span>
+                    <p className="text-[#D4A373]">· {flagship.materials}</p>
+                    {flagship.weight && <p className="text-[#8C9A8E]">· Finished Bench Weight: {flagship.weight}</p>}
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="font-display-workshop text-3xl font-bold text-[#F7F2EB]">
+                    ${flagship.base_price.toFixed(2)}
+                  </span>
+                  <Link
+                    href={`/products/${flagship.slug}`}
+                    className="px-6 py-3 bg-[#E55B24] hover:bg-[#F26E38] text-black font-display-workshop uppercase font-bold text-sm tracking-wider transition-colors"
+                  >
+                    Examine Build Spec →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Secondary Products Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product, idx) => {
+              const displayImage =
+                product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group block bg-[#151B16] border border-[#2D382F] hover:border-[#E55B24] transition-all duration-300 p-5 rounded-sm space-y-4"
+                >
+                  <div className="flex items-center justify-between text-[11px] text-[#8C9A8E] border-b border-[#252F27] pb-2">
+                    <span className="font-bold text-[#E55B24]">BENCH-0{idx + 1}</span>
+                    <span className="text-[#D4A373] uppercase tracking-wider">
+                      {product.category?.name || 'FIELD UTILITY'}
+                    </span>
+                  </div>
+
+                  <div className="aspect-[4/4] bg-[#0E120F] overflow-hidden relative border border-[#252F27]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={displayImage}
+                      alt={product.title}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <h4 className="font-display-workshop text-xl font-bold uppercase text-[#F7F2EB] group-hover:text-[#E55B24] transition-colors">
+                        {product.title}
+                      </h4>
+                      <span className="text-sm font-bold text-[#D4A373]">
+                        ${product.base_price.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[#8C9A8E] line-clamp-2 leading-relaxed">
+                      {product.description}
+                    </p>
+
+                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#A2B1A4] group-hover:text-[#E55B24] flex items-center gap-1 font-bold">
+                      <span>View Specs &amp; Sizing</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* 3. The Maker's Bench Narrative Module */}
-      <section className="p-8 sm:p-12 rounded-3xl bg-[#101317] border border-stone-800/80 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <div className="lg:col-span-8 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-widest text-[#E55B24] font-bold block">
-            Craftsmanship Narrative
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-stone-100 uppercase tracking-tight font-mono">
-            Single-Needle Lockstitching in Colorado
-          </h2>
-          <p className="text-stone-300 text-sm sm:text-base leading-relaxed">
-            Every seam is sewn with heavy bonded nylon thread on a refurbished industrial machine.
-            When you purchase BankBeaters, you buy directly from the person who cut the pattern.
-            If you blow out a seam or tear a knee on willow branches, send it back and we will re-stitch it for free.
-          </p>
+      {/* 5. Bespoke Field Workshop Footer */}
+      <footer className="border-t border-[#2A342D] py-16 px-6 lg:px-12 bg-[#0D100E]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#8C9A8E]">
+          <div className="flex items-center gap-4">
+            <span className="font-display-workshop text-base font-bold text-[#E55B24] tracking-wider">
+              BANKBEATERS FIELD WORKSHOP
+            </span>
+            <span>·</span>
+            <span>Leadville, Colorado (10,152 FT)</span>
+            <span>·</span>
+            <span>Curiosity &gt; Fear</span>
+          </div>
+
+          <div>
+            <p>© {new Date().getFullYear()} BankBeaters Gear Co. Single-Needle Assembled. Free Bench Repair.</p>
+          </div>
         </div>
-        <div className="lg:col-span-4 flex justify-start lg:justify-end">
-          <Link href="/about">
-            <Button variant="primary" size="lg" className="font-bold uppercase tracking-wider text-sm px-6">
-              Read The Maker&apos;s Story
-            </Button>
-          </Link>
-        </div>
-      </section>
+      </footer>
     </div>
   );
 };

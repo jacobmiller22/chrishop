@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 
 export type StorefrontVibe =
@@ -14,85 +14,193 @@ interface VibeSwitcherBarProps {
   onSelectVibe: (vibe: StorefrontVibe) => void;
 }
 
-const VIBE_METADATA: Record<
-  StorefrontVibe,
-  { label: string; icon: string; subtitle: string; tag: string }
-> = {
+interface VibeMeta {
+  label: string;
+  name: string;
+  icon: string;
+  fontBadge: string;
+  paletteBadge: string;
+  summary: string;
+  reference: string;
+}
+
+const VIBE_METADATA: Record<StorefrontVibe, VibeMeta> = {
   field_workshop: {
-    label: 'Option A: Field Workshop',
+    label: 'Option A',
+    name: 'Field Workshop',
     icon: '🏕️',
-    subtitle: 'Asymmetric editorial split hero, Leadville workshop tags, craft narrative & staggered drop cards',
-    tag: 'Filson · Topo Designs · Mystery Ranch',
+    fontBadge: 'Oswald + Courier Prime',
+    paletteBadge: 'Canvas Tan & Blaze Orange',
+    summary: 'Asymmetric editorial craft hero, workshop tag stamps, stitched product cards & maker bench.',
+    reference: 'Filson · Topo Designs · Mystery Ranch',
   },
   alpine_minimal: {
-    label: 'Option B: Alpine Minimal',
+    label: 'Option B',
+    name: 'Alpine Minimal',
     icon: '🏔️',
-    subtitle: 'Full-bleed panoramic R2 hero banner, precision monospace spec matrices & high-contrast obsidian base',
-    tag: 'Arc’teryx Veilance · Hyperlite Mountain Gear',
+    fontBadge: 'Space Grotesk + JetBrains Mono',
+    paletteBadge: 'Glacier Obsidian & Technical Cyan',
+    summary: 'Panoramic high-contrast hero banner, monospace telemetry ticker & 3-column spec matrices (20k/20k).',
+    reference: 'Arc’teryx Veilance · Hyperlite Mountain Gear',
   },
   hardware_vault: {
-    label: 'Option C: Hardware Vault',
+    label: 'Option C',
+    name: 'Hardware Vault',
     icon: '⚡',
-    subtitle: 'Dense blueprint catalog at top fold, live batch stock meters & telemetry (R2 hero anchored in /about)',
-    tag: 'Vollebak · Acronym · Teenage Engineering',
+    fontBadge: 'Chakra Petch + Share Tech Mono',
+    paletteBadge: 'Tarmac & High-Voltage Amber',
+    summary: 'Top-fold blueprint catalog, live batch telemetry & cut countdown bar, and stock level progress meters.',
+    reference: 'Vollebak · Acronym · Teenage Engineering',
   },
   noir_minimal: {
-    label: 'Option D: Noir Minimalist',
+    label: 'Option D',
+    name: 'Noir Minimalist',
     icon: '🖤',
-    subtitle: 'Full-viewport cinematic screen hero, pure pitch-black palette & zero-tech luxury outdoor editorial',
-    tag: 'Veilance · High-End Minimalist Editorial',
+    fontBadge: 'Playfair Display + Plus Jakarta Sans',
+    paletteBadge: '100% Pure Black (#000000) & Stark White',
+    summary: 'Full-screen 100vh viewport hero, zero tech clutter, stark luxury editorial serif & borderless gallery.',
+    reference: 'Veilance · High-End Minimalist Luxury Editorial',
   },
 };
 
 export const VibeSwitcherBar: React.FC<VibeSwitcherBarProps> = ({ activeVibe, onSelectVibe }) => {
-  const currentMeta = VIBE_METADATA[activeVibe] || VIBE_METADATA.field_workshop;
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  const current = VIBE_METADATA[activeVibe] || VIBE_METADATA.field_workshop;
+
+  // Fully minimized mode: unobtrusive tiny floating icon in bottom-right corner
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setIsMinimized(false)}
+          title="Open Design Vibe Switcher"
+          aria-label="Open Design Vibe Switcher"
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-stone-900/90 hover:bg-stone-800 text-stone-100 border border-stone-700/80 shadow-2xl backdrop-blur-md text-xs font-mono transition-all hover:scale-105"
+        >
+          <span>{current.icon}</span>
+          <span className="font-bold">{current.name}</span>
+          <span className="text-[10px] text-stone-400 bg-stone-800 px-1.5 py-0.5 rounded">Switch 🎨</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <aside aria-label="Storefront Design Vibe Switcher" className="sticky top-16 z-40 w-full bg-[#0F1215]/95 backdrop-blur-md border-b border-stone-800/90 shadow-2xl py-2.5 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Switcher Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-stone-400 flex items-center gap-1.5 mr-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#E55B24] animate-pulse" />
-            Vibe Switcher:
-          </span>
-
-          {(['field_workshop', 'alpine_minimal', 'hardware_vault', 'noir_minimal'] as const).map((vibe) => {
-            const meta = VIBE_METADATA[vibe];
-            const isActive = activeVibe === vibe;
-            return (
-              <button
-                key={vibe}
-                onClick={() => onSelectVibe(vibe)}
-                className={`text-xs font-mono px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-[#E55B24] text-stone-950 font-bold border-[#E55B24] shadow-md shadow-orange-950/50 scale-[1.02]'
-                    : 'bg-stone-900/80 text-stone-300 border-stone-800 hover:border-stone-700 hover:bg-stone-800 hover:text-white'
-                }`}
-              >
-                <span>{meta.icon}</span>
-                <span>{meta.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Current Vibe Context & About Us Shortcut */}
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="hidden lg:flex items-center gap-2 text-stone-400">
-            <span className="text-stone-300 font-semibold">{currentMeta.subtitle}</span>
-            <span className="text-stone-600">|</span>
-            <span className="text-stone-500 italic">Ref: {currentMeta.tag}</span>
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      {/* Expanded Popover Modal */}
+      {isOpen && (
+        <div className="mb-3 w-96 max-w-[calc(100vw-2rem)] rounded-2xl bg-stone-950/95 border border-stone-800 shadow-2xl backdrop-blur-xl p-5 space-y-4 text-stone-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center justify-between border-b border-stone-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-stone-200">
+                Storefront Redesign Vibes
+              </span>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              aria-label="Close vibe menu"
+              className="text-stone-400 hover:text-white text-xs font-mono p-1 rounded hover:bg-stone-800/60"
+            >
+              ✕ Close
+            </button>
           </div>
 
-          <Link
-            href="/about"
-            className="text-stone-400 hover:text-[#E55B24] transition-colors whitespace-nowrap flex items-center gap-1 underline underline-offset-4"
-          >
-            <span>The Maker&apos;s Story (/about) →</span>
-          </Link>
+          <p className="text-[11px] text-stone-400 leading-relaxed">
+            Each option is an independent, ground-up rewritten experience with distinct typography, header, hero, catalog grid, and color palette.
+          </p>
+
+          <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+            {(['noir_minimal', 'field_workshop', 'alpine_minimal', 'hardware_vault'] as const).map(
+              (vibe) => {
+                const meta = VIBE_METADATA[vibe];
+                const isActive = activeVibe === vibe;
+
+                return (
+                  <button
+                    key={vibe}
+                    onClick={() => {
+                      onSelectVibe(vibe);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                      isActive
+                        ? 'bg-stone-900 border-white/40 shadow-lg ring-1 ring-white/20'
+                        : 'bg-stone-900/40 border-stone-800/80 hover:border-stone-700 hover:bg-stone-900/80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-bold text-xs">
+                        <span>{meta.icon}</span>
+                        <span className={isActive ? 'text-white' : 'text-stone-300'}>
+                          {meta.label}: {meta.name}
+                        </span>
+                      </div>
+                      {isActive && (
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-semibold">
+                          Active
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-stone-400 leading-snug">{meta.summary}</p>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] font-mono">
+                      <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 border border-stone-700/60">
+                        🔤 {meta.fontBadge}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 border border-stone-700/60">
+                        🎨 {meta.paletteBadge}
+                      </span>
+                    </div>
+                  </button>
+                );
+              }
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px] font-mono text-stone-400">
+            <Link
+              href="/about"
+              className="hover:text-white transition-colors underline underline-offset-2 flex items-center gap-1"
+            >
+              <span>The Maker&apos;s Story (/about) →</span>
+            </Link>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setIsMinimized(true);
+              }}
+              className="text-stone-500 hover:text-stone-300"
+            >
+              Minimize Pill
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Sleek Floating Dock Pill */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-stone-950/90 border border-stone-700/80 shadow-2xl backdrop-blur-md">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-stone-800 text-stone-100 text-xs font-mono transition-colors"
+        >
+          <span>{current.icon}</span>
+          <span className="font-bold">{current.label}: {current.name}</span>
+          <span className="text-stone-400 text-[11px]">{isOpen ? '▲' : '▼'}</span>
+        </button>
+
+        <button
+          onClick={() => setIsMinimized(true)}
+          title="Minimize switcher to tiny button"
+          aria-label="Minimize switcher"
+          className="w-7 h-7 flex items-center justify-center rounded-full text-stone-400 hover:text-white hover:bg-stone-800 text-xs transition-colors"
+        >
+          —
+        </button>
       </div>
-    </aside>
+    </div>
   );
 };
