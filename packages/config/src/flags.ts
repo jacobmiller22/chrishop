@@ -32,7 +32,17 @@ export const flagSchema = z.object({
   FLAG_PHASE_6_CANARY_PERCENT: z.number().min(0).max(100).default(0),
   /** Controls storefront layout and aesthetic archetype */
   FLAG_STOREFRONT_VIBE: z
-    .enum(['field_workshop', 'alpine_minimal', 'hardware_vault', 'noir_minimal'])
+    .enum([
+      'field_workshop',
+      'alpine_minimal',
+      'hardware_vault',
+      'noir_minimal',
+      'cartographer_dispatch',
+      'brutalist_foundry',
+      'wabi_sabi',
+      'swiss_modernist',
+      'seventies_retro',
+    ])
     .default('field_workshop'),
 });
 

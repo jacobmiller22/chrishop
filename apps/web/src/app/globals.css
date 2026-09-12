@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;700&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@500;700&family=Chivo+Mono:wght@400;700&family=Courier+Prime:wght@400;700&family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;700&family=Share+Tech+Mono&family=Shippori+Mincho:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&family=Special+Elite&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -42,4 +42,33 @@ body {
 
 .font-mono-vault {
   font-family: 'Share Tech Mono', monospace;
+}
+
+/* New Fonts for Options E, F, G, H, I */
+.font-serif-cartographer {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-mono-dispatch {
+  font-family: 'Special Elite', Courier, monospace;
+}
+
+.font-display-brutalist {
+  font-family: 'Anton', Impact, sans-serif;
+}
+
+.font-mono-industrial {
+  font-family: 'Chivo Mono', monospace;
+}
+
+.font-serif-wabisabi {
+  font-family: 'Shippori Mincho', serif;
+}
+
+.font-mono-swiss {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.font-display-retro {
+  font-family: 'Fraunces', Georgia, serif;
 }

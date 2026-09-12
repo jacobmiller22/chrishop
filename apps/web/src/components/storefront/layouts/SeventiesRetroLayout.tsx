@@ -1,0 +1,323 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import type { StorefrontProduct } from '@/lib/catalog';
+
+interface SeventiesRetroLayoutProps {
+  products: StorefrontProduct[];
+}
+
+export const SeventiesRetroLayout: React.FC<SeventiesRetroLayoutProps> = ({ products }) => {
+  return (
+    <div className="w-full min-h-screen bg-[#0F1A13] text-[#F3EAD7] selection:bg-[#E5A93C] selection:text-[#0F1A13] font-mono-workshop">
+      {/* 1. Bespoke 1970s Backcountry Catalog Header */}
+      <header className="sticky top-0 z-40 w-full bg-[#0F1A13]/95 backdrop-blur-md border-b-2 border-[#203426]">
+        {/* Iconic 1970s Tri-Color Ribbon Stripe */}
+        <div className="h-1.5 w-full flex">
+          <div className="h-full w-1/3 bg-[#B84A28]" />
+          <div className="h-full w-1/3 bg-[#E5A93C]" />
+          <div className="h-full w-1/3 bg-[#3D6B52]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="group flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#E5A93C] flex items-center justify-center font-display-retro font-black text-[#0F1A13] text-lg shadow-md">
+                74
+              </div>
+              <div className="flex flex-col">
+                <span className="font-display-retro text-2xl uppercase tracking-wider text-[#F8F2E4] group-hover:text-[#E5A93C] transition-colors leading-none font-black">
+                  BANKBEATERS
+                </span>
+                <span className="text-[10px] tracking-widest text-[#93A89A] uppercase pt-1">
+                  Adventure Gear · Leadville Backcountry Catalog
+                </span>
+              </div>
+            </Link>
+            <span className="hidden xl:inline-block text-[10px] tracking-widest text-[#6E8575] uppercase border-l border-[#203426] pl-6 font-bold">
+              EST. LEADVILLE, CO · 10,152 FT
+            </span>
+          </div>
+
+          <nav className="flex items-center gap-8 text-xs uppercase tracking-widest text-[#BDCEBF]">
+            <a href="#catalog-items" className="hover:text-[#E5A93C] transition-colors">
+              The Catalog
+            </a>
+            <Link href="/products?category=outerwear" className="hover:text-[#E5A93C] transition-colors hidden sm:inline">
+              Outerwear
+            </Link>
+            <Link href="/products?category=packs-carry" className="hover:text-[#E5A93C] transition-colors hidden md:inline">
+              Packs
+            </Link>
+            <Link href="/about" className="hover:text-[#E5A93C] transition-colors">
+              Mountain Ethic
+            </Link>
+            <Link
+              href="/cart"
+              className="px-3.5 py-1.5 border-2 border-[#E5A93C] bg-[#16271D] hover:bg-[#E5A93C] text-[#F3EAD7] hover:text-[#0F1A13] transition-all flex items-center gap-2 rounded-sm font-bold"
+            >
+              <span className="text-[11px]">Gear Roll</span>
+              <span className="text-[10px] bg-[#0F1A13] text-[#E5A93C] px-1.5 py-0.5 rounded">0</span>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* 2. 1974 Vintage Mountain Catalog Cover Hero */}
+      <section className="relative w-full border-b-2 border-[#203426] bg-[#122017] py-16 lg:py-24 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          {/* Left Vintage Narrative */}
+          <div className="lg:col-span-7 space-y-8">
+            <div className="inline-flex items-center gap-3 bg-[#1A2E22] border border-[#2B4A37] px-3.5 py-1.5 rounded-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#E5A93C] animate-pulse" />
+              <span className="text-xs uppercase tracking-widest text-[#E5A93C] font-bold">
+                DIRT-BAG MOUNTAIN ETHIC // SMALL-BATCH RUN NO. 74
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <span className="text-xs uppercase tracking-[0.25em] text-[#93A89A] block font-bold">
+                Option I · 1970s Golden Era Backcountry
+              </span>
+              <h1 className="font-display-retro text-5xl sm:text-7xl lg:text-8xl font-black uppercase tracking-tight text-[#FAF4E8] leading-[0.95]">
+                Curiosity &gt; Fear.
+              </h1>
+              <p className="text-sm sm:text-base text-[#C6D5C8] leading-relaxed max-w-xl pt-2">
+                Technical foul-weather outerwear, reinforced guide trousers, and convertible chest rigs.
+                Hand-patterned and sewn by Chris on an industrial Juki lockstitch machine in Leadville, Colorado
+                for backcountry anglers who bushwhack the bank on foot.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center gap-5">
+              <a
+                href="#catalog-items"
+                className="px-8 py-4 bg-[#E5A93C] hover:bg-[#F2B94D] text-[#0F1A13] font-display-retro text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm shadow-lg shadow-[#E5A93C]/20 border-2 border-[#C99026]"
+              >
+                Explore Gear Roster ({products.length})
+              </a>
+              <Link
+                href="/about"
+                className="px-8 py-4 border-2 border-[#B84A28] hover:border-[#E5A93C] bg-[#16271D] hover:bg-[#1E3326] text-[#F3EAD7] font-display-retro text-base uppercase font-black tracking-wider transition-all duration-200 rounded-sm"
+              >
+                The Dirtbag Manifesto
+              </Link>
+            </div>
+
+            {/* Vintage Tri-Spec Ledger */}
+            <div className="pt-6 border-t border-[#1D3325] grid grid-cols-3 gap-6 text-xs text-[#93A89A]">
+              <div>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
+                  10,152 FT
+                </span>
+                <span className="text-[11px]">Sawatch Pass Station</span>
+              </div>
+              <div>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
+                  Toray 3-Layer
+                </span>
+                <span className="text-[11px]">20,000mm High Water</span>
+              </div>
+              <div>
+                <span className="block text-[#E5A93C] font-bold text-sm font-display-retro uppercase">
+                  Perpetual
+                </span>
+                <span className="text-[11px]">Free Stitched Repairs</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Vintage Kodachrome Plate: Authentic Cloudflare R2 Hero Photo with 70s Styling */}
+          <div className="lg:col-span-5">
+            <div className="relative bg-[#172A1F] border-2 border-[#2E4D39] p-4 shadow-2xl rounded-sm group">
+              {/* Retro Header Tag */}
+              <div className="flex items-center justify-between text-[11px] text-[#93A89A] border-b border-[#243F2E] pb-2 mb-3 font-bold">
+                <span className="text-[#E5A93C]">KODACHROME EXP. 01 // 1974</span>
+                <span className="text-[#B84A28]">COLORADO ROCKIES</span>
+              </div>
+
+              <div className="aspect-[4/5] relative overflow-hidden bg-[#0A120D] border border-[#2B4734]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/media/hero/bank-beaters-hero.jpg"
+                  alt="BankBeaters Angler in High Alpine Colorado River"
+                  className="w-full h-full object-cover object-center filter contrast-110 brightness-95 saturate-[1.15] group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+
+                {/* Vintage Circular Mountain Badge */}
+                <div className="absolute top-4 right-4 w-14 h-14 rounded-full bg-[#E5A93C] border-2 border-[#0F1A13] flex flex-col items-center justify-center text-[#0F1A13] shadow-lg">
+                  <span className="text-[9px] font-black leading-none">TESTED</span>
+                  <span className="text-[11px] font-display-retro font-black leading-none">100%</span>
+                  <span className="text-[8px] font-bold leading-none">COLO.</span>
+                </div>
+              </div>
+
+              {/* Retro Caption Bar */}
+              <div className="mt-3 p-3 bg-[#132219] border border-[#243F2E] flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[#F8F2E4] font-bold block text-[11px]">LEADVILLE BENCH SPECIMEN</span>
+                  <span className="text-[10px] text-[#849B8B]">Single-Needle Bonded Nylon Seams</span>
+                </div>
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 bg-[#B84A28] text-white">
+                  AUTHENTIC
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. The Clean Angling & Dirtbag Ethic (3 Pillars) */}
+      <section className="py-20 px-6 lg:px-12 border-b-2 border-[#203426] bg-[#142319]">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs uppercase tracking-[0.3em] text-[#E5A93C] font-bold">
+              Golden-Era Mountain Principles
+            </span>
+            <h2 className="font-display-retro text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#FAF4E8]">
+              The Clean Angling Manifesto
+            </h2>
+            <p className="text-xs sm:text-sm text-[#BDCEBF] leading-relaxed">
+              Inspired by the dirtbag climbers and backcountry anglers who built their own tools and respected wild rivers.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-[#182B1F] border border-[#264230] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E5A93C] tracking-widest block uppercase">
+                {'// 01. The Craftsman Bench'}
+              </span>
+              <h3 className="font-display-retro text-2xl font-black uppercase text-[#FAF4E8]">
+                Juki Lockstitching
+              </h3>
+              <p className="text-xs text-[#BDCEBF] leading-relaxed">
+                Assembled on a vintage Juki DDL series lockstitch machine with bonded continuous filament nylon thread.
+                Seams are felled to ensure river rocks won&apos;t pop your stitch.
+              </p>
+            </div>
+
+            <div className="bg-[#182B1F] border border-[#264230] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E5A93C] tracking-widest block uppercase">
+                {'// 02. Honest Bombproof Cloth'}
+              </span>
+              <h3 className="font-display-retro text-2xl font-black uppercase text-[#FAF4E8]">
+                Toray 3L &amp; Cordura
+              </h3>
+              <p className="text-xs text-[#BDCEBF] leading-relaxed">
+                Tested against torrential high-country squalls. We pair Japanese waterproof breathable membranes
+                with 500D/1000D Cordura scuff guards on high-friction strike zones.
+              </p>
+            </div>
+
+            <div className="bg-[#182B1F] border border-[#264230] p-8 rounded-sm space-y-4">
+              <span className="text-xs font-bold text-[#E5A93C] tracking-widest block uppercase">
+                {'// 03. Lifetime Repair Ethic'}
+              </span>
+              <h3 className="font-display-retro text-2xl font-black uppercase text-[#FAF4E8]">
+                Never Discarded
+              </h3>
+              <p className="text-xs text-[#BDCEBF] leading-relaxed">
+                If you rip a knee on granite or tear an arm on willow brush, send it back to the Leadville workshop.
+                Chris repairs every piece on the original machine for the life of the gear.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Vintage Mountain Catalog Roster */}
+      <section id="catalog-items" className="py-24 px-6 lg:px-12 bg-[#0F1A13]">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="flex flex-col sm:flex-row justify-between items-baseline gap-4 border-b-2 border-[#203426] pb-6">
+            <div>
+              <span className="text-xs uppercase tracking-[0.25em] text-[#E5A93C] font-bold block">
+                Leadville Catalog Output
+              </span>
+              <h2 className="font-display-retro text-4xl sm:text-5xl font-black uppercase tracking-tight text-[#FAF4E8]">
+                Mountain Equipment Catalog
+              </h2>
+            </div>
+            <Link
+              href="/products"
+              className="text-xs uppercase tracking-widest text-[#E5A93C] hover:text-[#FAF4E8] transition-colors flex items-center gap-2 font-bold"
+            >
+              <span>View Full 1974 Catalog ({products.length})</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product, idx) => {
+              const displayImage =
+                product.featured_image || product.hero_image || '/media/hero/bank-beaters-hero.jpg';
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="group block bg-[#16271D] border-2 border-[#264230] hover:border-[#E5A93C] transition-all duration-300 p-5 rounded-sm space-y-4"
+                >
+                  <div className="flex items-center justify-between text-[11px] text-[#93A89A] border-b border-[#1E3326] pb-2 font-bold">
+                    <span className="text-[#E5A93C]">ITEM-0{idx + 1}</span>
+                    <span className="text-[#B84A28] uppercase">
+                      {product.category?.name || 'FIELD SILHOUETTE'}
+                    </span>
+                  </div>
+
+                  <div className="aspect-[4/4] bg-[#0A120D] overflow-hidden relative border border-[#1E3326]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={displayImage}
+                      alt={product.title}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <h4 className="font-display-retro text-xl font-black uppercase text-[#FAF4E8] group-hover:text-[#E5A93C] transition-colors">
+                        {product.title}
+                      </h4>
+                      <span className="text-base font-bold text-[#E5A93C]">
+                        ${product.base_price.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[#93A89A] line-clamp-2 leading-relaxed">
+                      {product.description}
+                    </p>
+
+                    <div className="pt-2 text-[11px] uppercase tracking-wider text-[#BDCEBF] group-hover:text-[#E5A93C] flex items-center gap-1 font-bold border-t border-[#1E3326]">
+                      <span>Examine Catalog Item</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Bespoke 1970s Catalog Footer */}
+      <footer className="border-t-2 border-[#203426] py-16 px-6 lg:px-12 bg-[#0A120D]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#93A89A]">
+          <div className="flex items-center gap-4">
+            <span className="font-display-retro text-base font-black text-[#E5A93C] tracking-wider uppercase">
+              BANKBEATERS BACKCOUNTRY CATALOG
+            </span>
+            <span>·</span>
+            <span>LEADVILLE, CO (10,152 FT)</span>
+            <span>·</span>
+            <span>CURIOSITY &gt; FEAR</span>
+          </div>
+
+          <div>
+            <p>© {new Date().getFullYear()} BankBeaters Adventure Gear. 100% Hand-Sewn in Colorado. Free Bench Repair.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
