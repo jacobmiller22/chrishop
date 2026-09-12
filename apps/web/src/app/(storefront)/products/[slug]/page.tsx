@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { fetchProductBySlug, getProducts } from '@/lib/catalog';
 import ProductDetailClient from './ProductDetailClient';
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 export async function generateStaticParams() {
   const products = await getProducts({ status: ['published'], limit: 100 });

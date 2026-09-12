@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 interface ProductsPageProps {
   searchParams?: Promise<{
