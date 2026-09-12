@@ -424,3 +424,146 @@ pnpm exec wrangler tail --env production
 ```
 
 For complete disaster recovery and Point-in-Time Recovery (PITR) procedures, refer to [`docs/runbooks/DISASTER_RECOVERY.md`](runbooks/DISASTER_RECOVERY.md).
+
+---
+
+## 12. Cloudflare Image Resizing Edge Pipeline & Media Transformation Infrastructure
+
+This section documents the configuration, canonical URI scheme, edge caching policies, verification procedures, and troubleshooting runbook for **Cloudflare Image Resizing** (`/cdn-cgi/image/...`) serving media stored in Cloudflare R2 (`chrishop-media`).
+
+### 12.1 Architectural Context & Zero-Sharp Edge Policy
+
+Payload CMS and Next.js default to `sharp` (a native C++ Node.js library) for image resizing, thumbnail generation, and WebP/AVIF format conversion. Because native C++ addons **cannot run within standard Cloudflare Workers V8 isolates**, server-side `sharp` is strictly excluded from the ChrisShop edge deployment:
+
+```mermaid
+flowchart LR
+    Client[Browser Client] -->|1. GET /cdn-cgi/image/width=800,format=auto/uploads/art.jpg| CFEdge[Cloudflare CDN Edge]
+    CFEdge -->|2. Check Edge Cache (Vary: Accept)| CFCache{Edge Cache Hit?}
+    CFCache -->|Yes: 200 OK| Client
+    CFCache -->|No: Fetch Origin| R2[Cloudflare R2 Bucket / Custom Domain]
+    R2 -->|3. Return Master JPEG/PNG| CFResizer[Cloudflare Image Resizing Service]
+    CFResizer -->|4. Transcode to WebP/AVIF + Resize| CFEdge
+    CFEdge -->|5. Cache 1 Year (max-age=31536000, immutable)| CFCache
+    CFEdge -->|6. Return Transformed Media| Client
+```
+
+- **Master Asset Storage**: High-resolution originals (up to 25 MB) are uploaded once to Cloudflare R2 (`chrishop-media`) via `@payloadcms/storage-s3`. No thumbnail variants are generated on upload.
+- **Zero Egress**: Egress from Cloudflare R2 to Cloudflare Image Resizing within the Cloudflare global network incurs **zero bandwidth charges**.
+- **Edge Cache Invalidation**: Purging the source URL in R2 automatically purges all edge-transformed variants.
+
+### 12.2 Canonical Transformation URI Scheme
+
+All image requests conform to the canonical Cloudflare Image Resizing URL structure:
+
+```plaintext
+/cdn-cgi/image/width={width},quality={quality},format=auto/{r2_asset_path}
+```
+
+#### URI Schema Parameters
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `width` | integer | (original) | Target width in pixels (e.g., `320`, `640`, `768`, `1024`, `1280`, `1536`, `1920`). |
+| `height` | integer | (optional) | Target height in pixels. |
+| `quality` | integer | `80` | Compression quality (`1-100`). `80` for standard catalog, `90` for hero artwork, `60` for thumbnails. |
+| `format` | string | `auto` | Output format. `auto` dynamically serves AVIF or WebP based on client `Accept` headers. |
+| `fit` | string | `scale-down` | Resizing mode: `scale-down`, `contain`, `cover`, `crop`, or `pad`. |
+| `sharpen` | number | `0` | Edge sharpening amount (`0-10`). |
+| `{r2_asset_path}` | string | (required) | Path to original R2 asset (e.g. `uploads/sculpture-01.jpg` or absolute URL `https://media.chrishop.jacobmiller22.com/uploads/sculpture-01.jpg`). |
+
+#### Examples
+
+```plaintext
+# Relative R2 key with standard options
+/cdn-cgi/image/width=800,quality=80,format=auto/uploads/sculpture-01.jpg
+
+# High-resolution hero artwork banner
+/cdn-cgi/image/width=1920,quality=90,format=auto/uploads/hero-banner.jpg
+
+# Square product card thumbnail
+/cdn-cgi/image/width=400,height=400,fit=cover,quality=80,format=auto/uploads/product-ring.jpg
+
+# Absolute CDN source URL
+/cdn-cgi/image/width=1024,quality=80,format=auto/https://media.chrishop.jacobmiller22.com/uploads/pottery.png
+```
+
+### 12.3 Cloudflare Zone Configuration (Image Resizing Enablement)
+
+Cloudflare Image Resizing must be enabled on the primary zone (`jacobmiller22.com`).
+
+#### Option A: Automated Configuration via Monorepo Script
+```bash
+# Dry run validation
+infra/scripts/setup-image-resizing.sh --dry-run
+
+# Apply to zone via Cloudflare API
+CLOUDFLARE_API_TOKEN="<token>" infra/scripts/setup-image-resizing.sh --zone-name jacobmiller22.com
+
+# Verify active status
+CLOUDFLARE_API_TOKEN="<token>" infra/scripts/setup-image-resizing.sh --verify
+```
+
+#### Option B: Cloudflare REST API
+```bash
+# Enable Image Resizing on the zone
+curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/settings/image_resizing" \
+  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  --data '{"value":"on"}' | jq .
+```
+
+#### Option C: Cloudflare Dashboard
+1. Log in to the Cloudflare Dashboard and select the `jacobmiller22.com` zone.
+2. Navigate to **Speed** > **Optimization** > **Content Optimization**.
+3. Under **Image Resizing**, toggle the setting to **On** (or **Open**).
+
+### 12.4 Edge Caching & Content Negotiation Policies
+
+Transformed assets at the Cloudflare edge are governed by strict caching and content negotiation directives defined in `infra/r2/cache-rules-images.json`:
+
+1. **1-Year Immutable Caching**:
+   - `Cache-Control: public, max-age=31536000, immutable`
+   - Configured for both `/cdn-cgi/image/*` transformations and source assets on `media.chrishop.jacobmiller22.com`.
+   - Browser and Cloudflare edge caches retain the optimized image for 1 year without origin revalidation.
+2. **Dynamic Format Negotiation & Cache Key Variation (`format=auto`)**:
+   - Cloudflare inspects the incoming client `Accept` request header:
+     - If client supports `image/avif`: Transcodes and returns AVIF format.
+     - Else if client supports `image/webp`: Transcodes and returns WebP format.
+     - Else: Returns original format (JPEG/PNG).
+   - Response header **MUST** include `Vary: Accept` to guarantee that CDN edge caches do not serve WebP to an AVIF-capable browser or vice versa.
+3. **Tiered Cache & Cache Reserve**:
+   - Cloudflare Tiered Cache and Cache Reserve are enabled on transformed media to eliminate cache misses across global edge PoPs.
+
+### 12.5 Automated Edge Verification Script
+
+An automated probing script validates the end-to-end edge resizing pipeline:
+
+```bash
+# Run automated in-memory simulation / test harness
+pnpm run verify:images -- --mock
+
+# Probe live staging or production edge environment
+pnpm run verify:images -- --live --url https://staging-chrishop.jacobmiller22.com
+
+# Probe specific asset key with verbose output
+pnpm run verify:images -- --live --url https://chrishop.jacobmiller22.com --image-path uploads/sculpture-01.jpg --verbose
+```
+
+The script verifies:
+- `HTTP 200 OK` response from `/cdn-cgi/image/...`
+- `Cache-Control: public, max-age=31536000, immutable` header presence
+- `Vary: Accept` header presence
+- Format auto-negotiation (`image/avif` and `image/webp` responses)
+- Absence of native `sharp` imports across `apps/web/src`
+
+### 12.6 Troubleshooting Runbook
+
+| Symptom / Status Code | Root Cause | Remediation Procedure |
+| :--- | :--- | :--- |
+| **HTTP 400 Bad Request** (`9400`) | Invalid resizing options or malformed transformation parameters in URL. | Verify URL format matches `/cdn-cgi/image/<options>/<source>`. Check that options are comma-separated without spaces (e.g. `width=800,quality=80,format=auto`). |
+| **HTTP 403 Forbidden** (`9403` / `9407`) | Image Resizing is disabled on the Cloudflare zone, or source URL is not allowed by origin restriction rules. | 1. Run `infra/scripts/setup-image-resizing.sh --verify` to ensure zone setting is `on`.<br>2. Ensure source origin domain (`media.chrishop.jacobmiller22.com`) is allowed in zone settings. |
+| **HTTP 404 Not Found** (`9404`) | Source image does not exist in R2 bucket at the specified path. | Verify that the source asset exists in R2: `pnpm exec wrangler r2 object get chrishop-media-prod/<path>`. Confirm filename casing matches. |
+| **HTTP 520 / 9401 Error** | Source image exceeds 25 MB limit or unsupported image format. | Ensure uploaded images conform to `Media` collection constraints (MIME types: JPEG, WebP, PNG, AVIF; max size: 25 MB). |
+| **Missing `Vary: Accept` Header** | Cache rule missing Vary directive or edge transform bypassed. | Verify that `infra/r2/cache-rules-images.json` rule is active on the zone. Clear zone cache via Cloudflare dashboard or API if rule was updated recently. |
+| **Stale Image Displayed** | Transformed variant cached after source image updated in R2. | Purge the **original source URL** in Cloudflare Cache. Cloudflare automatically cascades origin purges to all `/cdn-cgi/image/...` variants. |
+

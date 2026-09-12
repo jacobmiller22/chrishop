@@ -87,6 +87,54 @@ export interface CloudflareImageOptions {
  * )
  * // => '/cdn-cgi/image/width=800,quality=80,format=auto/https://media.chrishop.jacobmiller22.com/uploads/sculpture-01.jpg'
  */
+/**
+ * Canonical Cloudflare Image Resizing URL Prefix
+ */
+export const CANONICAL_IMAGE_PREFIX = '/cdn-cgi/image/';
+
+/**
+ * Standard 1-year immutable edge caching header for transformed media
+ */
+export const EDGE_CACHE_CONTROL_HEADER = 'public, max-age=31536000, immutable';
+
+/**
+ * Vary header for dynamic AVIF/WebP content negotiation
+ */
+export const VARY_HEADER = 'Accept';
+
+/**
+ * Builds a Cloudflare Image Resizing URL for on-demand image transforms.
+ *
+ * Canonical URI format: /cdn-cgi/image/<options>/<source-url-or-r2-path>
+ * e.g., /cdn-cgi/image/width={width},quality={quality},format=auto/{r2_asset_path}
+ *
+ * This URL pattern is intercepted by the Cloudflare edge worker which:
+ * 1. Fetches the original image from the source URL (R2 CDN domain or origin path)
+ * 2. Applies the requested transform (resize, format conversion, quality)
+ * 3. Caches the result immutably at edge nodes globally
+ * 4. Returns the optimized image to the browser
+ *
+ * NOTE: Cloudflare Image Resizing must be enabled on the zone in the
+ * Cloudflare Dashboard > Speed > Optimization > Image Resizing.
+ *
+ * @param sourceUrl - Public URL of original image or R2 asset path (e.g. 'uploads/sculpture-01.jpg')
+ * @param options - Image transformation options
+ * @returns Cloudflare Image Resizing URL
+ *
+ * @example
+ * buildCloudflareImageUrl(
+ *   'https://media.chrishop.jacobmiller22.com/uploads/sculpture-01.jpg',
+ *   { width: 800, quality: 80, format: 'auto' }
+ * )
+ * // => '/cdn-cgi/image/width=800,quality=80,format=auto/https://media.chrishop.jacobmiller22.com/uploads/sculpture-01.jpg'
+ *
+ * @example
+ * buildCloudflareImageUrl(
+ *   'uploads/sculpture-01.jpg',
+ *   { width: 800, quality: 80, format: 'auto' }
+ * )
+ * // => '/cdn-cgi/image/width=800,quality=80,format=auto/uploads/sculpture-01.jpg'
+ */
 export function buildCloudflareImageUrl(
   sourceUrl: string,
   options: CloudflareImageOptions = {}
@@ -106,8 +154,20 @@ export function buildCloudflareImageUrl(
 
   const optionsString = params.join(',');
 
-  return `/cdn-cgi/image/${optionsString}/${sourceUrl}`;
+  // Normalize source path: preserve full URLs, strip leading slashes from relative R2 keys
+  const normalizedSource =
+    sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://')
+      ? sourceUrl
+      : sourceUrl.replace(/^\/+/, '');
+
+  return `/cdn-cgi/image/${optionsString}/${normalizedSource}`;
 }
+
+/**
+ * Alias for buildCloudflareImageUrl providing explicit canonical naming
+ */
+export const buildCanonicalTransformUrl = buildCloudflareImageUrl;
+
 
 /**
  * Generates a responsive `srcset` attribute string using Cloudflare Image Resizing
