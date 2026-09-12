@@ -431,11 +431,13 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 # ✅ Story <X>.<Y> Completed: <Story Title>
 
 ### 🌐 Live Environment & Verification Links
-- **Ephemeral Storefront Preview**: [pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
-- **Ephemeral Payload CMS Admin**: [pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
-- **Edge API Health Probe**: [pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health)
-- **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (\`Fixes #<IssueNumber>\`)
-- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (\`Closed / Completed\`)
+- **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
+- **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
+- **Staging Edge API Health Probe**: [https://staging-chrishop.jacobmiller22.com/api/health](https://staging-chrishop.jacobmiller22.com/api/health)
+- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
+- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
+- **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
+- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`Closed / Completed`)
 - **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)
 
 ### 📦 Summary of Accomplishments

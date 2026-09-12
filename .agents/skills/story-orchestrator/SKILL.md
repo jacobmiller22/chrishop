@@ -180,9 +180,9 @@ Once all workers have completed and passed audit (or reported insurmountable blo
 
 ### 📦 Completed Stories
 
-| Story                | PR                             | Ephemeral Preview Environment                                                                        | Commit    | Issue                         | Status               |
-| -------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- | --------- | ----------------------------- | -------------------- |
-| **Story X.Y: Title** | [#100](https://github.com/...) | [Storefront](https://pr-100-chrishop.jacobmiller22.com) · [Admin](https://pr-100-chrishop.jacobmiller22.com/admin) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
+| Story | PR | Staging & Ephemeral Preview Environments | Commit | Issue | Status |
+| --- | --- | --- | --- | --- | --- |
+| **Story X.Y: Title** | [#100](https://github.com/...) | [Staging](https://staging-chrishop.jacobmiller22.com) · [Admin](https://staging-chrishop.jacobmiller22.com/admin)<br/>[PR Preview](https://pr-100-chrishop.jacobmiller22.com) | `abc1234` | [#42](https://github.com/...) | Closed & Verified ✅ |
 
 ### 🔍 Chief Judge Audit Findings
 
