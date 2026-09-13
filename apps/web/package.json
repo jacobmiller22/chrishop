@@ -9,8 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "check": "tsc --noEmit",
-    "test": "tsx --test",
-    "postinstall": "node ../../scripts/patch-dependencies.js"
+    "test": "tsx --test"
   },
   "dependencies": {
     "@chrishop/config": "workspace:*",

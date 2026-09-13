@@ -20,7 +20,8 @@ function getDatabaseSyncClass(): any {
           ? require
           : null;
     if (typeof req === 'function') {
-      const mod = req('node:sqlite');
+      const modName = ['node', 'sqlite'].join(':');
+      const mod = req(modName);
       return mod ? mod.DatabaseSync : null;
     }
   } catch {
@@ -118,9 +119,38 @@ export function getDatabase(customPath?: string): DatabaseSync {
     return singletonDb;
   }
 
+  // Check if live Cloudflare D1 binding is available
+  const d1 =
+    (typeof globalThis !== 'undefined' && (globalThis as any).DB) ||
+    (typeof globalThis !== 'undefined' && (globalThis as any)[Symbol.for('__cloudflare-context__')]?.env?.DB);
+
+  if (d1 && !customPath) {
+    const d1Wrapper = {
+      prepare(sql: string) {
+        return {
+          all: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.all().then((res: any) => res?.results || []);
+          },
+          get: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.first();
+          },
+          run: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.run();
+          },
+        };
+      },
+      exec: async (sql: string) => d1.exec(sql),
+    };
+    singletonDb = d1Wrapper;
+    return d1Wrapper;
+  }
+
   const DatabaseSyncClass = getDatabaseSyncClass();
   if (!DatabaseSyncClass) {
-    // Return stub for Cloudflare Workers edge environment where native SQLite is not loaded
+    // Return stub for edge environment where neither D1 nor native SQLite is loaded
     const stubDb = {
       exec: () => {},
       prepare: () => ({
@@ -586,7 +616,8 @@ export { getAssetUrl } from './assets';
 export async function getCategories(options?: { db?: DatabaseSync }): Promise<Category[]> {
   try {
     const db = options?.db || getDatabase();
-    const rows = db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all() as any[];
+    const rawRows = await db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all();
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
     return rows.map((r) => ({
       id: r.id,
       name: r.name,
@@ -610,13 +641,14 @@ export async function getProductVariations(
 
     let basePrice = options?.basePrice;
     if (basePrice === undefined) {
-      const parent = db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId) as any;
+      const parent = (await db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId)) as any;
       basePrice = parent ? Number(parent.base_price) : 0;
     }
 
-    const rows = db
+    const rawRows = await db
       .prepare(`SELECT * FROM product_variations WHERE product_id = ? ORDER BY sku ASC;`)
-      .all(productId) as any[];
+      .all(productId);
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
 
     return rows.map((r) => {
       const priceOverride = r.price_override != null ? Number(r.price_override) : null;
@@ -688,12 +720,12 @@ async function fetchProductBySlugDirect(
   try {
     const db = options?.db || getDatabase();
 
-    const productRow = db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug) as any;
+    const productRow = (await db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug)) as any;
     if (!productRow) return null;
 
     let category: Category | null = null;
     if (productRow.category_id) {
-      const catRow = db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(productRow.category_id) as any;
+      const catRow = (await db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(productRow.category_id)) as any;
       if (catRow) {
         category = {
           id: catRow.id,
@@ -809,7 +841,8 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
       params.push(options.limit);
     }
 
-    const rows = db.prepare(query).all(...params) as any[];
+    const rawRows = await db.prepare(query).all(...params);
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
 
     const products: StorefrontProduct[] = [];
     for (const r of rows) {

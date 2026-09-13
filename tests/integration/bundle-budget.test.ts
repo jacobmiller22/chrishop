@@ -76,7 +76,7 @@ describe('Cloudflare Worker Bundle Size Budgeting & PR Verification Gate', () =>
   it('should correctly classify worker bundle roles from file paths', () => {
     assert.equal(classifyWorkerRole('worker.js'), 'storefront');
     assert.equal(classifyWorkerRole('.open-next/worker.js'), 'storefront');
-    assert.equal(classifyWorkerRole('server-functions/default/index.mjs'), 'storefront');
+    assert.equal(classifyWorkerRole('server-functions/default/index.mjs'), 'unified');
     assert.equal(classifyWorkerRole('server-functions/storefront.js'), 'storefront');
     assert.equal(classifyWorkerRole('admin-worker.js'), 'admin');
     assert.equal(classifyWorkerRole('server-functions/admin/index.mjs'), 'admin');

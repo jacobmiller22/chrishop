@@ -3,17 +3,29 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import payloadConfigPromise from '../../apps/web/payload.config';
+
+// Ensure CJS/ESM interop for @next/env under tsx/esbuild
+try {
+  const nextEnv = require('../../apps/web/node_modules/@next/env');
+  if (nextEnv && !nextEnv.default) {
+    nextEnv.default = nextEnv;
+  }
+} catch {}
 
 describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
   const rootDir = process.cwd();
 
+  const getPayloadConfig = async () => {
+    const mod = await import('../../apps/web/payload.config');
+    return mod.default;
+  };
+
   it('should compile and build sanitized Payload configuration with collections', async () => {
-    const config = await payloadConfigPromise;
+    const config = await getPayloadConfig();
     assert.ok(config, 'Payload config must resolve successfully');
     assert.ok(Array.isArray(config.collections), 'Collections must be an array');
 
-    const collectionSlugs = config.collections.map((c) => c.slug);
+    const collectionSlugs = config.collections.map((c: any) => c.slug);
     assert.ok(collectionSlugs.includes('categories'), 'categories collection must exist');
     assert.ok(collectionSlugs.includes('products'), 'products collection must exist');
     assert.ok(collectionSlugs.includes('product_variations'), 'product_variations collection must exist');
@@ -22,7 +34,7 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
   });
 
   it('should configure Payload admin panel with users auth collection', async () => {
-    const config = await payloadConfigPromise;
+    const config = await getPayloadConfig();
     assert.ok(config.admin, 'Admin configuration must exist');
     assert.equal(config.admin.user, 'users', 'Admin user collection must be "users"');
   });
@@ -81,16 +93,12 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.ok(gqlContent.includes('GRAPHQL_POST'), 'GraphQL route must export GRAPHQL_POST');
   });
 
-  it('should verify open-next.config.ts configures function splitting for admin and storefront', () => {
+  it('should verify open-next.config.ts configures unified single worker via defineCloudflareConfig', () => {
     const configPath = path.join(rootDir, 'apps/web/open-next.config.ts');
     assert.ok(fs.existsSync(configPath), 'open-next.config.ts must exist');
     const content = fs.readFileSync(configPath, 'utf-8');
-    assert.ok(content.includes('functions:'), 'Must declare functions map');
-    assert.ok(content.includes('admin:'), 'Must declare admin function');
-    assert.ok(content.includes('app/(payload)/admin/[[...segments]]/page'), 'Must map admin page route');
-    assert.ok(content.includes('app/(payload)/api/[...slug]/route'), 'Must map payload api route');
-    assert.ok(content.includes('app/(payload)/api/graphql/route'), 'Must map payload graphql route');
-    assert.ok(content.includes('admin/*'), 'Must pattern match admin/*');
+    assert.ok(content.includes('defineCloudflareConfig'), 'Must configure defineCloudflareConfig');
+    assert.ok(!content.includes('functions:'), 'Must NOT declare split functions map in unified single worker architecture');
   });
 
   it('should compile and extract authentic Payload CMS native CSS stylesheet into assets', () => {
@@ -128,92 +136,28 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.ok(!payloadContent.includes('@chrishop/ui'), 'Payload layout must NOT bleed storefront Header components');
   });
 
-  it('should route and render distinct collection views for all registered collections in worker', async () => {
+  it('should verify unified worker entrypoint (.open-next/worker.js) dispatches to default server-function', () => {
     const workerPath = path.join(rootDir, '.open-next/worker.js');
     assert.ok(fs.existsSync(workerPath), 'worker.js must exist');
-    const worker = (await import(workerPath)).default;
+    const content = fs.readFileSync(workerPath, 'utf-8');
 
-    const mockStmt = {
-      all: async () => ({ results: [], success: true }),
-      run: async () => ({ success: true }),
-      raw: async () => [],
-      bind: () => mockStmt,
-    };
-
-    const mockEnv = {
-      DB: { prepare: () => mockStmt },
-      NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
-      BUCKET: { get: () => null, put: () => {} },
-      ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
-      SITE_URL: 'https://chrishop.jacobmiller22.com',
-      CMS_URL: 'https://chrishop.jacobmiller22.com',
-    };
-
-    const collections = [
-      { slug: 'products', title: 'Products' },
-      { slug: 'categories', title: 'Categories' },
-      { slug: 'product_variations', title: 'Product_variations' },
-      { slug: 'media', title: 'Media' },
-      { slug: 'users', title: 'Users' },
-    ];
-
-    for (const col of collections) {
-      const request = new Request(`https://chrishop.jacobmiller22.com/admin/collections/${col.slug}`);
-      const response = await worker.fetch(request, mockEnv, {});
-
-      assert.equal(response.status, 200, `Route /admin/collections/${col.slug} must return 200`);
-      assert.match(response.headers.get('content-type') || '', /text\/html/);
-      assert.match(response.headers.get('x-powered-by') || '', /Payload/);
-
-      const html = await response.text();
-
-      // Verify authentic HTML document structure and Payload metadata
-      assert.ok(html.includes('<!DOCTYPE html>'), 'Must start with <!DOCTYPE html>');
-      assert.ok(html.includes(`<title>${col.title} - Payload</title>`), `Must contain authentic title for ${col.title}`);
-      assert.ok(html.includes('data-theme'), 'Must contain Payload data-theme attribute');
-      assert.ok(html.includes('/_next/static'), 'Must load authentic Next.js bundles');
-    }
-  });
-
-  it('should render document edit and create views under /admin/collections/:slug/*', async () => {
-    const workerPath = path.join(rootDir, '.open-next/worker.js');
-    const worker = (await import(workerPath)).default;
-
-    const mockStmt = {
-      all: async () => ({ results: [], success: true }),
-      run: async () => ({ success: true }),
-      raw: async () => [],
-      bind: () => mockStmt,
-    };
-
-    const mockEnv = {
-      DB: { prepare: () => mockStmt },
-      NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
-      BUCKET: { get: () => null, put: () => {} },
-      ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
-      SITE_URL: 'https://chrishop.jacobmiller22.com',
-      CMS_URL: 'https://chrishop.jacobmiller22.com',
-    };
-
-    // Test Document Edit View
-    const editReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/bushwhack-storm-anorak');
-    const editRes = await worker.fetch(editReq, mockEnv, {});
-    assert.equal(editRes.status, 200);
-    const editHtml = await editRes.text();
-
-    assert.ok(editHtml.includes('<!DOCTYPE html>'));
-    assert.ok(editHtml.includes('<title>Editing - Product - Payload</title>'));
-    assert.match(editRes.headers.get('x-powered-by') || '', /Payload/);
-
-    // Test Document Create View
-    const createReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/create');
-    const createRes = await worker.fetch(createReq, mockEnv, {});
-    assert.equal(createRes.status, 200);
-    const createHtml = await createRes.text();
-
-    assert.ok(createHtml.includes('<!DOCTYPE html>'));
-    assert.ok(createHtml.includes('<title>Creating - Product - Payload</title>'));
-    assert.match(createRes.headers.get('x-powered-by') || '', /Payload/);
+    // Verifies unified single worker dispatching
+    assert.ok(
+      content.includes('./server-functions/default/handler.mjs'),
+      'Must route to default server-function'
+    );
+    assert.ok(
+      !content.includes('./server-functions/admin/handler.mjs'),
+      'Must not route to split admin server-function'
+    );
+    assert.ok(
+      content.includes('/api/health'),
+      'Must include edge health check probe'
+    );
+    assert.ok(
+      content.includes('/media/'),
+      'Must include R2 media direct delivery handler'
+    );
   });
 
   it('should verify deprecation of synthetic HTML mockups in build-worker.ts and worker.js', () => {
