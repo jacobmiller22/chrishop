@@ -110,7 +110,83 @@ export function buildWorker(): void {
     fs.writeFileSync(envFilePath, uniqueLines.join("\n") + "\n", "utf-8");
   }
 
-  // 4. Ensure server-functions handler.mjs export bridges exist
+  // 4. Ensure server-functions handler.mjs export bridges exist & sanitize edge bundles
+  function sanitizeHandlerBundle(filePath: string) {
+    if (!fs.existsSync(filePath)) return;
+    let content = fs.readFileSync(filePath, "utf-8");
+    let modified = false;
+
+    if (content.includes('from"node:child_process"') || content.includes("from'node:child_process'")) {
+      content = content.replace(
+        /import\s*\{\s*exec\s+as\s+exec2\s*\}\s*from\s*["']node:child_process["'];?/g,
+        "const exec2 = () => {};"
+      );
+      content = content.replace(
+        /import\s*\{([^}]+)\}\s*from\s*["']node:child_process["'];?/g,
+        "const { $1 } = ({ exec: ()=>{}, execSync: ()=>{}, spawn: ()=>{}, spawnSync: ()=>{}, fork: ()=>{}, ChildProcess: class{} });"
+      );
+      modified = true;
+    }
+
+    const unsupportedModules = [
+      "child_process",
+      "node:child_process",
+      "worker_threads",
+      "node:worker_threads",
+      "http2",
+      "node:http2",
+      "readline",
+      "tty",
+      "dns",
+      "node:dns",
+      "@aws-sdk/signature-v4-crt",
+      "@aws-sdk/signature-v4a",
+    ];
+
+    for (const mod of unsupportedModules) {
+      const pattern = `require("${mod}")`;
+      if (content.includes(pattern)) {
+        let stub = "({})";
+        if (mod.includes("child_process")) {
+          stub = "({exec:()=>{},execSync:()=>{},spawn:()=>{},spawnSync:()=>{},fork:()=>{},ChildProcess:class{}})";
+        } else if (mod.includes("worker_threads")) {
+          stub = "({isMainThread:true,Worker:class{},parentPort:null,workerData:null,threadId:0,markAsUncloneable:(o)=>o,markAsUntransferable:(o)=>o,isMarkedAsUntransferable:()=>false,MessageChannel:globalThis.MessageChannel||class{},MessagePort:globalThis.MessagePort||class{},BroadcastChannel:globalThis.BroadcastChannel||class{}})";
+        } else if (mod.includes("http2")) {
+          stub = "({constants:{HTTP2_HEADER_AUTHORITY:':authority',HTTP2_HEADER_METHOD:':method',HTTP2_HEADER_PATH:':path',HTTP2_HEADER_SCHEME:':scheme',HTTP2_HEADER_STATUS:':status'}})";
+        } else if (mod === "readline") {
+          stub = "({createInterface:()=>({on:()=>{},close:()=>{}})})";
+        } else if (mod === "tty") {
+          stub = "({isatty:()=>false})";
+        } else if (mod.includes("dns")) {
+          stub = "({lookup:(_h,cb)=>cb&&cb(null,'127.0.0.1',4),resolve:()=>{},promises:{}})";
+        }
+        content = content.replaceAll(pattern, stub);
+        modified = true;
+      }
+    }
+
+    if (content.includes('32467:a9=>{"use strict";a9.exports=({})}')) {
+      content = content.replaceAll(
+        '32467:a9=>{"use strict";a9.exports=({})}',
+        '32467:a9=>{"use strict";a9.exports=({constants:{HTTP2_HEADER_AUTHORITY:":authority",HTTP2_HEADER_METHOD:":method",HTTP2_HEADER_PATH:":path",HTTP2_HEADER_SCHEME:":scheme",HTTP2_HEADER_STATUS:":status"}})}'
+      );
+      modified = true;
+    }
+
+    if (content.includes('75919:a9=>{"use strict";a9.exports=({isMainThread:true,Worker:class{},parentPort:null})}')) {
+      content = content.replaceAll(
+        '75919:a9=>{"use strict";a9.exports=({isMainThread:true,Worker:class{},parentPort:null})}',
+        '75919:a9=>{"use strict";a9.exports=({isMainThread:true,Worker:class{},parentPort:null,workerData:null,threadId:0,markAsUncloneable:(o)=>o,markAsUntransferable:(o)=>o,isMarkedAsUntransferable:()=>false,MessageChannel:globalThis.MessageChannel||class{},MessagePort:globalThis.MessagePort||class{},BroadcastChannel:globalThis.BroadcastChannel||class{}})}'
+      );
+      modified = true;
+    }
+
+    if (modified) {
+      fs.writeFileSync(filePath, content, "utf-8");
+      console.log(`  ✔ Sanitized edge-incompatible Node builtins in ${path.relative(rootDir, filePath)}`);
+    }
+  }
+
   for (const fnName of ["admin", "default"]) {
     const fnDir = path.join(openNextDir, "server-functions", fnName);
     const fnHandlerPath = path.join(fnDir, "handler.mjs");
@@ -121,6 +197,13 @@ export function buildWorker(): void {
         "utf-8"
       );
       console.log(`  ✔ Created server-functions/${fnName}/handler.mjs export bridge`);
+    }
+  }
+
+  for (const base of [openNextDir, webOpenNextDir]) {
+    for (const fn of ["admin", "default"]) {
+      sanitizeHandlerBundle(path.join(base, "server-functions", fn, "apps/web/handler.mjs"));
+      sanitizeHandlerBundle(path.join(base, "server-functions", fn, "handler.mjs"));
     }
   }
 

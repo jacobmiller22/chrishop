@@ -362,10 +362,35 @@ try {
         'patchSetWorkingDirectory(updater, currentBuildOpts)'
       );
 
-      if (!content.includes('"node:sqlite":')) {
+      if (!content.includes('"node:child_process":')) {
+        const shimList = `\n            "node:child_process": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "child_process": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:worker_threads": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "worker_threads": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:cluster": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "cluster": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:dgram": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "dgram": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:v8": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "v8": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:http2": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "http2": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:repl": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "repl": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:inspector": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "inspector": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:readline": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "readline": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:tty": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "tty": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:dns": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "dns": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "@aws-sdk/signature-v4-crt": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "@aws-sdk/signature-v4a": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),`;
+
         content = content.replace(
           '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),',
-          '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "node:vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
+          '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "node:vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),' + shimList
         );
         modified = true;
       }
@@ -382,18 +407,96 @@ try {
       modified = true;
     }
 
-    if (!content.includes('"node:vm":')) {
+    if (!content.includes('"node:child_process":')) {
+      const shimList = `\n            "node:child_process": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "child_process": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:worker_threads": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "worker_threads": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:cluster": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "cluster": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:dgram": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "dgram": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:v8": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "v8": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:http2": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "http2": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:repl": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "repl": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:inspector": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "inspector": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:readline": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "readline": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:tty": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "tty": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "node:dns": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "dns": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "@aws-sdk/signature-v4-crt": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),
+            "@aws-sdk/signature-v4a": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),`;
+
       content = content.replace(
-        '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),',
-        '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "node:vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
+        '"vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),',
+        '"vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),' + shimList
       );
       modified = true;
     }
 
-    if (!content.includes('__topLevelCreateRequire')) {
+    const safeRequireBanner = `js: \`import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers";
+import { createRequire as __topLevelCreateRequire } from "node:module";
+const __rawRequire = __topLevelCreateRequire(import.meta.url);
+const __unsupportedBuiltins = {
+  "child_process": { exec: () => {}, execSync: () => {}, spawn: () => {}, spawnSync: () => {}, fork: () => {}, ChildProcess: class {} },
+  "node:child_process": { exec: () => {}, execSync: () => {}, spawn: () => {}, spawnSync: () => {}, fork: () => {}, ChildProcess: class {} },
+  "worker_threads": { isMainThread: true, Worker: class {}, parentPort: null, workerData: null, threadId: 0, markAsUncloneable: (o) => o, markAsUntransferable: (o) => o, isMarkedAsUntransferable: () => false, MessageChannel: globalThis.MessageChannel || class {}, MessagePort: globalThis.MessagePort || class {}, BroadcastChannel: globalThis.BroadcastChannel || class {} },
+  "node:worker_threads": { isMainThread: true, Worker: class {}, parentPort: null, workerData: null, threadId: 0, markAsUncloneable: (o) => o, markAsUntransferable: (o) => o, isMarkedAsUntransferable: () => false, MessageChannel: globalThis.MessageChannel || class {}, MessagePort: globalThis.MessagePort || class {}, BroadcastChannel: globalThis.BroadcastChannel || class {} },
+  "http2": { constants: { HTTP2_HEADER_AUTHORITY: ":authority", HTTP2_HEADER_METHOD: ":method", HTTP2_HEADER_PATH: ":path", HTTP2_HEADER_SCHEME: ":scheme", HTTP2_HEADER_STATUS: ":status" } },
+  "node:http2": { constants: { HTTP2_HEADER_AUTHORITY: ":authority", HTTP2_HEADER_METHOD: ":method", HTTP2_HEADER_PATH: ":path", HTTP2_HEADER_SCHEME: ":scheme", HTTP2_HEADER_STATUS: ":status" } },
+  "readline": { createInterface: () => ({ on: () => {}, close: () => {} }) },
+  "tty": { isatty: () => false },
+  "dns": { lookup: (_h, cb) => cb && cb(null, "127.0.0.1", 4), resolve: () => {}, promises: {} },
+  "node:dns": { lookup: (_h, cb) => cb && cb(null, "127.0.0.1", 4), resolve: () => {}, promises: {} },
+  "cluster": {},
+  "node:cluster": {},
+  "dgram": {},
+  "node:dgram": {},
+  "v8": {},
+  "node:v8": {},
+  "repl": {},
+  "node:repl": {},
+  "inspector": {},
+  "node:inspector": {},
+  "perf_hooks": globalThis.performance || {},
+  "node:perf_hooks": globalThis.performance || {},
+  "@aws-sdk/signature-v4-crt": {},
+  "@aws-sdk/signature-v4a": {},
+};
+const require = (mod) => {
+  if (__unsupportedBuiltins[mod]) return __unsupportedBuiltins[mod];
+  try {
+    return __rawRequire(mod);
+  } catch (e) {
+    const stripped = String(mod || "").replace(/^node:/, "");
+    if (__unsupportedBuiltins[stripped]) return __unsupportedBuiltins[stripped];
+    return {};
+  }
+};
+Object.assign(require, __rawRequire);\`,`;
+
+    if (content.includes('__unsupportedBuiltins')) {
+      content = content.replace(
+        /js: `import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers";[\s\S]*?Object\.assign\(require, __rawRequire\);`,/,
+        safeRequireBanner
+      );
+      modified = true;
+    } else if (content.includes('__topLevelCreateRequire')) {
+      content = content.replace(
+        /js: `import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers";\s*import { createRequire as __topLevelCreateRequire } from "node:module";\s*const require = __topLevelCreateRequire\(import\.meta\.url\);`,/,
+        safeRequireBanner
+      );
+      modified = true;
+    } else {
       content = content.replace(
         'js: `import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers"`,',
-        'js: `import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers";\nimport { createRequire as __topLevelCreateRequire } from "node:module";\nconst require = __topLevelCreateRequire(import.meta.url);`,',
+        safeRequireBanner
       );
       modified = true;
     }
@@ -404,6 +507,58 @@ try {
     } else {
       console.log('[patch-dependencies] @opennextjs/cloudflare bundle-server.js already patched at', bundleServerPath);
     }
+  }
+
+  // 4b. Patch @opennextjs/cloudflare empty.js template shim to provide safe stubs
+  const emptyShimPath = path.join(pkgDir, 'dist/cli/templates/shims/empty.js');
+  if (fs.existsSync(emptyShimPath)) {
+    const emptyShimContent = `export const ChildProcess = class {};
+export const _forkChild = () => {};
+export const exec = () => {};
+export const execFile = () => {};
+export const execFileSync = () => {};
+export const execSync = () => {};
+export const fork = () => {};
+export const spawn = () => {};
+export const spawnSync = () => {};
+export const isMainThread = true;
+export const Worker = class {};
+export const parentPort = null;
+export const workerData = null;
+export const threadId = 0;
+export const markAsUncloneable = (o) => o;
+export const markAsUntransferable = (o) => o;
+export const isMarkedAsUntransferable = () => false;
+export const MessageChannel = globalThis.MessageChannel || class {};
+export const MessagePort = globalThis.MessagePort || class {};
+export const BroadcastChannel = globalThis.BroadcastChannel || class {};
+export const createInterface = () => ({ on: () => {}, close: () => {} });
+export const isatty = () => false;
+export const lookup = (_h, cb) => cb && cb(null, "127.0.0.1", 4);
+export const resolve = () => {};
+export const promises = {};
+export const constants = {
+  HTTP2_HEADER_AUTHORITY: ":authority",
+  HTTP2_HEADER_METHOD: ":method",
+  HTTP2_HEADER_PATH: ":path",
+  HTTP2_HEADER_SCHEME: ":scheme",
+  HTTP2_HEADER_STATUS: ":status"
+};
+const emptyObj = {
+  ChildProcess, _forkChild, exec, execFile, execFileSync, execSync, fork, spawn, spawnSync,
+  isMainThread, Worker, parentPort, workerData, threadId, markAsUncloneable, markAsUntransferable, isMarkedAsUntransferable,
+  MessageChannel, MessagePort, BroadcastChannel,
+  createInterface, isatty, lookup, resolve, promises, constants
+};
+export default new Proxy(emptyObj, {
+  get: (target, prop) => {
+    if (prop in target) return target[prop];
+    return () => {};
+  },
+});
+`;
+    fs.writeFileSync(emptyShimPath, emptyShimContent, 'utf8');
+    console.log('[patch-dependencies] Patched empty.js shim for comprehensive node built-in stubs');
   }
 
   // 4. Patch @opennextjs/cloudflare templates/worker.js to dispatch between admin and default functions
