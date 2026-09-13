@@ -2,7 +2,7 @@
 name = "chrishop"
 main = ".open-next/worker.js"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "enable_nodejs_fs_module"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 # Production Custom Domain Routes
