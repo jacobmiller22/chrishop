@@ -64,8 +64,8 @@ jobs:
           if [ -f "${STATE_FILE}" ]; then
             echo "State file found. Destroying ephemeral resources for PR #${PR_NUM}..."
             cd infra/terraform/environments/preview
-            terraform init -backend=false
-            terraform destroy -auto-approve -state="terraform.tfstate" \
+            terraform init
+            terraform destroy -auto-approve \
               -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
               -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
               -var="pr_number=${PR_NUM}"

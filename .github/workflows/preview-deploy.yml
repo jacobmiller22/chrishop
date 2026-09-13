@@ -87,8 +87,8 @@ jobs:
           pnpm exec wrangler r2 object get "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" 2>/dev/null || true
 
           cd infra/terraform/environments/preview
-          terraform init -backend=false
-          terraform apply -auto-approve -state="terraform.tfstate" \
+          terraform init
+          terraform apply -auto-approve \
             -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
             -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
             -var="pr_number=${PR_NUM}"

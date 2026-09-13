@@ -95,7 +95,7 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
   });
 
   it('should verify production, staging, and preview environment configurations', () => {
-    for (const env of ['production', 'staging', 'preview']) {
+    for (const env of ['production', 'staging']) {
       const mainPath = path.join(envDir, env, 'main.tf');
       assert.ok(fs.existsSync(mainPath), `${env}/main.tf must exist`);
       const main = fs.readFileSync(mainPath, 'utf-8');
@@ -108,6 +108,18 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
       const outPath = path.join(envDir, env, 'outputs.tf');
       assert.ok(fs.existsSync(outPath), `${env}/outputs.tf must exist`);
     }
+
+    const previewMainPath = path.join(envDir, 'preview', 'main.tf');
+    assert.ok(fs.existsSync(previewMainPath), 'preview/main.tf must exist');
+    const previewMain = fs.readFileSync(previewMainPath, 'utf-8');
+    assert.ok(previewMain.includes('backend "local"'), 'preview must declare local backend for wrangler R2 state sync');
+    assert.ok(previewMain.includes('source = "../../modules/cloudflare_stack"'), 'preview must reference relative module');
+
+    const previewVarPath = path.join(envDir, 'preview', 'variables.tf');
+    assert.ok(fs.existsSync(previewVarPath), 'preview/variables.tf must exist');
+
+    const previewOutPath = path.join(envDir, 'preview', 'outputs.tf');
+    assert.ok(fs.existsSync(previewOutPath), 'preview/outputs.tf must exist');
   });
 
   it('should execute terraform fmt -check and terraform validate -no-color cleanly', () => {
@@ -129,13 +141,13 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.equal(fmtResult.trim(), '', 'All Terraform HCL files must be formatted cleanly');
 
     // Check root validation
-    execSync('cd infra/terraform && terraform init -backend=false', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+    execSync('cd infra/terraform && terraform init -backend=false -reconfigure', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
     const validateRoot = execSync('cd infra/terraform && terraform validate -no-color', { cwd: rootDir, encoding: 'utf-8' });
     assert.ok(validateRoot.includes('Success! The configuration is valid.'), 'Root configuration must validate cleanly');
 
     // Check environments
     for (const env of ['production', 'staging', 'preview']) {
-      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false -reconfigure`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
       const validateEnv = execSync(`cd infra/terraform/environments/${env} && terraform validate -no-color`, { cwd: rootDir, encoding: 'utf-8' });
       assert.ok(validateEnv.includes('Success! The configuration is valid.'), `environments/${env} must validate cleanly`);
     }
