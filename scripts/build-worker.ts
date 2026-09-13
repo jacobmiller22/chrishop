@@ -258,31 +258,24 @@ export default {
           return await handleImageRequest(url, request.headers, env);
         }
 
-        // Run Next.js edge middleware with cloned request to keep body stream intact for handler
-        let reqForHandler = request;
-        try {
-          const reqForMiddleware = request.body ? request.clone() : request;
-          const reqOrResp = await middlewareHandler(reqForMiddleware, env, executionCtx);
-          if (reqOrResp instanceof Response) {
-            return reqOrResp;
-          }
-          if (reqOrResp instanceof Request) {
-            reqForHandler = new Request(reqOrResp.url, {
-              method: reqOrResp.method,
-              headers: reqOrResp.headers,
-              body: request.body,
-              // @ts-expect-error: duplex needed in node/workerd for streaming bodies
-              duplex: "half",
-            });
-          }
-        } catch {
-          // Fall through to server handler with original request on middleware bypass
-        }
-
         // Dispatch all routes to unified server function (Storefront + Genuine Payload CMS)
         // @ts-expect-error: resolved by wrangler build
         const { handler } = await import("./server-functions/default/handler.mjs");
-        return await handler(reqForHandler, env, executionCtx, request.signal);
+
+        // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
+        // to preserve the request body stream and eliminate duplicate stream consumption.
+        const isMutation = request.method !== "GET" && request.method !== "HEAD";
+        if (isMutation || url.pathname.startsWith("/api/")) {
+          return await handler(request, env, executionCtx, request.signal);
+        }
+
+        // Run Next.js edge middleware for GET/HEAD page navigation
+        const reqOrResp = await middlewareHandler(request, env, executionCtx);
+        if (reqOrResp instanceof Response) {
+          return reqOrResp;
+        }
+
+        return await handler(reqOrResp, env, executionCtx, request.signal);
       });
     } catch (err) {
       return new Response(
