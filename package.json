@@ -32,7 +32,8 @@
     "d1:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:seed": "tsx scripts/seed-db.ts",
-    "cf:types": "wrangler types"
+    "cf:types": "wrangler types",
+    "preview:cleanup": "tsx scripts/cleanup-preview-environments.ts"
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
