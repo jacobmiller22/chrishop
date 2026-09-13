@@ -73,7 +73,7 @@ jobs:
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: |
           echo "Applying D1 migrations to chrishop-preview-db..."
-          pnpm exec wrangler d1 migrations apply chrishop-preview-db --remote || true
+          pnpm exec wrangler d1 migrations apply chrishop-preview-db --remote --env preview || true
           echo "Exporting BankBeaters seed SQL..."
           pnpm exec tsx scripts/seed-db.ts --export-sql scripts/seed.sql
           echo "Executing BankBeaters seed script against chrishop-preview-db..."

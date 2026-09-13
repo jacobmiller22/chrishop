@@ -102,6 +102,38 @@ try {
   console.warn('[patch-dependencies] Could not resolve next-server.js:', err.message);
 }
 
+// 1d. Patch Next.js base-server.js to expose diagnostic error details on 500 responses
+try {
+  const baseServerPath = require.resolve('next/dist/server/base-server.js', { paths: candidatePaths });
+  if (fs.existsSync(baseServerPath)) {
+    let content = fs.readFileSync(baseServerPath, 'utf8');
+    if (!content.includes('/* patched-base-server-error */')) {
+      content = content.replace(
+        "res.body('Internal Server Error').send();",
+        `/* patched-base-server-error */
+        try {
+          const errDetails = String(err && (err.stack || err.message || err));
+          res.setHeader('x-debug-error', errDetails.replace(/\\r?\\n/g, ' -- ').slice(0, 1000));
+          res.body('Internal Server Error: ' + errDetails).send();
+        } catch {
+          res.body('Internal Server Error').send();
+        }`
+      );
+      content = content.replace(
+        "body: _renderresult.default.fromStatic('Internal Server Error', 'text/plain')",
+        `/* patched-base-server-error */
+        body: _renderresult.default.fromStatic('Internal Server Error: ' + String((typeof err !== 'undefined' && err && (err.stack || err.message || err)) || (typeof renderToHtmlError !== 'undefined' && renderToHtmlError && (renderToHtmlError.stack || renderToHtmlError.message || renderToHtmlError)) || 'Unknown Error'), 'text/plain')`
+      );
+      fs.writeFileSync(baseServerPath, content, 'utf8');
+      console.log('[patch-dependencies] Patched base-server.js for diagnostic error details at', baseServerPath);
+    } else {
+      console.log('[patch-dependencies] base-server.js already patched for diagnostic error details at', baseServerPath);
+    }
+  }
+} catch (err) {
+  console.warn('[patch-dependencies] Could not resolve base-server.js:', err.message);
+}
+
 // 2. Patch @opennextjs/cloudflare AST vercel-og patcher for multi-worker route splitting
 try {
   const openNextEntry = require.resolve('@opennextjs/cloudflare', { paths: candidatePaths });

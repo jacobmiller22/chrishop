@@ -301,17 +301,28 @@ export default {
 
         // 6. Route Dispatching: Genuine Payload CMS v3 vs Next.js Storefront
         const pathname = url.pathname;
+        const isCartRoute = pathname === "/api/cart" || pathname.startsWith("/api/cart/");
+        const isCheckoutRoute = pathname === "/api/checkout" || pathname.startsWith("/api/checkout/");
         const isAdminRoute =
           pathname === "/admin" ||
           pathname.startsWith("/admin/") ||
-          (pathname.startsWith("/api/") &&
-            !pathname.startsWith("/api/cart/") &&
-            !pathname.startsWith("/api/checkout/"));
+          (pathname.startsWith("/api/") && !isCartRoute && !isCheckoutRoute);
 
         if (isAdminRoute) {
           // @ts-expect-error: resolved by wrangler build
           const { handler } = await import("./server-functions/admin/handler.mjs");
-          return await handler(reqOrResp, env, executionCtx, request.signal);
+          try {
+            return await handler(reqOrResp, env, executionCtx, request.signal);
+          } catch (err) {
+            console.error("[Payload Admin Error]", err);
+            return new Response(
+              \`[Payload Admin Error]: \${err?.message || err}\\n\${err?.stack || ""}\`,
+              {
+                status: 500,
+                headers: { "content-type": "text/plain; charset=utf-8" },
+              }
+            );
+          }
         }
 
         // Default Storefront Server Function

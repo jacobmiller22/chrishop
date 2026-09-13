@@ -806,6 +806,16 @@ export function exportSeedSql(outputPath?: string): string {
     'PRAGMA foreign_keys = ON;',
   ];
 
+  // Include all schema migrations so D1 databases have all tables created
+  const migrationsDir = path.resolve(process.cwd(), 'migrations');
+  if (fs.existsSync(migrationsDir)) {
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+    for (const file of migrationFiles) {
+      lines.push(`-- Schema Migration: ${file}`);
+      lines.push(fs.readFileSync(path.join(migrationsDir, file), 'utf-8'));
+    }
+  }
+
   const categories = memDb.prepare('SELECT * FROM categories ORDER BY parent_id ASC, id ASC').all() as any[];
   for (const c of categories) {
     lines.push(
