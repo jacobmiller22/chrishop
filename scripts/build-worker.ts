@@ -221,7 +221,13 @@ export default {
     }
 
     // 3. Static Assets Bridge (env.ASSETS)
-    if (env.ASSETS && typeof env.ASSETS.fetch === "function") {
+    // Only query static assets for GET/HEAD requests outside /api/* to avoid consuming mutation request bodies
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      !url.pathname.startsWith("/api/") &&
+      env.ASSETS &&
+      typeof env.ASSETS.fetch === "function"
+    ) {
       try {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {
