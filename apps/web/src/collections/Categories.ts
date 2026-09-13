@@ -17,6 +17,14 @@ export const Categories: CollectionConfig = {
   },
   fields: [
     {
+      name: 'id',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Unique category identifier (e.g. cat-apparel, cat-outerwear)',
+      },
+    },
+    {
       name: 'name',
       type: 'text',
       required: true,

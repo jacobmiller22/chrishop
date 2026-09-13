@@ -11,6 +11,7 @@ import {
   fetchProducts,
   fetchProductBySlug,
   fetchCategories,
+  extractLexicalText,
 } from '../src/lib/catalog';
 import { getEffectivePrice, type Product, type ProductVariation } from '@chrishop/types';
 
@@ -182,6 +183,211 @@ describe('Catalog Data Access Layer & Price Resolution', () => {
 
       const cats = await fetchCategories({ db: testDb });
       assert.equal(cats.length, 2);
+    });
+  });
+
+  describe('Lexical RichText Serializer (extractLexicalText)', () => {
+    it('should return plain text unchanged', () => {
+      assert.equal(extractLexicalText('Simple string description'), 'Simple string description');
+    });
+
+    it('should extract plain text from Lexical AST JSON string', () => {
+      const lexicalJson = JSON.stringify({
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              children: [
+                { type: 'text', text: 'Patagonia-grade 3-layer waterproof storm shell.' },
+              ],
+            },
+          ],
+        },
+      });
+      assert.equal(
+        extractLexicalText(lexicalJson),
+        'Patagonia-grade 3-layer waterproof storm shell.'
+      );
+    });
+
+    it('should extract text from Lexical AST object directly', () => {
+      const ast = {
+        root: {
+          children: [
+            {
+              children: [
+                { text: 'First paragraph.' },
+                { text: 'Second sentence.' },
+              ],
+            },
+          ],
+        },
+      };
+      assert.equal(extractLexicalText(ast), 'First paragraph. Second sentence.');
+    });
+  });
+
+  describe('Payload CMS v3 D1 Relational Schema Queries', () => {
+    const payloadDb = new DatabaseSync(':memory:');
+    payloadDb.exec('PRAGMA foreign_keys = ON;');
+
+    payloadDb.exec(`
+      CREATE TABLE media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        alt TEXT,
+        filename TEXT NOT NULL,
+        mime_type TEXT DEFAULT 'image/jpeg',
+        url TEXT
+      );
+
+      CREATE TABLE categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        parent_id TEXT,
+        description TEXT,
+        image_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL,
+        FOREIGN KEY (image_id) REFERENCES media(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE products (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        shopify_product_id TEXT,
+        base_price REAL NOT NULL,
+        status TEXT DEFAULT 'draft',
+        category_id_id TEXT,
+        featured_image_id INTEGER,
+        maker_field_notes TEXT,
+        artist_statement TEXT,
+        materials TEXT,
+        weight TEXT,
+        fit_profile TEXT,
+        origin TEXT,
+        description TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (category_id_id) REFERENCES categories(id) ON DELETE SET NULL,
+        FOREIGN KEY (featured_image_id) REFERENCES media(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE products_gallery (
+        _order INTEGER NOT NULL,
+        _parent_id TEXT NOT NULL,
+        id TEXT PRIMARY KEY,
+        image_id INTEGER NOT NULL,
+        FOREIGN KEY (_parent_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (image_id) REFERENCES media(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE product_variations (
+        id TEXT PRIMARY KEY,
+        product_id_id TEXT NOT NULL,
+        shopify_variant_id TEXT,
+        variation_name TEXT NOT NULL,
+        sku TEXT NOT NULL UNIQUE,
+        variation_type TEXT DEFAULT 'standard',
+        edition_badge TEXT,
+        variation_notes TEXT,
+        price_override REAL,
+        is_limited_edition INTEGER DEFAULT 1,
+        total_edition_count INTEGER,
+        release_date TEXT,
+        status TEXT DEFAULT 'coming_soon',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (product_id_id) REFERENCES products(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE product_variations_variation_images (
+        _order INTEGER NOT NULL,
+        _parent_id TEXT NOT NULL,
+        id TEXT PRIMARY KEY,
+        image_id INTEGER NOT NULL,
+        caption TEXT,
+        FOREIGN KEY (_parent_id) REFERENCES product_variations(id) ON DELETE CASCADE,
+        FOREIGN KEY (image_id) REFERENCES media(id) ON DELETE CASCADE
+      );
+
+      INSERT INTO media (id, alt, filename, url) VALUES
+        (1, 'Anorak Hero', 'bushwhack-storm-anorak-hero.jpeg', '/api/media/file/bushwhack-storm-anorak-hero.jpeg'),
+        (2, 'Anorak Action', 'bushwhack-storm-anorak-field-action.jpeg', '/api/media/file/bushwhack-storm-anorak-field-action.jpeg'),
+        (3, 'Camo Pocket Detail', 'bushwhack-storm-anorak-camo-variation.jpeg', '/api/media/file/bushwhack-storm-anorak-camo-variation.jpeg');
+
+      INSERT INTO categories (id, name, slug, description, image_id) VALUES
+        ('cat-apparel', 'Apparel', 'apparel', 'Outerwear and garments', NULL),
+        ('cat-storm-shells', 'Waterproof Storm Shells', 'waterproof-storm-shells', 'Technical shells', 1);
+
+      INSERT INTO products (
+        id, title, slug, base_price, status, category_id_id, featured_image_id,
+        materials, weight, origin, description
+      ) VALUES (
+        'prod-bushwhack-anorak',
+        'The Bushwhack Storm Anorak',
+        'bushwhack-storm-anorak',
+        340.0,
+        'active',
+        'cat-storm-shells',
+        1,
+        '3-Layer Toray Ripstop',
+        '21.4 oz',
+        'Hand-cut in workshop',
+        '{"root":{"type":"root","children":[{"children":[{"text":"Patagonia-grade 3-layer waterproof storm shell."}]}]}}'
+      );
+
+      INSERT INTO products_gallery (_order, _parent_id, id, image_id) VALUES
+        (1, 'prod-bushwhack-anorak', 'pg-1', 2);
+
+      INSERT INTO product_variations (
+        id, product_id_id, sku, variation_name, price_override, is_limited_edition, status
+      ) VALUES
+        ('var-anorak-olive', 'prod-bushwhack-anorak', 'BWK-OLV', 'Field Olive', NULL, 1, 'active'),
+        ('var-anorak-camo', 'prod-bushwhack-anorak', 'BWK-CAMO', 'Deadstock Duck Camo', 385.0, 1, 'active');
+
+      INSERT INTO product_variations_variation_images (_order, _parent_id, id, image_id, caption) VALUES
+        (1, 'var-anorak-camo', 'vi-1', 3, 'Bench shot: Camo pocket');
+    `);
+
+    it('getCategories: should resolve relational media URL for category image', async () => {
+      const cats = await getCategories({ db: payloadDb });
+      assert.equal(cats.length, 2);
+      const shells = cats.find((c) => c.id === 'cat-storm-shells');
+      assert.ok(shells);
+      assert.equal(shells.image, '/api/media/file/bushwhack-storm-anorak-hero.jpeg');
+    });
+
+    it('getProducts: should return active products with category_id_id and featured_image_id resolved', async () => {
+      const prods = await getProducts({ db: payloadDb });
+      assert.equal(prods.length, 1);
+      const anorak = prods[0];
+      assert.ok(anorak);
+      assert.equal(anorak.id, 'prod-bushwhack-anorak');
+      assert.equal(anorak.title, 'The Bushwhack Storm Anorak');
+      assert.equal(anorak.status, 'active');
+      assert.equal(anorak.category?.id, 'cat-storm-shells');
+      assert.equal(anorak.featured_image, '/api/media/file/bushwhack-storm-anorak-hero.jpeg');
+      assert.equal(anorak.description, 'Patagonia-grade 3-layer waterproof storm shell.');
+      assert.equal(anorak.variations?.length, 2);
+      assert.equal(anorak.effective_min_price, 340.0);
+    });
+
+    it('getProductBySlug: should retrieve product with relational gallery and variations', async () => {
+      const anorak = await getProductBySlug('bushwhack-storm-anorak', { db: payloadDb });
+      assert.ok(anorak);
+      assert.equal(anorak.id, 'prod-bushwhack-anorak');
+      assert.equal(anorak.gallery?.length, 1);
+      assert.equal(anorak.gallery?.[0], '/api/media/file/bushwhack-storm-anorak-field-action.jpeg');
+      assert.equal(anorak.materials, '3-Layer Toray Ripstop');
+      assert.equal(anorak.weight, '21.4 oz');
+
+      const camoVar = anorak.variations?.find((v) => v.id === 'var-anorak-camo');
+      assert.ok(camoVar);
+      assert.equal(camoVar.effective_price, 385.0);
+      assert.equal(camoVar.variation_images?.length, 1);
+      assert.equal(camoVar.variation_images?.[0]?.url, '/api/media/file/bushwhack-storm-anorak-camo-variation.jpeg');
+      assert.equal(camoVar.variation_images?.[0]?.caption, 'Bench shot: Camo pocket');
     });
   });
 });

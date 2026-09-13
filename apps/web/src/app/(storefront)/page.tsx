@@ -14,7 +14,14 @@ export default async function HomePage() {
     ? await fetchProductBySlug(featuredProductSlug)
     : null;
 
-  const flagshipVariation = featuredProduct?.variations?.[0];
+  const standardVariation = featuredProduct?.variations?.find(
+    (v) => v.variation_type === 'standard'
+  );
+  const microBatchVariation = featuredProduct?.variations?.find(
+    (v) => v.variation_type === 'micro_batch' || v.variation_type === 'one_of_one'
+  );
+
+  const flagshipVariation = standardVariation || featuredProduct?.variations?.[0];
   const flagshipPrice = flagshipVariation
     ? flagshipVariation.effective_price
     : (featuredProduct?.base_price ?? 0);
@@ -142,8 +149,17 @@ export default async function HomePage() {
             <div className="md:col-span-6 space-y-6">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="success">Standard Run: In Stock (12 Units)</Badge>
-                  <Badge variant="warning">Micro-Batch: Only 3 Crafted</Badge>
+                  {standardVariation && (
+                    <Badge variant="success">
+                      {standardVariation.edition_badge ||
+                        `Standard Run: In Stock (${standardVariation.stock_quantity} Units)`}
+                    </Badge>
+                  )}
+                  {microBatchVariation && (
+                    <Badge variant="warning">
+                      {microBatchVariation.edition_badge || 'Micro-Batch Variant Available'}
+                    </Badge>
+                  )}
                 </div>
 
                 <h3 className="text-3xl font-black text-stone-100 uppercase tracking-tight">
@@ -155,24 +171,43 @@ export default async function HomePage() {
               </div>
 
               {/* Technical Spec Matrix */}
-              <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-[#101317] border border-stone-800/80 text-xs font-mono">
-                <div>
-                  <span className="text-stone-500 block uppercase">Shell Membrane</span>
-                  <span className="text-stone-200 font-semibold">3-Layer Toray 20k/20k</span>
+              {(featuredProduct.materials ||
+                featuredProduct.weight ||
+                featuredProduct.fit_profile ||
+                featuredProduct.origin) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-[#101317] border border-stone-800/80 text-xs font-mono">
+                  {featuredProduct.materials && (
+                    <div>
+                      <span className="text-stone-500 block uppercase">Materials & Armor</span>
+                      <span className="text-stone-200 font-semibold truncate block">
+                        {featuredProduct.materials}
+                      </span>
+                    </div>
+                  )}
+                  {featuredProduct.weight && (
+                    <div>
+                      <span className="text-stone-500 block uppercase">Weight</span>
+                      <span className="text-stone-200 font-semibold">{featuredProduct.weight}</span>
+                    </div>
+                  )}
+                  {featuredProduct.fit_profile && (
+                    <div>
+                      <span className="text-stone-500 block uppercase">Fit Profile</span>
+                      <span className="text-stone-200 font-semibold truncate block">
+                        {featuredProduct.fit_profile}
+                      </span>
+                    </div>
+                  )}
+                  {featuredProduct.origin && (
+                    <div>
+                      <span className="text-stone-500 block uppercase">Workshop Origin</span>
+                      <span className="text-stone-200 font-semibold truncate block">
+                        {featuredProduct.origin}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="text-stone-500 block uppercase">Forearm Armor</span>
-                  <span className="text-stone-200 font-semibold">500D Cordura® Panels</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block uppercase">Hardware</span>
-                  <span className="text-stone-200 font-semibold">YKK® AquaGuard® Zips</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block uppercase">Weight</span>
-                  <span className="text-stone-200 font-semibold">21.4 oz (606g)</span>
-                </div>
-              </div>
+              )}
 
               {/* Price & Action */}
               <div className="flex items-baseline justify-between p-4 rounded-xl bg-stone-900/50 border border-stone-800">
@@ -182,9 +217,15 @@ export default async function HomePage() {
                     ${Number(flagshipPrice).toFixed(2)}
                   </span>
                 </div>
-                <span className="text-xs text-stone-400 font-mono">
-                  Micro-batch deadstock edition: $385.00
-                </span>
+                {microBatchVariation ? (
+                  <span className="text-xs text-stone-400 font-mono">
+                    {microBatchVariation.variation_name}: ${Number(microBatchVariation.effective_price).toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-stone-400 font-mono">
+                    Lifetime Stitch Guarantee included
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">

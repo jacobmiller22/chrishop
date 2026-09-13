@@ -59,13 +59,27 @@ export function buildWorker(): void {
   const handlerFile = path.join(openNextDir, 'server-functions/default/apps/web/handler.mjs');
   if (fs.existsSync(handlerFile)) {
     let handlerContent = fs.readFileSync(handlerFile, 'utf-8');
+    let modified = false;
     if (handlerContent.includes('require_require_hook()')) {
       handlerContent = handlerContent.replace(
         'require_require_hook()',
         '/* OpenNext require-hook edge shim */ void 0'
       );
-      fs.writeFileSync(handlerFile, handlerContent, 'utf-8');
+      modified = true;
       console.log('  ✔ Applied OpenNext edge require-hook shim to server handler');
+    }
+    const fastSetImmediateBug =
+      'globalThis.setImmediate=nodeTimers.setImmediate=patchedSetImmediate,globalThis.clearImmediate=nodeTimers.clearImmediate=patchedClearImmediate;let nodeTimersPromises=require("node:timers/promises");nodeTimersPromises.setImmediate=patchedSetImmediatePromise,process.nextTick=patchedNextTick';
+    if (handlerContent.includes(fastSetImmediateBug)) {
+      handlerContent = handlerContent.replace(
+        fastSetImmediateBug,
+        'globalThis.setImmediate=patchedSetImmediate;try{nodeTimers.setImmediate=patchedSetImmediate}catch{}globalThis.clearImmediate=patchedClearImmediate;try{nodeTimers.clearImmediate=patchedClearImmediate}catch{}let nodeTimersPromises=require("node:timers/promises");try{nodeTimersPromises.setImmediate=patchedSetImmediatePromise}catch{}process.nextTick=patchedNextTick'
+      );
+      modified = true;
+      console.log('  ✔ Applied OpenNext edge fast-set-immediate shim to server handler');
+    }
+    if (modified) {
+      fs.writeFileSync(handlerFile, handlerContent, 'utf-8');
     }
   }
 
@@ -93,6 +107,27 @@ export function buildWorker(): void {
   }
   if (fs.existsSync(webPublicDir)) {
     fs.cpSync(webPublicDir, assetsDir, { recursive: true, dereference: false });
+  }
+
+  // Populate flat media files in assets/api/media/file so Payload media files resolve cleanly via env.ASSETS
+  const mediaDir = path.join(assetsDir, 'media');
+  const apiMediaDir = path.join(assetsDir, 'api/media/file');
+  fs.mkdirSync(apiMediaDir, { recursive: true });
+  if (fs.existsSync(mediaDir)) {
+    const entries = fs.readdirSync(mediaDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subFiles = fs.readdirSync(path.join(mediaDir, entry.name));
+        for (const file of subFiles) {
+          const srcFile = path.join(mediaDir, entry.name, file);
+          const flatName = `${entry.name}-${file}`;
+          const flatDest = path.join(apiMediaDir, flatName);
+          if (!fs.existsSync(flatDest)) {
+            fs.copyFileSync(srcFile, flatDest);
+          }
+        }
+      }
+    }
   }
 
   // Copy canonical Payload CSS stylesheet
@@ -300,10 +335,10 @@ export default {
     }
 
     // 3. Static Assets Bridge (env.ASSETS)
-    // Only query static assets for GET/HEAD requests outside /api/* to avoid consuming mutation request bodies
+    // Only query static assets for GET/HEAD requests outside /api/* (except /api/media/file/*) to avoid consuming mutation request bodies
     if (
       (request.method === "GET" || request.method === "HEAD") &&
-      !url.pathname.startsWith("/api/") &&
+      (!url.pathname.startsWith("/api/") || url.pathname.startsWith("/api/media/file/")) &&
       env.ASSETS &&
       typeof env.ASSETS.fetch === "function"
     ) {

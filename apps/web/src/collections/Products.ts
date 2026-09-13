@@ -18,6 +18,14 @@ export const Products: CollectionConfig = {
   },
   fields: [
     {
+      name: 'id',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Unique product identifier (e.g. prod-bushwhack-anorak)',
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,

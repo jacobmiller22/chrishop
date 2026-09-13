@@ -113,7 +113,7 @@ export const getS3StorageConfig = () => {
         // Disable sharp-based image processing — REQUIRED for Cloudflare Workers compatibility.
         // sharp is a native Node.js C++ addon that cannot run on the edge runtime.
         // Responsive image delivery is handled via Cloudflare Image Resizing.
-        disableLocalStorage: false,
+        disableLocalStorage: true,
       },
     },
     bucket: bucketName,
@@ -145,6 +145,7 @@ export default buildConfig({
   db: sqliteD1Adapter({
     binding: getD1Binding(),
     push: false,
+    allowIDOnCreate: true,
   }),
   plugins: [
     // Cloudflare R2 S3-compatible media storage adapter
