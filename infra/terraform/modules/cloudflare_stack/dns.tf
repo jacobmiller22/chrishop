@@ -28,6 +28,7 @@ resource "cloudflare_record" "aliases" {
 }
 
 resource "cloudflare_workers_domain" "custom_domain" {
+  count       = var.environment == "preview" ? 0 : 1
   account_id  = var.cloudflare_account_id
   zone_id     = local.zone_id
   hostname    = "${local.primary_record_name}.${var.zone_name}"
