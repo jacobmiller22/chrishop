@@ -17,8 +17,10 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         slug TEXT NOT NULL UNIQUE,
+        parent_id TEXT,
         description TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
       );
 
       CREATE TABLE products (
@@ -26,6 +28,11 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
         title TEXT NOT NULL,
         slug TEXT NOT NULL UNIQUE,
         description TEXT,
+        maker_field_notes TEXT,
+        materials TEXT,
+        weight TEXT,
+        fit_profile TEXT,
+        origin TEXT,
         base_price REAL NOT NULL,
         status TEXT NOT NULL DEFAULT 'draft',
         category_id TEXT,
@@ -39,6 +46,10 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
         product_id TEXT NOT NULL,
         sku TEXT NOT NULL UNIQUE,
         variation_name TEXT NOT NULL,
+        variation_type TEXT NOT NULL DEFAULT 'standard',
+        edition_badge TEXT,
+        variation_notes TEXT,
+        variation_images TEXT,
         price_override REAL,
         stock_quantity INTEGER NOT NULL DEFAULT 0,
         shopify_variant_id TEXT,
@@ -51,6 +62,7 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
       CREATE INDEX idx_products_shopify_id ON products(shopify_product_id);
       CREATE INDEX idx_product_variations_sku ON product_variations(sku);
       CREATE INDEX idx_product_variations_product_id ON product_variations(product_id);
+      CREATE INDEX idx_categories_parent_id ON categories(parent_id);
     `);
   });
 
@@ -82,6 +94,10 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
     assert.ok(
       indexes.includes('idx_product_variations_product_id'),
       'idx_product_variations_product_id must exist'
+    );
+    assert.ok(
+      indexes.includes('idx_categories_parent_id'),
+      'idx_categories_parent_id must exist'
     );
   });
 
@@ -147,6 +163,122 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
     assert.equal(result.shopify_product_id, 'gid://shopify/Product/101');
   });
 
+  it('should support depth-2 nested category hierarchy with recursive CTE queries', () => {
+    const insertCat = db.prepare(
+      'INSERT INTO categories (id, name, slug, parent_id, description) VALUES (?, ?, ?, ?, ?)'
+    );
+    // Depth 0: Root
+    insertCat.run('cat-apparel', 'Apparel', 'apparel', null, 'Root apparel');
+    // Depth 1: Child
+    insertCat.run('cat-outerwear', 'Outerwear', 'outerwear', 'cat-apparel', 'Sub category');
+    // Depth 2: Grandchild
+    insertCat.run(
+      'cat-shells',
+      'Waterproof Storm Shells',
+      'waterproof-storm-shells',
+      'cat-outerwear',
+      'Depth 2 category'
+    );
+
+    // Insert Product at Depth 2
+    const insertProd = db.prepare(
+      'INSERT INTO products (id, title, slug, base_price, status, category_id) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    insertProd.run(
+      'prod-anorak',
+      'Bushwhack Storm Anorak',
+      'bushwhack-storm-anorak',
+      385.0,
+      'published',
+      'cat-shells'
+    );
+
+    // Recursive CTE querying root 'cat-apparel' to find all descendant products
+    const recursiveQuery = db.prepare(`
+      WITH RECURSIVE cat_tree(id) AS (
+        SELECT id FROM categories WHERE id = ?
+        UNION ALL
+        SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+      )
+      SELECT p.id, p.title, p.category_id, c.name as category_name
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      WHERE p.category_id IN (SELECT id FROM cat_tree);
+    `);
+
+    const results = recursiveQuery.all('cat-apparel') as any[];
+    assert.equal(results.length, 1, 'Should find product nested 2 levels down from root');
+    assert.equal(results[0].title, 'Bushwhack Storm Anorak');
+    assert.equal(results[0].category_name, 'Waterproof Storm Shells');
+  });
+
+  it('should store and query micro-batch variation fields and maker technical specs', () => {
+    // Insert product with maker specs
+    const insertProd = db.prepare(`
+      INSERT INTO products (
+        id, title, slug, base_price, status, maker_field_notes, materials, weight, fit_profile, origin
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insertProd.run(
+      'prod-pack',
+      'Ridgecrest Alpine Daypack',
+      'ridgecrest-alpine-daypack',
+      245.0,
+      'published',
+      'Patterned for fast and light high-alpine pushes.',
+      'Dimension-Polyant VX21 / 500D Cordura',
+      '540g (19.0 oz)',
+      'Close-contact alpine taper',
+      'Leadville, CO Workshop'
+    );
+
+    // Insert micro-batch variation with workbench detail images and edition badge
+    const insertVar = db.prepare(`
+      INSERT INTO product_variations (
+        id, product_id, sku, variation_name, variation_type, edition_badge, variation_notes, variation_images, price_override, stock_quantity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const workbenchImages = JSON.stringify([
+      { url: '/media/ridgecrest-workbench-1.jpg', caption: 'Leadville workbench hand-binding' },
+    ]);
+
+    insertVar.run(
+      'var-mb-1',
+      'prod-pack',
+      'BB-PACK-MB01',
+      'Batch 01/24 - Alpine Slate',
+      'micro_batch',
+      'Batch 01/24',
+      'Cut from deadstock alpine cordura with custom bar-tacking.',
+      workbenchImages,
+      275.0,
+      12
+    );
+
+    // Query product and variation
+    const select = db.prepare(`
+      SELECT 
+        p.maker_field_notes, p.materials, p.weight, p.fit_profile, p.origin,
+        v.variation_type, v.edition_badge, v.variation_notes, v.variation_images, v.price_override, v.stock_quantity
+      FROM products p
+      JOIN product_variations v ON v.product_id = p.id
+      WHERE p.slug = ?;
+    `);
+
+    const row = select.get('ridgecrest-alpine-daypack') as any;
+    assert.ok(row, 'Row must exist');
+    assert.equal(row.materials, 'Dimension-Polyant VX21 / 500D Cordura');
+    assert.equal(row.weight, '540g (19.0 oz)');
+    assert.equal(row.origin, 'Leadville, CO Workshop');
+    assert.equal(row.variation_type, 'micro_batch');
+    assert.equal(row.edition_badge, 'Batch 01/24');
+    assert.equal(row.price_override, 275.0);
+    assert.equal(row.stock_quantity, 12);
+    const parsedImages = JSON.parse(row.variation_images);
+    assert.equal(parsedImages.length, 1);
+    assert.equal(parsedImages[0].caption, 'Leadville workbench hand-binding');
+  });
+
   it('should enforce unique constraint violations on product slugs and SKUs', () => {
     const insertProd = db.prepare(
       'INSERT INTO products (id, title, slug, base_price) VALUES (?, ?, ?, ?)'
@@ -200,6 +332,10 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
       'idx_product_variations_product_id must exist'
     );
     assert.ok(indexes.includes('idx_categories_slug'), 'idx_categories_slug must exist');
+    assert.ok(
+      indexes.includes('idx_categories_parent_id'),
+      'idx_categories_parent_id must exist'
+    );
   });
 
   it('should verify wrangler.toml D1 database bindings for staging and production', () => {

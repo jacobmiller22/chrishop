@@ -1,6 +1,12 @@
-# Dependency Specification: Discord Notification Engine (`DEP_DISCORD.md`)
+# [ARCHIVED / DEPRECATED] Dependency Specification: Discord Notification Engine (`DEP_DISCORD.md`)
 
-This document specifies the integration architecture, Discord webhook payload schemas, channel routing matrix, rate limiting, and operational testing procedures for the **Discord Notification Engine** in ChrisShop.
+> [!WARNING]
+> **Archival Notice (Story 3.13 — Issue #186)**:
+> This specification has been **deprecated and archived**. In Story 3.13, the ChrisShop notification engine was decoupled from Discord into a channel-agnostic, email-first architecture defaulting to **Resend** for customer receipts and merchant alerts, and generic JSON **Webhooks** for operational telemetry.
+> 
+> Please refer to the authoritative specification: [`DEP_NOTIFICATIONS.md`](DEP_NOTIFICATIONS.md).
+> 
+> `DiscordNotificationProvider` remains functional in `packages/notifications` for backward compatibility, but active development and default operational alerting have migrated to `DEP_NOTIFICATIONS.md`.
 
 ---
 

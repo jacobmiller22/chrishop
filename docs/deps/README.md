@@ -16,7 +16,8 @@ Each specification defines connection parameters, authentication, security contr
 | **Payload CMS v3**        | [`DEP_PAYLOAD_CMS.md`](DEP_PAYLOAD_CMS.md)     | Embedded Next.js App Router CMS for editorial content and drops     | Payload Local API, TypeScript schemas     |
 | **Shopify Headless**      | [`DEP_SHOPIFY.md`](DEP_SHOPIFY.md)             | Headless cart, checkout, payments, inventory, and order fulfillment | `@shopify/storefront-api-client`, GraphQL |
 | **Resend Email API**      | [`DEP_RESEND.md`](DEP_RESEND.md)               | Transactional email delivery for order confirmations and tracking   | Resend Node.js SDK, DKIM/SPF              |
-| **Discord Notifications** | [`DEP_DISCORD.md`](DEP_DISCORD.md)             | Real-time ops alerts (`#store-orders`, `#dev-alerts`), rich embeds  | Discord Webhooks, REST API                |
+| **Event Notifications**   | [`DEP_NOTIFICATIONS.md`](DEP_NOTIFICATIONS.md) | Channel-agnostic notifications (Resend email receipts/alerts, webhooks) | `NotificationProvider`, Webhook REST      |
+| **Discord Notifications** | [`DEP_DISCORD.md`](DEP_DISCORD.md)             | [ARCHIVED / DEPRECATED] Legacy Discord webhooks (Story 3.13)         | Discord Webhooks (Legacy compatibility)   |
 
 ---
 

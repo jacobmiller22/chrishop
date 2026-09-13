@@ -14,11 +14,11 @@ This document details the finalized technical, security, operational, and deploy
 - **Object Storage**: **Cloudflare R2** (S3-compatible API, zero egress fees) for high-resolution product photography, artwork galleries, and downloadable certificates.
 - **Headless Commerce Engine**: **Shopify Headless** via the **Storefront API**. Shopify natively manages cart creation, line additions, inventory levels, PCI-compliant checkout redirect URLs, payments, currency conversion, taxes, and shipping rates.
 - **Content-to-Commerce Synchronization**: Payload CMS lifecycle hooks (`afterChange`) synchronize product publishing events directly with the **Shopify Admin API**, creating and updating product variants, stock levels, and SKUs while maintaining Payload as the source of truth for rich storytelling.
-- **Order Notifications & Operational Pipeline**: Shopify order webhooks emit events to the storefront API, triggering notifications via the pluggable `packages/notifications` engine to an interactive **Discord Bot** (`#store-orders`) and customer transactional emails via **Resend**.
+- **Order Notifications & Operational Pipeline**: Shopify order webhooks emit events to the storefront API, triggering notifications via the pluggable `packages/notifications` engine defaulting to transactional email via **Resend** (customer receipts, merchant order and low-stock alerts) and configurable generic **Webhooks** (Slack, Zapier, or HTTP endpoints) for operational alerts.
 - **Security & Access Controls**: Payload CMS role-based access control (RBAC) with **Mandatory TOTP Two-Factor Authentication (2FA)** for administrative accounts, Shopify HMAC-SHA256 webhook signature verification, Cloudflare Web Application Firewall (WAF), and Cloudflare Turnstile anti-bot protection.
 - **CI/CD & Operational Simplicity**: `wrangler deploy` automates continuous deployment on pushes to `staging` and `main` branches. Pull request branches receive automated Cloudflare preview deployments.
 - **Local Developer Ergonomics**: Local development is powered by `wrangler dev` with Miniflare emulating D1 and KV locally, paired with `@shopify/cli` for dev store connectivity—requiring zero virtual machines or background container engines.
-- **Observability**: **Sentry** for client and edge error tracking, **Better Stack** for edge `/api/health` heartbeat checks, and Discord webhook channels for real-time drop telemetry.
+- **Observability**: **Sentry** for client and edge error tracking, **Better Stack** for edge `/api/health` heartbeat checks, and configurable operational webhooks for real-time drop and ops telemetry.
 
 ---
 
@@ -37,7 +37,7 @@ chrishop/
 ├── packages/
 │   ├── types/                  # Shared TypeScript models for storefront, Payload, and Shopify
 │   ├── ui/                     # Accessible (WCAG 2.1 AA) UI system (Tailwind CSS v4 + Radix UI)
-│   ├── notifications/          # Pluggable Notification Engine (Discord Webhook, Resend Email)
+│   ├── notifications/          # Pluggable Notification Engine (Resend Email, Generic Webhooks, Legacy Discord)
 │   └── config/                 # Shared environment schemas (Zod), tsconfig, and lint presets
 ├── infra/
 │   ├── r2/                     # R2 CORS configuration and bucket definitions
@@ -164,11 +164,11 @@ sequenceDiagram
 
 1. **Order Creation Event**: When a customer completes checkout on Shopify, Shopify emits an `orders/create` webhook to `/api/webhooks/shopify`.
 2. **Signature Verification**: The edge route verifies the payload's HMAC-SHA256 header using `SHOPIFY_WEBHOOK_SECRET`.
-3. **Operational Notification**: The webhook invokes `packages/notifications`, transmitting a formatted embed to Discord `#store-orders`:
-   - _"🛒 New Order #1042 — Obsidian Cast Edition (Qty: 1) — $350.00"_
+3. **Operational & Merchant Notification**: The webhook invokes `packages/notifications`, transmitting transactional order alerts to the merchant (`MERCHANT_ALERT_EMAIL`) via **Resend** and operational event payloads to configured webhook sinks (`OPS_ALERT_WEBHOOK_URL`):
+   - _"🛒 New Order Placed: #1042 — $350.00 USD (Jane Doe)"_
    - Customer shipping destination and edition details.
 4. **Order Packaging & Dispatch**: Chris accesses the standard Shopify Admin portal (`admin.shopify.com`), marks the order fulfilled, and inputs carrier tracking details.
-5. **Customer Tracking Email**: Shopify automatically transmits branded shipment confirmation and tracking updates to the customer. When desired, supplementary transactional notifications are dispatched via the **Resend API**.
+5. **Customer Tracking Email**: Shopify automatically transmits branded shipment confirmation and tracking updates to the customer. Supplementary transactional receipts and shipping tracking notifications are dispatched via **Resend**.
 
 ### Phase 2 Scale Readiness:
 
@@ -178,7 +178,7 @@ sequenceDiagram
 
 ## 6. Event Notification Engine (`packages/notifications`)
 
-The platform utilizes a modular, provider-agnostic notification engine:
+The platform utilizes a modular, provider-agnostic notification engine that decouples application domain events from concrete delivery channels:
 
 ```typescript
 export interface NotificationPayload {
@@ -190,18 +190,39 @@ export interface NotificationPayload {
 
 export interface NotificationProvider {
   send(payload: NotificationPayload): Promise<void>;
-}
-
-export class DiscordNotificationProvider implements NotificationProvider {
-  constructor(private webhookUrl: string) {}
-  async send(payload: NotificationPayload): Promise<void> {
-    // Formatted Discord webhook payload with color-coded embeds
-  }
+  notifyOrderCreated?(order: Order): Promise<void>;
+  notifyLowStock?(
+    productTitle: string,
+    variationName: string,
+    remainingStock: number,
+    sku?: string
+  ): Promise<any>;
 }
 ```
 
-- **Operations Alert Channel**: Discord channels `#store-orders` (purchases and inventory thresholds) and `#dev-alerts` (build status, edge anomalies, uptime reports).
-- **Extensible Providers**: Easily plug in SMS or additional notification sinks by implementing `NotificationProvider`.
+### Supported Channels & Providers:
+
+1. **Transactional Email (`ResendNotificationProvider`) [Default]**:
+   - **Customer Receipts**: Sends branded HTML and plain-text order confirmation receipts (`notifyOrderReceipt`).
+   - **Customer Shipping Updates**: Sends carrier tracking links and parcel updates (`notifyShippingUpdate`).
+   - **Merchant Purchase Alerts**: Dispatches instant new order notifications to `MERCHANT_ALERT_EMAIL` (`notifyMerchantOrderAlert`).
+   - **Inventory Threshold Warnings**: Dispatches low-stock and sold-out alerts to `MERCHANT_ALERT_EMAIL` (`notifyLowStock`).
+   - Configured via authoritative environment variables: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `MERCHANT_ALERT_EMAIL`.
+
+2. **Generic Webhooks (`WebhookNotificationProvider`)**:
+   - Dispatches standard structured JSON payloads to arbitrary endpoints (`OPS_ALERT_WEBHOOK_URL`).
+   - Supports configurable HTTP headers (e.g., `Authorization`, `X-Webhook-Secret`).
+   - Native compatibility with Slack incoming webhooks (via top-level `text` field), Zapier, PagerDuty, and custom HTTP ingestors.
+   - Built-in automatic retry with exponential backoff on HTTP 429 and 5xx responses.
+
+3. **Composite Dispatch (`CompositeNotificationProvider`)**:
+   - Fans out domain events (orders, low-stock warnings, system alerts) simultaneously across multiple channels (e.g., Resend email + Slack webhook).
+
+4. **Legacy Discord (`DiscordNotificationProvider`) [Deprecated]**:
+   - Retained strictly for backward compatibility. Discord-specific embed schemas are segregated from core domain interfaces.
+
+### Notification Extension Points:
+New notification sinks (e.g., SMS alerts via Twilio, native Slack App bots, Pushover mobile push) can be plugged in by implementing the `NotificationProvider` interface and registering them with `CompositeNotificationProvider`.
 
 ---
 
@@ -296,4 +317,4 @@ flowchart LR
 
 1. **Shopify Checkout Dry Run**: Navigate storefront, add limited edition art to cart, verify redirect to Shopify Checkout with exact price, and verify order confirmation.
 2. **Payload Admin Walkthrough**: Log into `/admin` with TOTP 2FA, publish a new art edition, and confirm automated sync to the Shopify Admin catalog.
-3. **Discord Notification Test**: Complete a simulated test purchase and verify rich embed arrival in `#store-orders`.
+3. **Event Notification Test**: Complete a simulated test purchase and verify transactional customer receipt and merchant alert dispatch via `ResendNotificationProvider` and JSON payload dispatch via `WebhookNotificationProvider`.

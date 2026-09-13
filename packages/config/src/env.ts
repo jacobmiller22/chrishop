@@ -45,11 +45,35 @@ export const serverEnvSchema = z.object({
   // Cloudflare Platform Credentials (Optional in local dev, required in production edge)
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
   CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
+  CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
 
-  // Operational Notifications & Transactional Email (Optional in local dev)
-  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
+  // Channel-Agnostic Transactional Email & Operational Alert Credentials
   RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+  MERCHANT_ALERT_EMAIL: z.string().email('MERCHANT_ALERT_EMAIL must be a valid email address').optional(),
+  OPS_ALERT_WEBHOOK_URL: z.string().url('OPS_ALERT_WEBHOOK_URL must be a valid URL').optional(),
+
+  // Legacy / Deprecated Notification Credentials (retained for backward compatibility)
+  /** @deprecated Use RESEND_FROM_EMAIL instead */
   EMAIL_FROM: z.string().optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
+  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL or MERCHANT_ALERT_EMAIL instead */
+  DISCORD_WEBHOOK_ORDERS: z.string().url('DISCORD_WEBHOOK_ORDERS must be a valid URL').optional(),
+  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
+  DISCORD_WEBHOOK_ALERTS: z.string().url('DISCORD_WEBHOOK_ALERTS must be a valid URL').optional(),
+
+  // Feature Flag Configurations (ADR-001)
+  FLAG_IS_DROP_ACTIVE: z.coerce.boolean().optional(),
+  FLAG_ENABLE_WIREMOCK: z.coerce.boolean().optional(),
+  FLAG_MAINTENANCE_MODE: z.coerce.boolean().optional(),
+  FLAG_EMERGENCY_KILL_SWITCH: z.coerce.boolean().optional(),
+  FLAG_DISABLE_CHECKOUT: z.coerce.boolean().optional(),
+  FLAG_VIP_EARLY_ACCESS: z.coerce.boolean().optional(),
+  FLAG_VERBOSE_DEBUG_HEADERS: z.coerce.boolean().optional(),
+  FLAG_PHASE_6_CANARY_PERCENT: z.coerce.number().min(0).max(100).optional(),
+  FLAG_VIP_SECRET_TOKEN: z.string().optional(),
 });
 
 export const clientEnvSchema = z.object({
@@ -65,6 +89,9 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: z.string().optional(),
   NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
   NEXT_PUBLIC_R2_PUBLIC_URL: z.string().optional(),
+  NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
+  NEXT_PUBLIC_FLAG_IS_DROP_ACTIVE: z.coerce.boolean().optional(),
+  NEXT_PUBLIC_FLAG_MAINTENANCE_MODE: z.coerce.boolean().optional(),
 });
 
 export const envSchema = serverEnvSchema.merge(clientEnvSchema);
