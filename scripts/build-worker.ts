@@ -227,8 +227,9 @@ export function buildWorker(): void {
       modified = true;
     }
 
-    if (!content.includes('globalThis.MessagePort=class MessagePort')) {
-      content = 'if(typeof globalThis.MessagePort==="undefined"){globalThis.MessagePort=class MessagePort{}};\nif(typeof globalThis.MessageChannel==="undefined"){globalThis.MessageChannel=class MessageChannel{constructor(){this.port1=new globalThis.MessagePort();this.port2=new globalThis.MessagePort();}}};\n' + content;
+    const edgeGlobalsPolyfill = 'if(typeof globalThis.MessagePort==="undefined"){globalThis.MessagePort=class MessagePort{}};\nif(typeof globalThis.MessageChannel==="undefined"){globalThis.MessageChannel=class MessageChannel{constructor(){this.port1=new globalThis.MessagePort();this.port2=new globalThis.MessagePort();}}};\nif(typeof globalThis.FinalizationRegistry==="undefined"){globalThis.FinalizationRegistry=class FinalizationRegistry{constructor(){};register(){};unregister(){return false;}}};\nif(typeof globalThis.WeakRef==="undefined"){globalThis.WeakRef=class WeakRef{#t;constructor(t){this.#t=t};deref(){return this.#t}}};\n';
+    if (!content.includes('globalThis.FinalizationRegistry=')) {
+      content = edgeGlobalsPolyfill + content;
       modified = true;
     }
 
@@ -308,6 +309,20 @@ if (typeof globalThis.MessageChannel === "undefined") {
       this.port1 = new globalThis.MessagePort();
       this.port2 = new globalThis.MessagePort();
     }
+  };
+}
+if (typeof globalThis.FinalizationRegistry === "undefined") {
+  globalThis.FinalizationRegistry = class FinalizationRegistry {
+    constructor() {}
+    register() {}
+    unregister() { return false; }
+  };
+}
+if (typeof globalThis.WeakRef === "undefined") {
+  globalThis.WeakRef = class WeakRef {
+    #target;
+    constructor(target) { this.#target = target; }
+    deref() { return this.#target; }
   };
 }
 

@@ -444,6 +444,8 @@ try {
 import { createRequire as __topLevelCreateRequire } from "node:module";
 if (typeof globalThis.MessagePort === "undefined") globalThis.MessagePort = class MessagePort {};
 if (typeof globalThis.MessageChannel === "undefined") globalThis.MessageChannel = class MessageChannel { constructor() { this.port1 = new globalThis.MessagePort(); this.port2 = new globalThis.MessagePort(); } };
+if (typeof globalThis.FinalizationRegistry === "undefined") globalThis.FinalizationRegistry = class FinalizationRegistry { constructor() {} register() {} unregister() { return false; } };
+if (typeof globalThis.WeakRef === "undefined") globalThis.WeakRef = class WeakRef { #t; constructor(t) { this.#t = t; } deref() { return this.#t; } };
 const __rawRequire = __topLevelCreateRequire(import.meta.url);
 const __unsupportedBuiltins = {
   "child_process": { exec: () => {}, execSync: () => {}, spawn: () => {}, spawnSync: () => {}, fork: () => {}, ChildProcess: class {} },
