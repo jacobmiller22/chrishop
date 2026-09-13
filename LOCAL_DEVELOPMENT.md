@@ -62,6 +62,48 @@ Ensure your local machine has the following tools installed:
 
 ---
 
+## 2.1 Git Workflow & Staging-First Branching Protocol
+
+ChrisShop follows a strict two-stage git promotion pipeline (`feature/*` ➔ `staging` ➔ `production`):
+- **`staging`**: The active integration target where all feature branches merge, triggering automated preview deployments to the staging edge (`https://staging-chrishop.jacobmiller22.com`).
+- **`production`**: The protected live release edge (`https://chrishop.jacobmiller22.com`), promoted exclusively from `staging` via release PRs with mandatory human approval gates.
+
+### ⚠️ The Problem with Branching from `production` or `main`
+Because `production` only receives promoted code at release milestones, cutting feature branches from `production` (or legacy `main`) means your branch lacks all recent features, fixes, schema changes, and D1 migrations actively being merged into `staging`. When ready to open a PR into `staging`, developers face severe drift, merge conflicts, and constant rebasing.
+
+### 🌿 Mandatory Staging-First Branching Rules
+
+1. **Branch Creation**: Always cut from fresh `origin/staging`:
+   ```bash
+   # Turnkey helper: fetches origin/staging and creates worktree
+   pnpm run branch feature/story-<X>-<Y>-<shortname>
+
+   # Or via worktrunk directly:
+   git fetch origin staging && wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging
+
+   # Or via vanilla git:
+   git fetch origin staging && git checkout -b feature/story-<X>-<Y>-<shortname> origin/staging
+   ```
+
+2. **Pull Request Target**: All feature pull requests **MUST** target `staging`:
+   ```bash
+   gh pr create --base staging --title "feat(<scope>): Story <X>.<Y> <Title>" --body "Fixes #<Issue>"
+   ```
+
+3. **CI & Protection Gates**:
+   - CI (`enforce-promotion-rules` in `.github/workflows/ci.yml`) strictly rejects PRs targeting legacy `main` or direct PRs targeting `production` from any branch other than `staging`.
+   - Only `staging` is permitted to merge into `production` via formal release promotions.
+
+4. **Worktree Teardown**:
+   - Always switch back to `staging` before tearing down your worktree:
+   ```bash
+   wt switch staging
+   wt remove --reap feature/story-<X>-<Y>-<shortname>
+   git worktree prune
+   ```
+
+---
+
 ## 3. Environment Configuration
 
 ### 3.1 Initialize Environment Variables

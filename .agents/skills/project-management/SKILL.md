@@ -16,7 +16,6 @@ Use this skill whenever you need to:
 - Move cards through board columns (`Backlog` ➔ `In Progress` ➔ `In Review` ➔ `Done`).
 - Map and enforce inter-story dependencies before starting work on a feature.
 - Conduct Creator (Chris) vision review touchpoints and capture feedback.
-- Execute an on-demand adversarial roadmap and backlog audit (`/project-management roadmap audit`).
 
 ---
 
@@ -61,7 +60,7 @@ When work on a story is ready for review/merge:
 
    ## Related Issue
    Fixes #<IssueNumber>" \
-     --base main
+     --base staging
    ```
 3. **Mandatory Issue Linking**: The PR description **MUST** explicitly include `Fixes #<IssueNumber>` or `Closes #<IssueNumber>`. This links the PR directly to the issue on GitHub and ensures the GitHub Project Board (`board-sync.yml`) moves the issue card through `In Progress` ➔ `In Review` ➔ `Done` automatically upon PR creation and merge.
 
@@ -95,10 +94,10 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
    - Run typechecking and linting (`npx pnpm run check`) to ensure zero errors across all workspace projects.
    - Run build validation (`npx pnpm run build`) where applicable.
 2. **Create & Link Pull Request**:
-   - Create a Pull Request via `gh pr create` targeting `main`, including `Fixes #<IssueNumber>` in the PR body.
+   - Create a Pull Request via `gh pr create` targeting `staging` (`--base staging`), including `Fixes #<IssueNumber>` in the PR body.
 3. **Merge Pull Request / CI Verification**:
-   - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `main` (`gh pr merge --merge` or `git merge --no-ff`).
-4. **Post Comprehensive Completion Comment & Update Issue Status**:
+   - Verify CI status via `gh pr checks <pr-number>` or merge the PR into `staging` (`gh pr merge --merge` or `git merge --no-ff`).
+4. **Post Comprehensive Completion Comment & PR-Gated GitHub Issue Closure**:
    - Post a comprehensive completion comment on the corresponding GitHub Issue (`gh issue comment <IssueNumber> --body "..."`) containing:
      - **Merge & Human Review Status Header**: Explicitly state status (`🟡 HUMAN INPUT REQUIRED BEFORE MERGE`, `🟢 MERGED / NO INPUT NEEDED`, `🔴 BLOCKED / PENDING`, or `❌ ACTION REQUIRED / FAILING`).
      - **Verification Links with Proper Descriptive Anchors**: Include markdown links with descriptive text (never naked URLs) for the PR (`[PR #<N>: <Title>](...)`), Issue (`[Issue #<N>: <Title>](...)`), CI Run (`[CI Run #<ID>](...)`), and Ephemeral Preview with deep route anchors (`[Storefront (/)]`, `[Admin (/admin)]`, `[Health (/api/health)]`).
@@ -106,7 +105,7 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
      - **Verification Results** (typecheck, lint, build, unit and ephemeral integration test outputs).
      - **Follow-up Actions & Spawned Stories** (list of follow-up issues created e.g. `#123`, unblocked next stories, staging/production deployment notes).
    - Update issue label to `status:completed` (remove `status:in-progress`).
-   - **PR-Gated Issue Closure**: DO NOT close the issue until the PR has been merged. If the PR is open / pending review, keep the issue open. Only once the PR is merged may the issue be closed (`gh issue close <IssueNumber> --reason "completed"`).
+   - **CRITICAL GATE**: Do **NOT** close the issue while its associated PR is still open. Verify PR merge status (`gh pr view <PR_NUMBER> --json state,merged`). Only close the issue via `gh issue close <IssueNumber> --reason "completed"` once the PR is confirmed merged.
 5. **Update Progress & Deliver Structured Summary to User**:
    - Update task tracking artifacts (`task.md` / `walkthrough.md` / `implementation_plan.md`) if active.
    - Present a structured handoff report to the user following [story-feedback-loop](../story-feedback-loop/SKILL.md) Section 7.2:
@@ -115,7 +114,7 @@ Upon finishing implementation for any task or story (refer to [story-feedback-lo
      - **Verification Evidence & Deliverables**.
      - **Copy-pasteable Next Steps / Merge Command**.
 6. **Worktree Teardown & Process Reaping**:
-   - Switch back to the main monorepo worktree: `wt switch main`.
+   - Switch back to the staging integration worktree: `wt switch staging`.
    - Reap processes and remove the isolated worktree: `wt remove --reap feature/story-X-Y-<shortname>`.
    - Prune git metadata: `git worktree prune` and confirm with `wt list`.
 
@@ -143,50 +142,18 @@ When creating follow-up stories from completed tasks or adversarial audits, agen
 
 ---
 
-## 7. Adversarial Roadmap & Backlog Audit Protocol (`/project-management roadmap audit`)
+## 7. Adversarial Roadmap & Milestone Audit Protocol
 
-Technical Project Managers and autonomous agents must periodically execute on-demand audits to ensure GitHub Milestones, Backlog Epics, and local architecture remain synchronized, shovel-ready, and free of architectural drift.
+Technical Project Managers and autonomous agents must periodically verify that GitHub Milestones, Backlog Epics, and local architecture remain synchronized and free of architectural drift.
 
-> [!NOTE]
-> This auditor operates purely **on-demand** with zero background daemons. It inspects live GitHub API state and local disk files in seconds.
+### Audit Command:
+```bash
+pnpm run audit:roadmap
+```
 
-### 7.1 Invocation Triggers
-
-You can invoke the audit at any time using:
-- **Slash Command / Chat Trigger**: `/project-management roadmap audit` (or `/project-management roadmap-audit`)
-- **Direct CLI Execution**:
-  ```bash
-  # Standard on-demand roadmap & backlog audit
-  pnpm run audit:roadmap
-
-  # Comprehensive audit including file deliverables check
-  pnpm run audit:backlog
-
-  # Export markdown report to docs/
-  pnpm run audit:roadmap --markdown docs/ROADMAP_AUDIT_LATEST.md
-
-  # Strict mode (fails CI/preflight if drift, orphans, or completed issues are open)
-  pnpm run audit:roadmap --strict
-  ```
-
-### 7.2 Verification Checks Enforced
-
-1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`, `caddy`, `ansible`, `minio`) in milestone titles and descriptions.
+### Verification Checks Enforced:
+1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`) in milestone titles and descriptions.
 2. **Orphaned Issues**: Detects open issues with no assigned milestone (`milestone == null`).
-3. **Priority Governance**: Flags any open issue missing an explicit `priority:*` label (`priority:critical`, `priority:high`, `priority:medium`, `priority:low`).
-4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label whose corresponding pull request has already been merged but the issue remains open on GitHub. (Issues awaiting PR merge legitimately remain open).
-5. **Codebase Deliverables Verification**: Audits closed issues against actual files on disk (`apps/`, `packages/`, `infra/`, `docs/`) to detect missing or orphaned artifacts.
-6. **Dependency & Blocker Analysis**: Evaluates issue prerequisite references (`Prerequisites: #<N>`) to flag blocked stories vs. unblocked shovel-ready items.
-7. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.
-
-### 7.3 Agent TPM Response Protocol
-
-When the user requests `/project-management roadmap audit`:
-1. Run `pnpm run audit:roadmap` via `run_command`.
-2. Parse the output into a clear, concise TPM Executive Status summary:
-   - **Phase & Milestone Progress Table**: Highlighting completion percentage and due dates.
-   - **Drift & Governance Status**: Confirming zero architectural drift and 100% priority labeling.
-   - **Top Shovel-Ready Candidates**: Presenting the top unblocked high-priority stories ready for immediate dispatch.
-   - **Active Blockers & Touchpoints**: Listing stories blocked by open prerequisites or awaiting Chris's creator review.
-3. Recommend concrete next actions or immediate story dispatches based on the audit findings.
-
+3. **Priority Health**: Flags any open issue missing an explicit `priority:*` label.
+4. **Issue Lifecycle Sync**: Flags any completed story whose PR is already merged but whose issue remains open on GitHub (stories awaiting PR merge legitimately remain open with `status:completed`).
+5. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.

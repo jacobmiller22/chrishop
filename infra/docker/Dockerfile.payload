@@ -1,0 +1,113 @@
+# ==============================================================================
+# Dockerfile.payload — Containerized Node.js Fallback for Payload CMS v3
+# Architecture Decision: docs/decisions/ADR_PAYLOAD_CONTAINER_FALLBACK.md
+# Reference: Story 2.44 (#190)
+#
+# Production Multi-Stage Dockerfile for building and running Payload CMS v3
+# in a hardened, unprivileged Node.js 22 container environment with support
+# for native C++ addons (sharp, pdfkit), full ACID transactions, and sub-second
+# microVM warm resumes.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Stage 1: Base Runtime Environment
+# ------------------------------------------------------------------------------
+FROM node:22-alpine AS base
+
+# Install libc6-compat for Alpine compatibility with native binary bindings and dumb-init
+RUN apk add --no-cache libc6-compat dumb-init curl bash
+
+# Configure corepack to enable pnpm matching monorepo packageManager spec (pnpm@9.0.0)
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+WORKDIR /app
+
+# ------------------------------------------------------------------------------
+# Stage 2: Dependencies Installation & Workspace Scaffolding
+# ------------------------------------------------------------------------------
+FROM base AS deps
+
+# Copy root manifest and workspace specifications
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY scripts/patch-dependencies.js ./scripts/patch-dependencies.js
+
+# Copy package manifests across monorepo workspaces
+COPY packages/config/package.json ./packages/config/
+COPY packages/notifications/package.json ./packages/notifications/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+COPY apps/web/package.json ./apps/web/
+
+# Install all workspace dependencies with strict frozen lockfile
+RUN pnpm install --frozen-lockfile
+
+# ------------------------------------------------------------------------------
+# Stage 3: Source Compilation & Standalone Build
+# ------------------------------------------------------------------------------
+FROM base AS builder
+
+WORKDIR /app
+
+# Copy cached dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
+COPY --from=deps /app/packages/notifications/node_modules ./packages/notifications/node_modules
+COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# Copy monorepo source code
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY scripts ./scripts
+COPY packages ./packages
+COPY apps/web ./apps/web
+
+# Environment variables for build stage
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PAYLOAD_DROP_DATABASE=false
+
+# Execute build for shared packages and Next.js standalone application
+RUN pnpm run build:apps
+
+# ------------------------------------------------------------------------------
+# Stage 4: Hardened Production Runner
+# ------------------------------------------------------------------------------
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+# Install dumb-init for robust process supervision and signal handling (SIGTERM/SIGINT)
+RUN apk add --no-cache dumb-init curl
+
+# Security Hardening: Run as an unprivileged non-root user
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 payload
+
+# Copy public assets and standalone server output
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder --chown=payload:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=payload:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+
+# Switch to unprivileged user
+USER payload
+
+# Expose HTTP port for Cloudflare Origin Rules and Fly.io ingress
+EXPOSE 3000
+
+# Container Healthcheck probing edge health route
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://localhost:3000/api/health || exit 1
+
+# Process supervisor
+ENTRYPOINT ["dumb-init", "--"]
+
+# Launch Next.js standalone server hosting Payload CMS v3
+CMD ["node", "apps/web/server.js"]

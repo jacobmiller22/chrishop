@@ -35,7 +35,7 @@ Use this skill whenever:
 ```mermaid
 flowchart TD
     A[Start Story] --> B[1. Update Issue Status to in-progress & Post Start Comment]
-    B --> C[2. Provision Worktree: wt switch --create feature/story-X-Y]
+    B --> C[2. Provision Worktree: git fetch origin staging && wt switch --create feature/story-X-Y --base origin/staging]
     C --> D[3. Implementor: Develop Core Architecture & Modules]
     D --> E[Post Progress Comment: Architectural Milestone Reached]
     E --> F[4. Implementor: Local Verification: pnpm run verify:local]
@@ -46,7 +46,7 @@ flowchart TD
     J --> F
     I -- Yes with Deferred Scope --> K[Implementor: gh issue create for Follow-Ups]
     K --> L[Post Progress Comment: Deferred Stories Linked]
-    L --> M[6. Implementor: Push Branch & gh pr create]
+    L --> M[6. Implementor: Push Branch & gh pr create --base staging]
     I -- Yes: Approved Clean --> M
     M --> N[Post Progress Comment: PR Opened with Bidirectional Link]
     N --> O[7. Judge: Verify CI: gh pr checks]
@@ -54,7 +54,7 @@ flowchart TD
     P --> O
     O -- CI Passing --> Q[8. Post High-Detail Completion Comment on Issue]
     Q --> R[9. Update Issue Status: Apply status:completed (Keep Issue Open)]
-    R --> S[10. Worktree Teardown: wt switch main & wt remove --reap]
+    R --> S[10. Worktree Teardown: wt switch staging & wt remove --reap]
     S --> T[11. Final Summary Handoff to User with PR & Live Preview Links]
     T --> U{PR Merged?}
     U -- Yes --> V[Close GitHub Issue: gh issue close --reason completed]
@@ -87,9 +87,10 @@ Before modifying any source code for a story:
    - **Technical Strategy**: <Brief breakdown of architectural approach, components to create/modify, and design decisions>
    - **Target Acceptance Criteria**: <Specific checklist items and intent objectives being addressed>"
    ```
-5. **Provision Isolated Worktree**: Create and switch to a dedicated isolated worktree and branch for the story using `wt`:
+5. **Provision Isolated Worktree**: Fetch the latest integration state and create/switch to a dedicated isolated worktree and branch for the story based on `origin/staging` using `wt`:
    ```bash
-   wt switch --create feature/story-<X>-<Y>-<short-description>
+   git fetch origin staging
+   wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging
    ```
 6. **Verify Clean Workspace**: Confirm clean worktree state before beginning code modifications (`git status`).
 
@@ -308,7 +309,7 @@ To guarantee end-to-end traceability, Pull Requests and GitHub Issues **MUST** b
 
    ## Issue Reference
    Fixes #42" \
-     --base main
+     --base staging
    ```
 
 ### 5.2 Issue Requirements (Linking Issue to PR)
@@ -333,11 +334,11 @@ Before removing a worktree, confirm that:
 
 ### 6.2 Step-by-Step Worktree Teardown
 
-1. **Switch Context Back to the Main Monorepo Root**:
+1. **Switch Context Back to the Staging Integration Branch**:
    Never attempt to delete a worktree while your active shell or command execution context is inside it.
 
    ```bash
-   wt switch main
+   wt switch staging
    ```
 
 2. **Reap Processes and Remove Worktree via `wt remove`**:
@@ -476,8 +477,8 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 - **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
 - **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
 - **Staging Edge API Health Probe**: [https://staging-chrishop.jacobmiller22.com/api/health](https://staging-chrishop.jacobmiller22.com/api/health)
-- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
-- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
+- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com) *(Active during PR review; decommissioned upon merge)*
+- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin) *(Active during PR review; decommissioned upon merge)*
 - **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
 - **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`status:completed` · Open awaiting PR merge / Closed if PR merged)
 - **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)
@@ -511,7 +512,7 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Applied `status:in-progress` label to GitHub issue.
   - [ ] Moved Project v2 board card to `In Progress`.
   - [ ] Posted start-of-work comment on GitHub issue detailing technical plan, assigned model tier, and target criteria.
-  - [ ] Created and switched to isolated worktree: `wt switch --create feature/story-<X>-<Y>-<shortname>`.
+  - [ ] Created and switched to isolated worktree: `git fetch origin staging && wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging`.
 - [ ] **Periodic Progress Updates**:
   - [ ] Posted Milestone 2 comment upon reaching core component/scaffolding milestone.
   - [ ] Ran `pnpm run verify:local` (engine check, check, test:unit, test:integration, build, secrets hygiene) and posted Milestone 3 comment with verification outputs.
@@ -520,7 +521,7 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Created GitHub issues for any deferred scope and posted Milestone 5 comment with issue links.
 - [ ] **Pull Request & Bidirectional Linking**:
   - [ ] Pushed branch to remote repository.
-  - [ ] Created PR with `Fixes #<IssueNumber>` in the PR body and issue reference in the title.
+  - [ ] Created PR with `Fixes #<IssueNumber>` in the PR body and issue reference in the title, targeting staging (`--base staging`).
   - [ ] Posted Milestone 6 comment on the issue with full PR link and ephemeral preview links: `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`.
   - [ ] Verified that GitHub displays the PR in the issue's "Development" section.
 - [ ] **CI Verification**:
@@ -534,7 +535,7 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Verified Project v2 card reflects correct status (`In Review` if PR is open; `Done` once PR is merged).
   - [ ] Delivered final user handoff report with live preview and PR links in chat.
 - [ ] **Worktree Teardown & Cleanup**:
-  - [ ] Switched back to main monorepo worktree: `wt switch main`.
+  - [ ] Switched back to staging integration worktree: `wt switch staging`.
   - [ ] Reaped running processes and removed worktree: `wt remove --reap feature/story-<X>-<Y>-<shortname>`.
   - [ ] Pruned git worktree metadata: `git worktree prune`.
   - [ ] Verified clean state via `wt list`.

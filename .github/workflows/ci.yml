@@ -16,13 +16,32 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Target branch (base): ${{ github.base_ref }}"
             echo "Source branch (head): ${{ github.head_ref }}"
-            if [ "${{ github.base_ref }}" = "production" ] && [ "${{ github.head_ref }}" != "staging" ]; then
-              echo "❌ ERROR: Direct pull requests to 'production' are prohibited."
-              echo "Only the 'staging' branch is permitted to merge into 'production'."
+            # Prohibit direct PRs targeting legacy 'main'
+            if [ "${{ github.base_ref }}" = "main" ]; then
+              echo "❌ ERROR: Pull requests targeting legacy 'main' are strictly prohibited."
+              echo "ChrisShop uses a staged promotion pipeline: all feature development must target 'staging'."
               echo "Attempted merge from: '${{ github.head_ref }}'"
-              echo "Please retarget your pull request to 'staging' or promote changes via 'staging'."
+              echo "Please retarget your pull request to 'staging' using: gh pr edit <PR_NUMBER> --base staging"
               exit 1
             fi
+
+            # Prohibit PRs targeting 'production' from any branch other than 'staging'
+            if [ "${{ github.base_ref }}" = "production" ] && [ "${{ github.head_ref }}" != "staging" ]; then
+              echo "❌ ERROR: Direct pull requests to 'production' are prohibited."
+              echo "Only the 'staging' branch is permitted to merge into 'production' via release promotions."
+              echo "Attempted merge from: '${{ github.head_ref }}'"
+              echo "Please retarget your pull request to 'staging' using: gh pr edit <PR_NUMBER> --base staging"
+              exit 1
+            fi
+
+            # Enforce that all other pull requests target staging
+            if [ "${{ github.base_ref }}" != "staging" ] && [ "${{ github.base_ref }}" != "production" ]; then
+              echo "❌ ERROR: Feature pull requests must target 'staging'."
+              echo "Attempted merge into '${{ github.base_ref }}' from '${{ github.head_ref }}'."
+              echo "Please retarget your pull request to 'staging' using: gh pr edit <PR_NUMBER> --base staging"
+              exit 1
+            fi
+
             echo "✅ Promotion rule check passed (Base: ${{ github.base_ref }}, Head: ${{ github.head_ref }})."
           else
             echo "Push event on ref: ${{ github.ref }}. Promotion check satisfied."
@@ -79,3 +98,13 @@ jobs:
       - name: Validate Cloudflare Worker Deployment (Dry-Run)
         if: github.event_name == 'pull_request'
         run: pnpm wrangler deploy --dry-run --env preview
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Validate Terraform Configuration & Formatting
+        run: |
+          terraform fmt -recursive -check infra/terraform
+          cd infra/terraform && terraform init -backend=false && terraform validate -no-color

@@ -195,11 +195,20 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
 
     // Enforce promotion rules job
     assert.ok(content.includes('enforce-promotion-rules:'), 'CI must declare enforce-promotion-rules job');
+    assert.ok(content.includes('base_ref }}" = "main"'), 'Must check and block PRs targeting legacy main');
+    assert.ok(
+      content.includes("Pull requests targeting legacy 'main' are strictly prohibited"),
+      'Must output explanatory error message when PR targets main'
+    );
     assert.ok(content.includes('base_ref }}" = "production"'), 'Must check if base branch is production');
     assert.ok(content.includes('head_ref }}" != "staging"'), 'Must reject if head branch is not staging');
     assert.ok(
       content.includes('Only the \'staging\' branch is permitted to merge into \'production\''),
       'Must output explanatory error message when non-staging branch targets production'
+    );
+    assert.ok(
+      content.includes("Feature pull requests must target 'staging'"),
+      'Must enforce that feature PRs target staging'
     );
   });
 
@@ -235,6 +244,44 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     // Preview URL comment
     assert.ok(content.includes('Ephemeral PR Preview'), 'Must comment preview status on PR');
     assert.ok(content.includes('pr-${PR_NUM}-chrishop.jacobmiller22.com'), 'Must construct preview URL');
+  });
+
+  it('should verify ephemeral PR preview teardown workflow destroys stack on all closed PRs', () => {
+    const teardownWorkflowPath = path.join(rootDir, '.github/workflows/preview-teardown.yml');
+    assert.ok(fs.existsSync(teardownWorkflowPath), 'preview-teardown.yml must exist');
+    const content = fs.readFileSync(teardownWorkflowPath, 'utf-8');
+
+    // Trigger on closed PRs
+    assert.ok(content.includes('pull_request:'), 'Must trigger on pull_request');
+    assert.ok(content.includes('types: [closed]'), 'Must trigger on closed');
+
+    // Deletion steps
+    assert.ok(content.includes('wrangler-action@v3'), 'Must use wrangler-action for teardown');
+    assert.ok(content.includes('delete --name chrishop-preview-pr-'), 'Must delete preview worker script');
+    assert.ok(content.includes('terraform destroy -auto-approve'), 'Must destroy Terraform preview state');
+
+    // Must NOT be restricted to unmerged PRs only
+    assert.ok(
+      !content.includes('github.event.pull_request.merged == false'),
+      'Teardown must execute for both merged and unmerged PRs (no merged == false gate)'
+    );
+
+    // PR comment update
+    assert.ok(content.includes('Comment Teardown Status on PR'), 'Must post teardown status to PR');
+  });
+
+  it('should verify preview cleanup workflow and script configuration', () => {
+    const cleanupWorkflowPath = path.join(rootDir, '.github/workflows/preview-cleanup.yml');
+    assert.ok(fs.existsSync(cleanupWorkflowPath), 'preview-cleanup.yml must exist');
+    const workflowContent = fs.readFileSync(cleanupWorkflowPath, 'utf-8');
+
+    assert.ok(workflowContent.includes('schedule:'), 'Must configure scheduled cron');
+    assert.ok(workflowContent.includes('workflow_dispatch:'), 'Must configure workflow_dispatch');
+    assert.ok(workflowContent.includes('preview:cleanup'), 'Must invoke preview:cleanup script');
+
+    const pkgJsonPath = path.join(rootDir, 'package.json');
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    assert.ok(pkgJson.scripts['preview:cleanup'], 'package.json must declare preview:cleanup script');
   });
 
   it('should verify wrangler CLI supports local emulation dev command', () => {
