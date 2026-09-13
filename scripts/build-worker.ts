@@ -196,7 +196,7 @@ export default {
 
     // 2. Diagnostic Edge Debug Probe (/api/debug)
     if (url.pathname === "/api/debug") {
-      const debugInfo: Record<string, any> = {
+      const debugInfo = {
         runtime: "cloudflare-workers",
         timestamp: new Date().toISOString(),
         bindings: {
@@ -210,14 +210,14 @@ export default {
       if (env.DB && typeof env.DB.prepare === "function") {
         try {
           const tablesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-          debugInfo.tables = (tablesResult?.results || []).map((t: any) => t.name);
+          debugInfo.tables = (tablesResult?.results || []).map((t) => t.name);
 
           const usersResult = await env.DB.prepare("SELECT id, email FROM users LIMIT 5").all();
           debugInfo.users = usersResult?.results || [];
 
           const productsResult = await env.DB.prepare("SELECT count(*) as count FROM products").all();
           debugInfo.productsCount = productsResult?.results?.[0]?.count;
-        } catch (dbErr: any) {
+        } catch (dbErr) {
           debugInfo.dbError = { message: dbErr?.message, stack: dbErr?.stack };
         }
       }
@@ -308,7 +308,7 @@ export default {
         let lastError = "";
         const origError = console.error;
         console.error = (...args) => {
-          lastError += args.map((a) => (typeof a === "object" ? (a?.stack || a?.message || JSON.stringify(a)) : String(a))).join(" ") + "\n";
+          lastError += args.map((a) => (typeof a === "object" ? (a?.stack || a?.message || JSON.stringify(a)) : String(a))).join(" ") + "\\n";
           origError.apply(console, args);
         };
 
