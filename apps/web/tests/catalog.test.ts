@@ -24,9 +24,11 @@ describe('Catalog Data Access Layer & Price Resolution', () => {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
+      parent_id TEXT,
       description TEXT,
       image TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
     );
 
     CREATE TABLE products (
@@ -34,7 +36,12 @@ describe('Catalog Data Access Layer & Price Resolution', () => {
       title TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
       description TEXT,
+      maker_field_notes TEXT,
       artist_statement TEXT,
+      materials TEXT,
+      weight TEXT,
+      fit_profile TEXT,
+      origin TEXT,
       base_price REAL NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft',
       category_id TEXT,
@@ -51,9 +58,14 @@ describe('Catalog Data Access Layer & Price Resolution', () => {
       shopify_variant_id TEXT UNIQUE,
       variation_name TEXT NOT NULL,
       sku TEXT NOT NULL UNIQUE,
+      variation_type TEXT NOT NULL DEFAULT 'standard',
+      edition_badge TEXT,
+      variation_notes TEXT,
+      variation_images TEXT,
       price_override REAL,
       is_limited_edition INTEGER NOT NULL DEFAULT 1,
       total_edition_count INTEGER,
+      stock_quantity INTEGER NOT NULL DEFAULT 1,
       release_date TEXT,
       status TEXT NOT NULL DEFAULT 'coming_soon',
       created_at TEXT DEFAULT (datetime('now')),

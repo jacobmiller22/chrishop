@@ -69,13 +69,14 @@ The root `package.json` provides an organized suite of scripts for development, 
 | Command | Action | Description |
 | :--- | :--- | :--- |
 | `pnpm run check` | `turbo run check` | Monorepo typecheck across all workspaces |
+| `pnpm run check:bundle` | `tsx scripts/check-bundle-budget.ts` | Profiles `.open-next` worker bundles against Cloudflare size ceilings |
 | `pnpm run lint` | `turbo run check` | Monorepo ESLint & TypeScript linter |
 | `pnpm test` | `turbo run test` | Runs unit tests across all package workspaces |
 | `pnpm run test:unit` | `turbo run test && tsx --test tests/integration/dependency-control.test.ts` | Package unit tests + dependency control gate |
 | `pnpm run test:integration` | `tsx --test tests/integration/**/*.test.ts tests/spike/**/*.test.ts` | Ephemeral D1 SQLite, Shopify client, and integration tests |
 | `pnpm run test:spike` | `tsx --test tests/spike/**/*.test.ts` | Edge runtime and database latency spike tests |
 | `pnpm run test:all` | `pnpm run test:unit && pnpm run test:integration` | Complete unit and integration test suite |
-| `pnpm run verify:local` | `tsx scripts/verify-local.ts` | Turnkey 7-stage pre-PR verification pipeline |
+| `pnpm run verify:local` | `tsx scripts/verify-local.ts` | Turnkey 8-stage pre-PR verification pipeline |
 | `pnpm run audit:security` | `pnpm audit --audit-level=high` | Checks all dependencies against known CVEs |
 | `pnpm run format` | `prettier --write .` | Formats all files with Prettier |
 | `pnpm run format:check` | `prettier --check .` | Checks formatting without modifying files |

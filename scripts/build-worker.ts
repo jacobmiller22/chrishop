@@ -18,6 +18,8 @@ const webAppDir = path.resolve(rootDir, 'apps/web');
 const webNextStaticDir = path.join(webAppDir, '.next/static');
 const webPublicDir = path.join(webAppDir, 'public');
 const webIndexHtmlPath = path.join(webAppDir, '.next/server/app/index.html');
+const webProductsHtmlPath = path.join(webAppDir, '.next/server/app/products.html');
+const webProductsDir = path.join(webAppDir, '.next/server/app/products');
 
 function copyRecursiveSync(src: string, dest: string): void {
   if (!fs.existsSync(src)) return;
@@ -120,7 +122,22 @@ export function buildWorker(): void {
   if (fs.existsSync(webIndexHtmlPath)) {
     storefrontHtml = fs.readFileSync(webIndexHtmlPath, 'utf-8');
   } else {
-    storefrontHtml = `<!DOCTYPE html><html lang="en" class="dark"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Chris's Shop | Exclusive Art &amp; Limited Drops</title><meta name="description" content="Handcrafted sculptures, prints, and exclusive art drops by Chris."/><link rel="stylesheet" href="/_next/static/css/storefront.css"/></head><body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased"><header class="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Chris's Shop</span><span class="hidden md:inline-block text-xs text-slate-400 border-l border-slate-800 pl-3">Exclusive drops &amp; limited edition art</span></div><nav class="flex items-center gap-6"><a href="/" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Featured</a><a href="/products" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Shop Catalog</a><a href="/products?category=sculptures" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Sculptures</a><a href="/products?category=prints" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Prints</a><a href="/products?category=wearables" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Wearables</a><div class="relative"><span class="text-sm font-medium text-slate-200 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2"><span>🛒 Cart</span><span class="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full text-xs">0</span></span></div></nav></div></header><main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="space-y-16"><section class="text-center py-12 space-y-4"><div class="flex items-center justify-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-amber-950 text-amber-400 border-amber-800 ">🔥 Next Drop Live Now</span><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-blue-950 text-blue-400 border-blue-800 ">Payload CMS &amp; SQLite</span></div><h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent">Exclusive Art &amp; Physical Collectibles</h1><p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-400">Limited edition sculptures, archival fine art prints, and artisan apparel released in timed drops. Direct from creator to collector.</p><div class="pt-2 flex items-center justify-center gap-4"><a href="/products"><button class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white focus:ring-amber-500 px-6 py-3 text-lg font-semibold shadow-lg shadow-amber-500/20">Explore All Drops (1)</button></a><a href="/products/midnight-obsidian-beast"><button class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600 text-slate-200 hover:bg-slate-800 focus:ring-slate-500 px-6 py-3 text-lg ">View Flagship Drop</button></a></div></section></div></main><footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">© 2026 Chris's Shop. All rights reserved.</footer></body></html>`;
+    storefrontHtml = `<!DOCTYPE html><html lang="en" class="dark"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>BankBeaters | Adventure Gear · Curiosity &gt; Fear</title><meta name="description" content="Handcrafted technical outdoor gear, waterproof storm shells, and convertible packs built in small batches in Colorado."/><link rel="stylesheet" href="/_next/static/css/storefront.css"/></head><body class="min-h-screen flex flex-col bg-[#101317] text-stone-100 antialiased font-sans"><header class="sticky top-0 z-50 w-full border-b border-stone-800/80 bg-[#15191E]/95 backdrop-blur-md"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"><div class="flex items-center gap-3"><a href="/" class="text-xl font-black uppercase font-mono text-[#E55B24]">BankBeaters</a><span class="hidden md:inline-block text-xs text-stone-400 font-mono border-l border-stone-800 pl-3">Adventure Gear · Curiosity &gt; Fear</span></div><nav class="flex items-center gap-6"><a href="/products" class="text-sm font-medium text-stone-300 hover:text-[#E55B24]">Adventure Gear</a><a href="/products?category=outerwear" class="text-sm font-medium text-stone-300 hover:text-[#E55B24]">Outerwear</a><a href="/products?category=packs-carry" class="text-sm font-medium text-stone-300 hover:text-[#E55B24]">Packs &amp; Carry</a><a href="/cart" class="relative block"><span class="text-sm font-medium text-stone-200 bg-stone-900 px-3 py-1.5 rounded-lg border border-stone-800 flex items-center gap-2"><span>🎒 Gear Roll</span><span class="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1 rounded-full text-xs inline-flex items-center justify-center">0</span></span></a></nav></div></header><main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"><section class="text-center py-16 space-y-6"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#2C362B] text-emerald-300 border border-[#3F4F3D]">Curiosity &gt; Fear · Hand-Crafted in Workshop</span><h1 class="text-4xl sm:text-6xl font-black tracking-tight text-stone-100 uppercase font-mono">BankBeaters Adventure Gear</h1><p class="max-w-2xl mx-auto text-base sm:text-lg text-stone-300">Technical foul-weather outerwear, 1000D Cordura guide pants, and modular chest carry systems crafted in small batches.</p><div class="pt-4 flex items-center justify-center gap-4"><a href="/products"><button class="inline-flex items-center justify-center font-mono font-bold rounded-lg bg-[#E55B24] hover:bg-[#d04f1d] text-stone-950 px-6 py-3 text-base shadow-lg shadow-orange-950/40">Explore Equipment Catalog</button></a><a href="/products/bushwhack-storm-anorak"><button class="inline-flex items-center justify-center font-mono font-medium rounded-lg border border-stone-700 text-stone-200 hover:bg-stone-800 px-6 py-3 text-base">View Flagship Anorak</button></a></div></section></main><footer class="border-t border-stone-800 py-6 text-center text-xs font-mono text-stone-500">© 2026 BankBeaters Adventure Gear. All rights reserved.</footer></body></html>`;
+  }
+
+  let productsHtml = '';
+  if (fs.existsSync(webProductsHtmlPath)) {
+    productsHtml = fs.readFileSync(webProductsHtmlPath, 'utf-8');
+  }
+
+  const productPages: Record<string, string> = {};
+  if (fs.existsSync(webProductsDir)) {
+    for (const file of fs.readdirSync(webProductsDir)) {
+      if (file.endsWith('.html')) {
+        const slug = path.basename(file, '.html');
+        productPages[slug] = fs.readFileSync(path.join(webProductsDir, file), 'utf-8');
+      }
+    }
   }
 
   // 4. Construct Authentic Payload CMS v3 Multi-Route Admin Panel Renderer
@@ -131,48 +148,61 @@ const PAYLOAD_COLLECTIONS = {
     slug: 'products',
     label: 'Products',
     singular: 'Product',
-    description: 'Manage drops, limited edition sculptures, and archival prints.',
+    description: 'Manage technical outdoor silhouettes, small-batch runs, and workshop prototypes.',
     columns: ['Title', 'Slug', 'Price', 'Category', 'Status', 'Created At'],
     items: [
-      { id: 'midnight-obsidian-beast', title: 'Midnight Obsidian Beast', slug: 'midnight-obsidian-beast', price: '$480.00', category: 'Sculptures', status: 'Published', createdAt: '2026-09-10' },
-      { id: 'solar-flare-print', title: 'Solar Flare Archival Print', slug: 'solar-flare-print', price: '$120.00', category: 'Prints', status: 'Published', createdAt: '2026-09-10' },
-      { id: 'cybernetic-relic', title: 'Cybernetic Relic Pendant', slug: 'cybernetic-relic', price: '$290.00', category: 'Wearables', status: 'Published', createdAt: '2026-09-10' },
+      { id: 'prod-bushwhack-anorak', title: 'The Bushwhack Storm Anorak', slug: 'bushwhack-storm-anorak', price: '$340.00', category: 'Waterproof Storm Shells', status: 'Published', createdAt: '2026-09-12' },
+      { id: 'prod-bramble-buster-pant', title: 'Bramble-Buster Technical Guide Pant', slug: 'bramble-buster-technical-guide-pant', price: '$215.00', category: 'Technical Brush Pants', status: 'Published', createdAt: '2026-09-12' },
+      { id: 'prod-cutbank-sling-pack', title: 'The Cutbank Lumbar & Sling Convertible Pack', slug: 'the-cutbank-lumbar-sling-pack', price: '$195.00', category: 'Lumbar & Sling Packs', status: 'Published', createdAt: '2026-09-12' },
+      { id: 'prod-minimalist-chest-rig', title: 'Minimalist Bank Chest Rig', slug: 'minimalist-bank-chest-rig', price: '$135.00', category: 'Chest Rigs & Harnesses', status: 'Published', createdAt: '2026-09-12' },
     ],
   },
   categories: {
     slug: 'categories',
     label: 'Categories',
     singular: 'Category',
-    description: 'Taxonomy, tags, and collections hierarchy.',
+    description: 'Hierarchical outdoor gear taxonomy (depth 2: apparel, packs, field accessories).',
     columns: ['Name', 'Slug', 'Description', 'Status', 'Created At'],
     items: [
-      { id: 'sculptures', name: 'Sculptures', slug: 'sculptures', description: 'Handcrafted ceramic and stone sculptures', status: 'Active', createdAt: '2026-09-10' },
-      { id: 'prints', name: 'Prints', slug: 'prints', description: 'Limited museum-grade giclée prints', status: 'Active', createdAt: '2026-09-10' },
-      { id: 'wearables', name: 'Wearables', slug: 'wearables', description: 'Artisan crafted wearables and accessories', status: 'Active', createdAt: '2026-09-10' },
+      { id: 'cat-apparel', name: 'Apparel', slug: 'apparel', description: 'Technical foul-weather outerwear, guide pants, and active midlayers', status: 'Active', createdAt: '2026-09-12' },
+      { id: 'cat-packs', name: 'Packs & Carry', slug: 'packs-carry', description: 'Waterproof composite lumbar slings, modular chest rigs, and dry bags', status: 'Active', createdAt: '2026-09-12' },
+      { id: 'cat-accessories', name: 'Field Accessories', slug: 'field-accessories', description: 'Waxed canvas tool rolls, casting gloves, and floatable guide caps', status: 'Active', createdAt: '2026-09-12' },
+      { id: 'cat-storm-shells', name: 'Waterproof Storm Shells', slug: 'waterproof-storm-shells', description: '3-layer fully seam-taped waterproof breathable membranes', status: 'Active', createdAt: '2026-09-12' },
     ],
   },
   'product-variations': {
     slug: 'product-variations',
     label: 'Product Variations',
     singular: 'Product Variation',
-    description: 'SKU configuration and pricing overrides.',
+    description: 'SKU configuration, micro-batch runs, and technical material overrides.',
     columns: ['Name', 'SKU', 'Price Override', 'Inventory', 'Status'],
     items: [
-      { id: 'var-obsidian-std', name: 'Obsidian Beast - Standard Resin', sku: 'OB-STD-01', price: '$480.00', inventory: '15 units', status: 'Active' },
-      { id: 'var-obsidian-bronze', name: 'Obsidian Beast - Artist Proof Bronze', sku: 'OB-AP-02', price: '$850.00', inventory: '3 units', status: 'Active' },
-      { id: 'var-solar-framed', name: 'Solar Flare - 24x36 Framed', sku: 'SF-2436-F', price: '$220.00', inventory: '25 units', status: 'Active' },
+      { id: 'var-anorak-olive', name: 'Field Olive — Standard Run', sku: 'BWK-ANRK-OLV-STD', price: '$340.00', inventory: '12 units', status: 'Active' },
+      { id: 'var-anorak-camo-micro', name: 'Deadstock Duck Camo Pocket Edition', sku: 'BWK-ANRK-CAMO-LTD', price: '$385.00', inventory: '3 units', status: 'Active' },
+      { id: 'var-pant-olive-32', name: 'Field Olive Ripstop — 32x32', sku: 'BMB-PNT-OLV-3232', price: '$215.00', inventory: '10 units', status: 'Active' },
     ],
   },
   media: {
     slug: 'media',
     label: 'Media',
     singular: 'Media File',
-    description: 'High-resolution artworks persisted to Cloudflare R2.',
+    description: 'High-resolution workshop photography persisted to Cloudflare R2.',
     columns: ['Preview', 'Filename', 'Alt Text', 'Filesize', 'Mime Type'],
     items: [
-      { id: 'med-obsidian-flagship', preview: '🖼️', filename: 'obsidian-beast-flagship.webp', alt: 'Flagship obsidian beast sculpture', filesize: '342 KB', mime: 'image/webp' },
-      { id: 'med-solar-tapestry', preview: '🖼️', filename: 'solar-flare-tapestry.webp', alt: 'Solar flare archival print', filesize: '518 KB', mime: 'image/webp' },
-      { id: 'med-cyber-pendant', preview: '🖼️', filename: 'cybernetic-pendant.webp', alt: 'Artisan silver relic pendant', filesize: '215 KB', mime: 'image/webp' },
+      { id: 'med-bushwhack-hero', preview: '🧥', filename: 'media/bushwhack-storm-anorak/hero.jpeg', alt: 'The Bushwhack Storm Anorak Hero Studio', filesize: '3.1 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-camo', preview: '🧥', filename: 'media/bushwhack-storm-anorak/camo-variation.jpeg', alt: 'Deadstock Duck Camo Pocket Bench Shot', filesize: '2.9 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-action', preview: '🌲', filename: 'media/bushwhack-storm-anorak/field-action.jpeg', alt: 'Bushwhack Anorak Alpine Field Testing', filesize: '3.4 MB', mime: 'image/jpeg' },
+      { id: 'med-bushwhack-detail', preview: '🔍', filename: 'media/bushwhack-storm-anorak/workbench-detail.jpeg', alt: 'AquaGuard Zipper Bar-Tack Workbench Detail', filesize: '2.7 MB', mime: 'image/jpeg' },
+      { id: 'med-bramble-hero', preview: '👖', filename: 'media/bramble-buster-technical-guide-pant/hero.jpeg', alt: 'Bramble-Buster Technical Guide Pant Studio', filesize: '2.8 MB', mime: 'image/jpeg' },
+      { id: 'med-bramble-camo', preview: '👖', filename: 'media/bramble-buster-technical-guide-pant/camo-variation.jpeg', alt: 'Deadstock Camo Knee Overlay Bench Shot', filesize: '3.2 MB', mime: 'image/jpeg' },
+      { id: 'med-cutbank-hero', preview: '🎒', filename: 'media/the-cutbank-lumbar-sling-pack/hero.jpeg', alt: 'The Cutbank Lumbar & Sling Pack Studio', filesize: '2.5 MB', mime: 'image/jpeg' },
+      { id: 'med-cutbank-coyote', preview: '🎒', filename: 'media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg', alt: 'Coyote Tan X-Pac Sailcloth Bench Shot', filesize: '3.0 MB', mime: 'image/jpeg' },
+      { id: 'med-chest-rig-hero', preview: '🎽', filename: 'media/minimalist-bank-chest-rig/hero.jpeg', alt: 'Minimalist Bank Chest Rig Studio', filesize: '2.7 MB', mime: 'image/jpeg' },
+      { id: 'med-chest-rig-proto', preview: '🎽', filename: 'media/minimalist-bank-chest-rig/prototype-variation.jpeg', alt: '1-of-1 Workshop Prototype Bench Shot', filesize: '2.6 MB', mime: 'image/jpeg' },
+      { id: 'med-tool-roll-hero', preview: '🛠️', filename: 'media/waxed-canvas-cordura-tool-roll/hero.jpeg', alt: 'Waxed Canvas & Cordura Tool Roll Studio', filesize: '3.0 MB', mime: 'image/jpeg' },
+      { id: 'med-tool-roll-charcoal', preview: '🛠️', filename: 'media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg', alt: 'Dark Charcoal Waxed Canvas Bench Shot', filesize: '2.9 MB', mime: 'image/jpeg' },
+      { id: 'med-guide-cap-hero', preview: '🧢', filename: 'media/the-bankbeaters-5-panel-guide-cap/hero.jpeg', alt: 'The BankBeaters 5-Panel Guide Cap Studio', filesize: '2.6 MB', mime: 'image/jpeg' },
+      { id: 'med-guide-cap-bark', preview: '🧢', filename: 'media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg', alt: 'Waxed Bark Brown Guide Cap Bench Shot', filesize: '2.8 MB', mime: 'image/jpeg' },
     ],
   },
   users: {
@@ -786,6 +816,8 @@ function renderPayloadAdmin(pathname) {
  */
 
 const STOREFRONT_HTML = ${JSON.stringify(storefrontHtml)};
+const PRODUCTS_HTML = ${JSON.stringify(productsHtml)};
+const PRODUCT_PAGES = ${JSON.stringify(productPages)};
 
 ${payloadAdminRenderer}
 
@@ -822,13 +854,51 @@ export default {
       );
     }
 
-    // 2. Cloudflare Static Assets Bridge
+    // 2. Edge R2 Media Handler (/media/*)
+    // Serve authentic product photography directly from Cloudflare R2 bucket binding (env.BUCKET).
+    // If not found in R2 or if BUCKET binding is not available, falls through to static assets bridge.
+    if (url.pathname.startsWith('/media/')) {
+      const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      if (env.BUCKET && typeof env.BUCKET.get === 'function') {
+        try {
+          const r2Object = await env.BUCKET.get(r2Key);
+          if (r2Object) {
+            const headers = new Headers();
+            if (typeof r2Object.writeHttpMetadata === 'function') {
+              r2Object.writeHttpMetadata(headers);
+            }
+            if (r2Object.httpEtag) {
+              headers.set('etag', r2Object.httpEtag);
+            }
+            headers.set('cache-control', 'public, max-age=604800');
+            if (!headers.has('content-type')) {
+              headers.set('content-type', 'image/jpeg');
+            }
+            return new Response(r2Object.body, { headers });
+          }
+        } catch (err) {
+          // Fall through to ASSETS bridge on error
+        }
+      }
+    }
+
+    // 3. Cloudflare Static Assets Bridge
     // If the request targets a static asset (e.g. /_next/static/*, /favicon.ico, media files),
     // delegate to Cloudflare Static Assets binding (env.ASSETS).
     if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
       try {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {
+          // Ensure media assets served via static bridge carry 1-week caching header
+          if (url.pathname.startsWith('/media/')) {
+            const mediaHeaders = new Headers(assetResponse.headers);
+            mediaHeaders.set('cache-control', 'public, max-age=604800');
+            return new Response(assetResponse.body, {
+              status: assetResponse.status,
+              statusText: assetResponse.statusText,
+              headers: mediaHeaders,
+            });
+          }
           return assetResponse;
         }
       } catch (err) {
@@ -836,7 +906,7 @@ export default {
       }
     }
 
-    // 3. Worker API Endpoints (/api/*)
+    // 4. Worker API Endpoints (/api/*)
     if (url.pathname.startsWith('/api/')) {
       return new Response(
         JSON.stringify({
@@ -856,7 +926,7 @@ export default {
       );
     }
 
-    // 4. Payload CMS v3 Administrative Panel (/admin and /admin/*)
+    // 5. Payload CMS v3 Administrative Panel (/admin and /admin/*)
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
       const adminHtml = renderPayloadAdmin(url.pathname);
       return new Response(adminHtml, {
@@ -868,8 +938,10 @@ export default {
       });
     }
 
-    // 5. Next.js 15 App Router Storefront (/ and /products/*)
-    if (url.pathname === '/' || url.pathname.startsWith('/products')) {
+    // 6. Next.js 15 App Router Storefront (/ and /products/*)
+    const pathname = url.pathname.endsWith('/') && url.pathname.length > 1 ? url.pathname.slice(0, -1) : url.pathname;
+
+    if (pathname === '/') {
       return new Response(STOREFRONT_HTML, {
         status: 200,
         headers: {
@@ -879,9 +951,34 @@ export default {
       });
     }
 
-    // 6. Default Fallback / 404 Not Found
+    if (pathname === '/products') {
+      const html = PRODUCTS_HTML || STOREFRONT_HTML;
+      return new Response(html, {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'public, max-age=60, s-maxage=300',
+        },
+      });
+    }
+
+    if (pathname.startsWith('/products/')) {
+      const slug = pathname.slice('/products/'.length);
+      const productHtml = PRODUCT_PAGES[slug] || PRODUCT_PAGES['[slug]'] || PRODUCT_PAGES['bushwhack-storm-anorak'];
+      if (productHtml) {
+        return new Response(productHtml, {
+          status: 200,
+          headers: {
+            'content-type': 'text/html; charset=utf-8',
+            'cache-control': 'public, max-age=60, s-maxage=300',
+          },
+        });
+      }
+    }
+
+    // 7. Default Fallback / 404 Not Found
     return new Response(
-      '<!DOCTYPE html><html lang="en"><head><title>404 - Page Not Found | Chris&#39;s Shop</title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="background:#020617;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h1>404 | This page could not be found.</h1><p><a href="/" style="color:#f59e0b;">Return to Storefront</a></p></div></body></html>',
+      '<!DOCTYPE html><html lang="en"><head><title>404 - Page Not Found | BankBeaters Adventure Gear</title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="background:#15191E;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h1>404 | Equipment Not Found</h1><p><a href="/products" style="color:#E55B24;">Return to Equipment Catalog</a></p></div></body></html>',
       {
         status: 404,
         headers: { 'content-type': 'text/html; charset=utf-8' },

@@ -42,7 +42,6 @@ jobs:
               echo "Please retarget your pull request to 'staging' using: gh pr edit <PR_NUMBER> --base staging"
               exit 1
             fi
-
             echo "✅ Promotion rule check passed (Base: ${{ github.base_ref }}, Head: ${{ github.head_ref }})."
           else
             echo "Push event on ref: ${{ github.ref }}. Promotion check satisfied."
@@ -87,9 +86,18 @@ jobs:
 
       - name: Run Local In-Memory Integration Tests
         run: pnpm run test:integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Monorepo Workspaces
         run: pnpm run build
+
+      - name: Check Worker Bundle Size Budget Gate
+        run: pnpm run check:bundle
+
+      - name: Validate Cloudflare Worker Deployment (Dry-Run)
+        if: github.event_name == 'pull_request'
+        run: pnpm wrangler deploy --dry-run --env preview
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -100,4 +108,3 @@ jobs:
         run: |
           terraform fmt -recursive -check infra/terraform
           cd infra/terraform && terraform init -backend=false && terraform validate -no-color
-

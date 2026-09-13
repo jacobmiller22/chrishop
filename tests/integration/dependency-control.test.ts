@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {
   ResendNotificationProvider,
+  WebhookNotificationProvider,
   DiscordNotificationProvider,
   DISCORD_COLORS,
   type OrderReceiptPayload,
@@ -738,6 +739,47 @@ describe('Dependency Control Integration Test Suite (DEP_*)', () => {
         });
 
         assert.equal(attempts, 2, 'Should succeed on retry after 429');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  // ----------------------------------------------------------------------------
+  // 6. Generic Webhook Operations Engine (DEP_NOTIFICATIONS)
+  // ----------------------------------------------------------------------------
+  describe('6. Generic Webhook Operations Engine (DEP_NOTIFICATIONS)', () => {
+    it('should dispatch channel-agnostic JSON payloads with custom headers and Slack compatibility', async () => {
+      let capturedRequest: any = null;
+      const mockWebhookUrl = 'https://webhook.site/mock/dep-control-sink';
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = (async (url: any, init: any) => {
+        if (url === mockWebhookUrl) {
+          capturedRequest = {
+            headers: init.headers,
+            body: JSON.parse(init.body),
+          };
+          return { ok: true, status: 200, text: async () => 'OK' } as Response;
+        }
+        return originalFetch(url, init);
+      }) as any;
+
+      try {
+        const webhook = new WebhookNotificationProvider(mockWebhookUrl, {
+          headers: { 'X-Ops-Token': 'token_abc123' },
+        });
+
+        await webhook.notifyOpsAlert('Edge Worker Memory Alert', 'Memory usage reached 85%', 'warning', {
+          worker: 'chrishop-edge',
+          memory_mb: 108,
+        });
+
+        assert.ok(capturedRequest);
+        assert.equal(capturedRequest.headers['X-Ops-Token'], 'token_abc123');
+        assert.equal(capturedRequest.body.event, 'ops.alert');
+        assert.equal(capturedRequest.body.severity, 'warning');
+        assert.ok(capturedRequest.body.text.includes('[OPS ALERT - WARNING]'));
       } finally {
         globalThis.fetch = originalFetch;
       }

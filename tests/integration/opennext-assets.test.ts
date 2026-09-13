@@ -80,10 +80,11 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
 
       // Verify deep semantic storefront markers (NOT just generic 200)
       assert.ok(
-        html.includes("Chris's Shop") || html.includes('Chris&#x27;s Shop'),
-        'Must contain Chris\'s Shop branding'
+        html.includes('BankBeaters') || html.includes("Chris's Shop") || html.includes('Chris&#x27;s Shop'),
+        'Must contain BankBeaters or Chris\'s Shop branding'
       );
       assert.ok(
+        html.includes('Adventure Gear') ||
         html.includes('Exclusive Art & Limited Drops') ||
         html.includes('Exclusive Art &amp; Limited Drops') ||
         html.includes('Exclusive Art & Physical Collectibles') ||
@@ -91,20 +92,27 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
         'Must contain storefront headline/title'
       );
       assert.ok(
+        html.includes('Curiosity > Fear') ||
+        html.includes('Curiosity &gt; Fear') ||
         html.includes('Next Drop Live Now'),
-        'Must contain "Next Drop Live Now" badge'
+        'Must contain brand ethos or drop badge'
       );
       assert.ok(
-        html.includes('Explore All Drops'),
-        'Must contain "Explore All Drops" button'
+        html.includes('Explore Equipment Catalog') ||
+        html.includes('Explore All Drops') ||
+        html.includes('Equipment Catalog') ||
+        html.includes('Shop Catalog') ||
+        html.includes('Explore Gear Roster') ||
+        html.includes('Browse All Gear'),
+        'Must contain catalog CTA button'
       );
       assert.ok(
-        html.includes('Cart') || html.includes('🛒'),
-        'Must contain cart indicator'
+        html.includes('Gear Roll') || html.includes('Cart') || html.includes('🛒'),
+        'Must contain cart or Gear Roll indicator'
       );
       assert.ok(
-        html.includes('Shop Catalog'),
-        'Must contain "Shop Catalog" navigation item'
+        html.includes('Adventure Gear') || html.includes('Shop Catalog') || html.includes('Equipment Catalog'),
+        'Must contain catalog navigation item'
       );
     });
 

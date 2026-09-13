@@ -27,6 +27,8 @@ export interface MockCart {
 
 export class ShopifyStorefrontMockEngine {
   private carts = new Map<string, MockCart>();
+  public lastBuyerIp: string | null = null;
+  public requestHistory: Array<{ query: string; variables: any; buyerIp?: string }> = [];
 
   constructor(public domain: string = 'chrishop-dev.myshopify.com') {}
 
@@ -43,8 +45,8 @@ export class ShopifyStorefrontMockEngine {
         quantity: l.quantity,
         merchandise: {
           id: l.merchandiseId,
-          title: 'Limited Edition Collectible',
-          price: { amount: '350.00', currencyCode: 'USD' },
+          title: 'The Bushwhack Storm Anorak',
+          price: { amount: '340.00', currencyCode: 'USD' },
         },
       })),
     };
@@ -57,7 +59,10 @@ export class ShopifyStorefrontMockEngine {
     return this.carts.get(cartId) || null;
   }
 
-  async handleGraphQLRequest(query: string, variables: any = {}): Promise<any> {
+  async handleGraphQLRequest(query: string, variables: any = {}, buyerIp?: string): Promise<any> {
+    this.lastBuyerIp = buyerIp || null;
+    this.requestHistory.push({ query, variables, buyerIp });
+
     // 1. cartCreate mutation
     if (query.includes('cartCreate')) {
       const lines = variables?.input?.lines || [];
@@ -110,24 +115,24 @@ export class ShopifyStorefrontMockEngine {
               {
                 node: {
                   id: 'gid://shopify/Product/101',
-                  title: 'Midnight Obsidian Beast',
-                  handle: 'midnight-obsidian-beast',
+                  title: 'The Bushwhack Storm Anorak',
+                  handle: 'bushwhack-storm-anorak',
                   variants: {
                     edges: [
                       {
                         node: {
                           id: 'gid://shopify/ProductVariant/201',
-                          title: 'Standard Obsidian Edition',
+                          title: 'Field Olive — Standard Run',
                           availableForSale: true,
-                          price: { amount: '350.00', currencyCode: 'USD' },
+                          price: { amount: '340.00', currencyCode: 'USD' },
                         },
                       },
                       {
                         node: {
                           id: 'gid://shopify/ProductVariant/202',
-                          title: '24K Gold Leaf Inlay Edition',
+                          title: 'Deadstock Duck Camo Pocket Edition',
                           availableForSale: true,
-                          price: { amount: '495.00', currencyCode: 'USD' },
+                          price: { amount: '385.00', currencyCode: 'USD' },
                         },
                       },
                     ],

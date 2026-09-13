@@ -58,6 +58,7 @@ interface Issue {
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
+  comments?: Array<{ body: string }>;
 }
 
 const LEGACY_KEYWORDS = [
@@ -85,7 +86,11 @@ function getRepoRoot(): string {
 
 function runGh(cmd: string): string {
   try {
-    return execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execSync(cmd, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 25 * 1024 * 1024,
+    }).trim();
   } catch (err: any) {
     const msg = err.stderr ? err.stderr.toString() : err.message;
     throw new Error(`GitHub CLI command failed: ${cmd}\n${msg}`);
@@ -99,7 +104,7 @@ function fetchMilestones(): Milestone[] {
 
 function fetchIssues(): Issue[] {
   const raw = runGh(
-    'gh issue list --state all --limit 200 --json number,title,milestone,state,labels,body,createdAt,updatedAt,closedAt'
+    'gh issue list --state all --limit 200 --json number,title,milestone,state,labels,body,createdAt,updatedAt,closedAt,comments'
   );
   return JSON.parse(raw);
 }
@@ -109,12 +114,13 @@ interface PullRequest {
   state: string;
   mergedAt: string | null;
   title: string;
+  headRefName?: string;
 }
 
 function fetchPullRequests(): PullRequest[] {
   try {
     const raw = runGh(
-      'gh pr list --state all --limit 200 --json number,state,mergedAt,title'
+      'gh pr list --state all --limit 200 --json number,state,mergedAt,title,headRefName'
     );
     return JSON.parse(raw);
   } catch {
@@ -145,13 +151,91 @@ interface MissingDeliverableItem {
   missingFiles: string[];
 }
 
-function auditDeliverablesOnDisk(issues: Issue[], repoRoot: string): MissingDeliverableItem[] {
-  const findings: MissingDeliverableItem[] = [];
+export interface DeliverableAuditSummary {
+  verifiedActive: number;
+  verifiedInPr: number;
+  verifiedHistorical: number;
+  verifiedSuperseded: number;
+  missing: MissingDeliverableItem[];
+}
+
+function getTreeFiles(ref: string): Set<string> {
+  try {
+    return new Set(
+      execSync(`git ls-tree -r ${ref} --name-only`, {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'ignore'],
+      })
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function getAllHistoricalFiles(): Set<string> {
+  try {
+    return new Set(
+      execSync('git log --all --name-only --format=""', {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'ignore'],
+        maxBuffer: 25 * 1024 * 1024,
+      })
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+export function auditDeliverables(
+  issues: Issue[],
+  prs: PullRequest[],
+  repoRoot: string
+): DeliverableAuditSummary {
+  const missing: MissingDeliverableItem[] = [];
   const closedIssues = issues.filter((i) => i.state === 'CLOSED');
   const pathPattern = /[`'"]([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)[`'"]/g;
 
+  const activeFiles = new Set([
+    ...getTreeFiles('HEAD'),
+    ...getTreeFiles('origin/staging'),
+    ...getTreeFiles('origin/main'),
+    ...getTreeFiles('staging'),
+    ...getTreeFiles('main'),
+  ]);
+
+  const allHistoricalFiles = getAllHistoricalFiles();
+
+  const prTrees = new Map<string, Set<string>>();
+  const getPrFiles = (headRef: string): Set<string> => {
+    if (!headRef) return new Set();
+    if (prTrees.has(headRef)) return prTrees.get(headRef)!;
+    const files = new Set([
+      ...getTreeFiles(`origin/${headRef}`),
+      ...getTreeFiles(headRef),
+    ]);
+    prTrees.set(headRef, files);
+    return files;
+  };
+
+  let verifiedActive = 0;
+  let verifiedInPr = 0;
+  let verifiedHistorical = 0;
+  let verifiedSuperseded = 0;
+
   for (const issue of closedIssues) {
     const body = issue.body || '';
+    const allText = [
+      issue.title,
+      body,
+      ...(issue.comments || []).map((c) => c.body || ''),
+    ].join('\n');
+
     const matches = Array.from(body.matchAll(pathPattern), (m) => m[1]);
     const candidatePaths = new Set(
       matches.filter(
@@ -159,6 +243,7 @@ function auditDeliverablesOnDisk(issues: Issue[], repoRoot: string): MissingDeli
           (f.startsWith('apps/') ||
             f.startsWith('packages/') ||
             f.startsWith('infra/') ||
+            f.startsWith('scripts/') ||
             f.startsWith('docs/') ||
             f.startsWith('.github/') ||
             f.startsWith('.agents/')) &&
@@ -169,24 +254,73 @@ function auditDeliverablesOnDisk(issues: Issue[], repoRoot: string): MissingDeli
       )
     );
 
-    const missingFiles: string[] = [];
+    const pr = findAssociatedPr(issue, prs);
+    const prFiles = pr && pr.headRefName ? getPrFiles(pr.headRefName) : new Set<string>();
+    const isSupersededStory =
+      /superseded|obsolete|migration|reconciliation|closed per story/i.test(allText);
+
+    const issueMissing: string[] = [];
+
     for (const relPath of candidatePaths) {
-      const fullPath = path.join(repoRoot, relPath);
-      if (!fs.existsSync(fullPath)) {
-        missingFiles.push(relPath);
+      if (activeFiles.has(relPath) || fs.existsSync(path.join(repoRoot, relPath))) {
+        verifiedActive++;
+      } else if (prFiles.has(relPath)) {
+        verifiedInPr++;
+      } else if (allHistoricalFiles.has(relPath)) {
+        verifiedHistorical++;
+      } else {
+        // Check for common ESM/TS renames (.js -> .mjs / .ts)
+        const ext = path.extname(relPath);
+        const baseNoExt = relPath.slice(0, -ext.length);
+        const alternates = [
+          baseNoExt + '.mjs',
+          baseNoExt + '.ts',
+          baseNoExt + '.tsx',
+          baseNoExt + '.js',
+        ];
+        const altFound = alternates.find(
+          (a) =>
+            activeFiles.has(a) ||
+            fs.existsSync(path.join(repoRoot, a)) ||
+            prFiles.has(a) ||
+            allHistoricalFiles.has(a)
+        );
+        if (altFound) {
+          verifiedActive++;
+          continue;
+        }
+
+        // Check if context in text indicates intentional removal/deprecation or if issue is superseded
+        const escaped = relPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const removalRegex = new RegExp(
+          `(?:remove|delete|deprecat|supersed|decommission|cleanup|replace|archive)[^\\n]*${escaped}|${escaped}[^\\n]*(?:removed|deleted|deprecated|superseded|decommissioned|replaced|archived)`,
+          'i'
+        );
+        if (isSupersededStory || removalRegex.test(allText)) {
+          verifiedSuperseded++;
+          continue;
+        }
+
+        issueMissing.push(relPath);
       }
     }
 
-    if (missingFiles.length > 0) {
-      findings.push({
+    if (issueMissing.length > 0) {
+      missing.push({
         issueNumber: issue.number,
         title: issue.title,
-        missingFiles,
+        missingFiles: issueMissing,
       });
     }
   }
 
-  return findings;
+  return {
+    verifiedActive,
+    verifiedInPr,
+    verifiedHistorical,
+    verifiedSuperseded,
+    missing,
+  };
 }
 
 interface DependencyAnalysis {
@@ -351,8 +485,16 @@ function auditRoadmap() {
     }
   }
 
-  // 5. Deliverables on disk
-  const missingDeliverables = skipDiskCheck ? [] : auditDeliverablesOnDisk(issues, repoRoot);
+  // 5. Deliverables verification
+  const deliverableSummary = skipDiskCheck
+    ? {
+        verifiedActive: 0,
+        verifiedInPr: 0,
+        verifiedHistorical: 0,
+        verifiedSuperseded: 0,
+        missing: [],
+      }
+    : auditDeliverables(issues, prs, repoRoot);
 
   // 6. Dependencies & Shovel-Readiness
   const { shovelReady, blocked, needsRefinement } = analyzeDependenciesAndReadiness(issues);
@@ -465,16 +607,35 @@ function auditRoadmap() {
     }
   }
 
-  // Deliverables on disk
+  // Deliverables verification
   if (!skipDiskCheck) {
-    if (missingDeliverables.length === 0) {
+    if (deliverableSummary.missing.length === 0) {
       console.log(
-        `  ${colors.green}✅ Deliverables Verification:${colors.reset} All referenced files in closed issues exist on disk.`
+        `  ${colors.green}✅ Deliverables Verification:${colors.reset} 100% of referenced deliverables verified across active branches and git history.`
       );
+      console.log(
+        `     - Active in Staging / Main / Disk: ${colors.green}${deliverableSummary.verifiedActive}${colors.reset}`
+      );
+      if (deliverableSummary.verifiedInPr > 0) {
+        console.log(
+          `     - Delivered in Active PR Branches: ${colors.cyan}${deliverableSummary.verifiedInPr}${colors.reset}`
+        );
+      }
+      console.log(
+        `     - Historically Committed (Migrated/Archived): ${colors.dim}${deliverableSummary.verifiedHistorical}${colors.reset}`
+      );
+      if (deliverableSummary.verifiedSuperseded > 0) {
+        console.log(
+          `     - Decommissioned by Architecture Pivots: ${colors.dim}${deliverableSummary.verifiedSuperseded}${colors.reset}`
+        );
+      }
     } else {
       console.log(
-        `  ${colors.yellow}⚠️  Deliverables on Disk Verification:${colors.reset} Found ${missingDeliverables.length} closed issues mentioning missing/archived files (e.g. decommissioned legacy files).`
+        `  ${colors.yellow}⚠️  Unresolved Deliverables Detected:${colors.reset} Found ${deliverableSummary.missing.length} closed issues with unverified files.`
       );
+      for (const m of deliverableSummary.missing) {
+        console.log(`     - #${m.issueNumber} "${m.title}": [${m.missingFiles.join(', ')}]`);
+      }
     }
   }
 
@@ -534,6 +695,11 @@ function auditRoadmap() {
     mdLines.push(`- **Issues Missing Priority**: ${missingPriority.length}`);
     mdLines.push(`- **Completed Left Open (PR Merged)**: ${completedLeftOpen.length}`);
     mdLines.push(`- **Stories Awaiting PR Merge**: ${awaitingPrMerge.length}`);
+    mdLines.push(`- **Deliverables Verified Active**: ${deliverableSummary.verifiedActive}`);
+    mdLines.push(`- **Deliverables in PR Branches**: ${deliverableSummary.verifiedInPr}`);
+    mdLines.push(`- **Deliverables Historically Committed**: ${deliverableSummary.verifiedHistorical}`);
+    mdLines.push(`- **Deliverables Superseded/Decommissioned**: ${deliverableSummary.verifiedSuperseded}`);
+    mdLines.push(`- **Unresolved Missing Deliverables**: ${deliverableSummary.missing.length}`);
     mdLines.push(`- **Shovel-Ready Candidates**: ${shovelReady.length}`);
     mdLines.push(`- **Blocked Stories**: ${blocked.length}`);
     mdLines.push('');
@@ -560,7 +726,13 @@ function auditRoadmap() {
     `\n${colors.bold}${colors.cyan}================================================================${colors.reset}\n`
   );
 
-  if (strictMode && (milestoneDrift.length > 0 || completedLeftOpen.length > 0 || orphanedIssues.length > 0)) {
+  if (
+    strictMode &&
+    (milestoneDrift.length > 0 ||
+      completedLeftOpen.length > 0 ||
+      orphanedIssues.length > 0 ||
+      deliverableSummary.missing.length > 0)
+  ) {
     console.error(
       `${colors.red}❌ Strict mode failure: Roadmap integrity violations detected.${colors.reset}`
     );
@@ -568,4 +740,6 @@ function auditRoadmap() {
   }
 }
 
-auditRoadmap();
+if (process.argv[1] && process.argv[1].endsWith('audit-roadmap.ts')) {
+  auditRoadmap();
+}

@@ -24,6 +24,7 @@ describe('Monorepo Scripts & GitHub Actions Coverage', () => {
       'build:worker',
       'build:prod',
       'check',
+      'check:bundle',
       'test',
       'test:unit',
       'test:integration',
