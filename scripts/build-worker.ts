@@ -100,6 +100,28 @@ export function buildWorker(): void {
  * Edge Environment Polyfills for Cloudflare Workers (workerd)
  * Ensures standard Node.js globals expected by libraries like undici/payload exist.
  */
+import Module from "node:module";
+import path from "node:path";
+
+if (typeof globalThis.require === "undefined") {
+  const customRequire = function (id) {
+    if (id === "module" || id === "node:module") {
+      return Module;
+    }
+    if (id === "path" || id === "node:path") {
+      return path;
+    }
+    try {
+      return Module.createRequire(import.meta.url)(id);
+    } catch {
+      return {};
+    }
+  };
+  customRequire.resolve = function (id) {
+    return id;
+  };
+  globalThis.require = customRequire;
+}
 if (typeof process !== "undefined") {
   try {
     if (!process.versions) {
