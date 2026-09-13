@@ -382,9 +382,9 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
     INSERT INTO products (
       id, title, slug, description, maker_field_notes, artist_statement,
       materials, weight, fit_profile, origin,
-      base_price, status, category_id, shopify_product_id, featured_image, gallery
+      base_price, status, category_id, category_id_id, shopify_product_id, featured_image, gallery
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title=excluded.title,
       slug=excluded.slug,
@@ -398,6 +398,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       base_price=excluded.base_price,
       status=excluded.status,
       category_id=excluded.category_id,
+      category_id_id=excluded.category_id_id,
       shopify_product_id=excluded.shopify_product_id,
       featured_image=excluded.featured_image,
       gallery=excluded.gallery;
@@ -417,6 +418,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       p.origin,
       p.base_price,
       p.status,
+      p.category_id,
       p.category_id,
       p.shopify_product_id,
       p.featured_image,
@@ -734,14 +736,15 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
 
   const insertVar = db.prepare(`
     INSERT INTO product_variations (
-      id, product_id, shopify_variant_id, variation_name, sku,
+      id, product_id, product_id_id, shopify_variant_id, variation_name, sku,
       variation_type, edition_badge, variation_notes, variation_images,
       price_override, is_limited_edition, total_edition_count, stock_quantity,
       release_date, status
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       product_id=excluded.product_id,
+      product_id_id=excluded.product_id_id,
       shopify_variant_id=excluded.shopify_variant_id,
       variation_name=excluded.variation_name,
       sku=excluded.sku,
@@ -760,6 +763,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   for (const v of variations) {
     insertVar.run(
       v.id,
+      v.product_id,
       v.product_id,
       v.shopify_variant_id,
       v.variation_name,
@@ -872,14 +876,14 @@ export function exportSeedSql(outputPath?: string): string {
   const products = memDb.prepare('SELECT * FROM products ORDER BY created_at ASC, id ASC').all() as any[];
   for (const p of products) {
     lines.push(
-      `INSERT INTO products (id, title, slug, description, maker_field_notes, artist_statement, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id, featured_image, gallery) VALUES (${escapeVal(p.id)}, ${escapeVal(p.title)}, ${escapeVal(p.slug)}, ${escapeVal(p.description)}, ${escapeVal(p.maker_field_notes)}, ${escapeVal(p.artist_statement)}, ${escapeVal(p.materials)}, ${escapeVal(p.weight)}, ${escapeVal(p.fit_profile)}, ${escapeVal(p.origin)}, ${escapeVal(p.base_price)}, ${escapeVal(p.status)}, ${escapeVal(p.category_id)}, ${escapeVal(p.shopify_product_id)}, ${escapeVal(p.featured_image)}, ${escapeVal(p.gallery)}) ON CONFLICT(id) DO UPDATE SET title=excluded.title, slug=excluded.slug, description=excluded.description, maker_field_notes=excluded.maker_field_notes, artist_statement=excluded.artist_statement, materials=excluded.materials, weight=excluded.weight, fit_profile=excluded.fit_profile, origin=excluded.origin, base_price=excluded.base_price, status=excluded.status, category_id=excluded.category_id, shopify_product_id=excluded.shopify_product_id, featured_image=excluded.featured_image, gallery=excluded.gallery;`
+      `INSERT INTO products (id, title, slug, description, maker_field_notes, artist_statement, materials, weight, fit_profile, origin, base_price, status, category_id, category_id_id, shopify_product_id, featured_image, gallery) VALUES (${escapeVal(p.id)}, ${escapeVal(p.title)}, ${escapeVal(p.slug)}, ${escapeVal(p.description)}, ${escapeVal(p.maker_field_notes)}, ${escapeVal(p.artist_statement)}, ${escapeVal(p.materials)}, ${escapeVal(p.weight)}, ${escapeVal(p.fit_profile)}, ${escapeVal(p.origin)}, ${escapeVal(p.base_price)}, ${escapeVal(p.status)}, ${escapeVal(p.category_id)}, ${escapeVal(p.category_id_id || p.category_id)}, ${escapeVal(p.shopify_product_id)}, ${escapeVal(p.featured_image)}, ${escapeVal(p.gallery)}) ON CONFLICT(id) DO UPDATE SET title=excluded.title, slug=excluded.slug, description=excluded.description, maker_field_notes=excluded.maker_field_notes, artist_statement=excluded.artist_statement, materials=excluded.materials, weight=excluded.weight, fit_profile=excluded.fit_profile, origin=excluded.origin, base_price=excluded.base_price, status=excluded.status, category_id=excluded.category_id, category_id_id=excluded.category_id_id, shopify_product_id=excluded.shopify_product_id, featured_image=excluded.featured_image, gallery=excluded.gallery;`
     );
   }
 
   const variations = memDb.prepare('SELECT * FROM product_variations ORDER BY product_id ASC, id ASC').all() as any[];
   for (const v of variations) {
     lines.push(
-      `INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES (${escapeVal(v.id)}, ${escapeVal(v.product_id)}, ${escapeVal(v.shopify_variant_id)}, ${escapeVal(v.variation_name)}, ${escapeVal(v.sku)}, ${escapeVal(v.variation_type)}, ${escapeVal(v.edition_badge)}, ${escapeVal(v.variation_notes)}, ${escapeVal(v.variation_images)}, ${escapeVal(v.price_override)}, ${escapeVal(v.is_limited_edition)}, ${escapeVal(v.total_edition_count)}, ${escapeVal(v.stock_quantity)}, ${escapeVal(v.release_date)}, ${escapeVal(v.status)}) ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;`
+      `INSERT INTO product_variations (id, product_id, product_id_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES (${escapeVal(v.id)}, ${escapeVal(v.product_id)}, ${escapeVal(v.product_id_id || v.product_id)}, ${escapeVal(v.shopify_variant_id)}, ${escapeVal(v.variation_name)}, ${escapeVal(v.sku)}, ${escapeVal(v.variation_type)}, ${escapeVal(v.edition_badge)}, ${escapeVal(v.variation_notes)}, ${escapeVal(v.variation_images)}, ${escapeVal(v.price_override)}, ${escapeVal(v.is_limited_edition)}, ${escapeVal(v.total_edition_count)}, ${escapeVal(v.stock_quantity)}, ${escapeVal(v.release_date)}, ${escapeVal(v.status)}) ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, product_id_id=excluded.product_id_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;`
     );
   }
 
