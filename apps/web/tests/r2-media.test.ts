@@ -9,8 +9,17 @@ import {
   IMAGE_QUALITY,
   STANDARD_SIZES,
 } from '../src/lib/r2-image';
-import payloadConfig, { getD1Binding, d1Adapter, getS3StorageConfig } from '../payload.config';
 import { Media } from '../src/collections/Media';
+
+const loadPayloadConfig = async () => {
+  try {
+    const nextEnv = require('@next/env');
+    if (nextEnv && !nextEnv.default) {
+      nextEnv.default = nextEnv;
+    }
+  } catch {}
+  return import('../payload.config');
+};
 
 const R2_CDN_BASE = 'https://media.chrishop.jacobmiller22.com';
 const SAMPLE_IMAGE_URL = `${R2_CDN_BASE}/uploads/sculpture-01.jpg`;
@@ -287,11 +296,13 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
   // 6. S3 Storage Plugin Configuration
   // ---------------------------------------------------------------------------
   describe('getS3StorageConfig(): S3 Storage Plugin', () => {
-    it('should export getS3StorageConfig as a callable function', () => {
+    it('should export getS3StorageConfig as a callable function', async () => {
+      const { getS3StorageConfig } = await loadPayloadConfig();
       assert.equal(typeof getS3StorageConfig, 'function', 'getS3StorageConfig must be a function');
     });
 
-    it('should instantiate s3Storage plugin without throwing', () => {
+    it('should instantiate s3Storage plugin without throwing', async () => {
+      const { getS3StorageConfig } = await loadPayloadConfig();
       // getS3StorageConfig() must not throw even when env vars are absent (build-time)
       assert.doesNotThrow(
         () => getS3StorageConfig(),
@@ -299,7 +310,8 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
       );
     });
 
-    it('should return a Payload plugin function (callable)', () => {
+    it('should return a Payload plugin function (callable)', async () => {
+      const { getS3StorageConfig } = await loadPayloadConfig();
       const plugin = getS3StorageConfig();
       // Payload plugins are functions that accept and return a SanitizedConfig
       assert.ok(
@@ -314,11 +326,12 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
   // ---------------------------------------------------------------------------
   describe('Payload Config: S3 plugin and collection registration', () => {
     it('should successfully build sanitized Payload config with S3 storage plugin', async () => {
+      const { default: payloadConfig } = await loadPayloadConfig();
       const config = await payloadConfig;
       assert.ok(config, 'Config should build successfully');
 
       // Verify registered collection slugs
-      const slugs = config.collections.map((c) => c.slug);
+      const slugs = config.collections.map((c: any) => c.slug);
       assert.ok(slugs.includes('categories'), 'categories collection registered');
       assert.ok(slugs.includes('products'), 'products collection registered');
       assert.ok(slugs.includes('product_variations'), 'product_variations collection registered');
@@ -327,6 +340,7 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
     });
 
     it('should verify db adapter is d1-sqlite', async () => {
+      const { default: payloadConfig } = await loadPayloadConfig();
       const config = await payloadConfig;
       assert.ok(config.db, 'Database adapter must be configured');
       assert.equal(config.db.name, 'd1-sqlite', 'Database adapter should be d1-sqlite');
@@ -336,6 +350,7 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
       // The s3Storage plugin modifies the config during buildConfig().
       // We verify by confirming the payload config resolves without errors
       // (a broken s3Storage config would throw during buildConfig()).
+      const { default: payloadConfig } = await loadPayloadConfig();
       const config = await payloadConfig;
       assert.ok(config, 'Payload config with s3Storage plugin must resolve without error');
 
@@ -346,11 +361,13 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
       assert.ok(config.secret && config.secret.length >= 32);
     });
 
-    it('should export d1Adapter alias matching DEP_PAYLOAD_CMS.md', () => {
+    it('should export d1Adapter alias matching DEP_PAYLOAD_CMS.md', async () => {
+      const { d1Adapter } = await loadPayloadConfig();
       assert.equal(typeof d1Adapter, 'function');
     });
 
-    it('should resolve D1 binding gracefully across environments', () => {
+    it('should resolve D1 binding gracefully across environments', async () => {
+      const { getD1Binding } = await loadPayloadConfig();
       const binding = getD1Binding();
       assert.ok(typeof binding === 'object' || typeof binding === 'string');
     });

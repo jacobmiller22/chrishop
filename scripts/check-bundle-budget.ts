@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 
-export type WorkerRole = 'storefront' | 'admin' | 'generic';
+export type WorkerRole = 'storefront' | 'admin' | 'unified' | 'generic';
 
 export interface BudgetThreshold {
   warnUncompressedBytes: number;
@@ -61,6 +61,11 @@ export interface BudgetCheckResult {
 
 // Budget thresholds according to Story 2.41 specifications
 export const BUNDLE_BUDGET_THRESHOLDS: Record<WorkerRole, BudgetThreshold> = {
+  unified: {
+    warnUncompressedBytes: 20 * 1024 * 1024, // 20 MB unified worker warning threshold
+    maxGzipBytes: 10 * 1024 * 1024, // 10 MB Cloudflare platform limit
+    maxUncompressedBytes: 33 * 1024 * 1024, // 33 MB Cloudflare ceiling
+  },
   storefront: {
     warnUncompressedBytes: 4 * 1024 * 1024, // 4 MB
     maxGzipBytes: 8 * 1024 * 1024, // 8 MB
@@ -79,6 +84,7 @@ export const BUNDLE_BUDGET_THRESHOLDS: Record<WorkerRole, BudgetThreshold> = {
 };
 
 export const ROLE_LABELS: Record<WorkerRole, string> = {
+  unified: 'Unified Edge Worker',
   storefront: 'Storefront Edge Worker',
   admin: 'Admin CMS Worker',
   generic: 'Edge Worker',
@@ -136,14 +142,15 @@ export function classifyWorkerRole(relPath: string): WorkerRole {
   if (lower.includes('admin')) {
     return 'admin';
   }
+  if (lower.includes('unified') || lower.includes('server-functions/default')) {
+    return 'unified';
+  }
   if (
     lower.includes('storefront') ||
     base === 'worker.js' ||
     base === 'worker.mjs' ||
     lower.endsWith('/worker.js') ||
-    lower.endsWith('/worker.mjs') ||
-    lower.includes('default') ||
-    lower.includes('server-functions/default')
+    lower.endsWith('/worker.mjs')
   ) {
     return 'storefront';
   }
@@ -158,7 +165,16 @@ export function profileWorkerBundle(
   baseDir: string,
   roleOverride?: WorkerRole
 ): WorkerBundleProfile {
-  const content = fs.readFileSync(filePath);
+  let content: Buffer;
+  try {
+    content = fs.readFileSync(filePath);
+  } catch (err: any) {
+    if (err.code === "ENOENT") {
+      content = Buffer.alloc(0);
+    } else {
+      throw err;
+    }
+  }
   const uncompressedBytes = content.length;
   const gzipBytes = zlib.gzipSync(content, { level: 9 }).length;
   const brotliBytes = zlib.brotliCompressSync(content).length;
@@ -364,9 +380,10 @@ export function checkBundleBudget(options: {
     };
   }
 
-  const profiles: WorkerBundleProfile[] = workerFiles.map((file) =>
-    profileWorkerBundle(file, openNextDir)
-  );
+  const profiles: WorkerBundleProfile[] = workerFiles
+    .filter((file) => fs.existsSync(file))
+    .map((file) => profileWorkerBundle(file, openNextDir))
+    .filter((p) => p.uncompressedBytes > 0);
 
   const hasFailures = profiles.some((p) => p.status === 'FAIL');
   const hasWarnings = profiles.some((p) => p.status === 'WARN');

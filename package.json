@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/patch-dependencies.js && pnpm --filter @chrishop/web run postinstall",
     "build": "turbo run build && tsx scripts/build-worker.ts",
     "build:apps": "turbo run build",
     "build:worker": "tsx scripts/build-worker.ts",
@@ -28,10 +27,9 @@
     "format:check": "prettier --check .",
     "audit:security": "pnpm audit --audit-level=high",
     "audit:roadmap": "tsx scripts/audit-roadmap.ts",
-    "audit:backlog": "tsx scripts/audit-roadmap.ts",
-    "branch": "bash scripts/create-branch.sh",
     "deploy:prod": "tsx scripts/promote-production.ts",
     "release:notes": "tsx scripts/compose-release-notes.ts",
+    "branch": "bash scripts/create-branch.sh",
     "pm:prioritize": "tsx scripts/prioritize-backlog.ts",
     "seed": "tsx scripts/seed-db.ts",
     "d1:setup": "bash scripts/d1-local-setup.sh",
@@ -58,7 +56,7 @@
       "js-yaml": ">=4.3.2",
       "postcss": ">=8.5.23",
       "sharp": ">=0.35.4",
-      "undici": ">=6.28.0",
+      "undici": "^6.28.1",
       "ws": ">=8.21.0"
     }
   },

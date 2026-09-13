@@ -3,17 +3,29 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import payloadConfigPromise from '../../apps/web/payload.config';
+
+// Ensure CJS/ESM interop for @next/env under tsx/esbuild
+try {
+  const nextEnv = require('../../apps/web/node_modules/@next/env');
+  if (nextEnv && !nextEnv.default) {
+    nextEnv.default = nextEnv;
+  }
+} catch {}
 
 describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
   const rootDir = process.cwd();
 
+  const getPayloadConfig = async () => {
+    const mod = await import('../../apps/web/payload.config');
+    return mod.default;
+  };
+
   it('should compile and build sanitized Payload configuration with collections', async () => {
-    const config = await payloadConfigPromise;
+    const config = await getPayloadConfig();
     assert.ok(config, 'Payload config must resolve successfully');
     assert.ok(Array.isArray(config.collections), 'Collections must be an array');
 
-    const collectionSlugs = config.collections.map((c) => c.slug);
+    const collectionSlugs = config.collections.map((c: any) => c.slug);
     assert.ok(collectionSlugs.includes('categories'), 'categories collection must exist');
     assert.ok(collectionSlugs.includes('products'), 'products collection must exist');
     assert.ok(collectionSlugs.includes('product_variations'), 'product_variations collection must exist');
@@ -22,7 +34,7 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
   });
 
   it('should configure Payload admin panel with users auth collection', async () => {
-    const config = await payloadConfigPromise;
+    const config = await getPayloadConfig();
     assert.ok(config.admin, 'Admin configuration must exist');
     assert.equal(config.admin.user, 'users', 'Admin user collection must be "users"');
   });
@@ -64,6 +76,23 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     );
   });
 
+  it('should verify Payload importMap is populated with storage and UI components', () => {
+    const importMapPath = path.join(
+      rootDir,
+      'apps/web/src/app/(payload)/admin/importMap.js'
+    );
+    assert.ok(fs.existsSync(importMapPath), 'importMap.js must exist');
+    const content = fs.readFileSync(importMapPath, 'utf-8');
+    assert.ok(
+      content.includes('@payloadcms/storage-s3/client#S3ClientUploadHandler'),
+      'importMap must define S3ClientUploadHandler to prevent NestProviders from blanking the UI'
+    );
+    assert.ok(
+      !content.trim().endsWith('export const importMap = {};'),
+      'importMap must not be an empty stub'
+    );
+  });
+
   it('should verify Payload REST and GraphQL endpoints are configured for Next.js App Router', () => {
     const apiRoutePath = path.join(
       rootDir,
@@ -81,16 +110,12 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.ok(gqlContent.includes('GRAPHQL_POST'), 'GraphQL route must export GRAPHQL_POST');
   });
 
-  it('should verify open-next.config.ts configures function splitting for admin and storefront', () => {
+  it('should verify open-next.config.ts configures unified single worker via defineCloudflareConfig', () => {
     const configPath = path.join(rootDir, 'apps/web/open-next.config.ts');
     assert.ok(fs.existsSync(configPath), 'open-next.config.ts must exist');
     const content = fs.readFileSync(configPath, 'utf-8');
-    assert.ok(content.includes('functions:'), 'Must declare functions map');
-    assert.ok(content.includes('admin:'), 'Must declare admin function');
-    assert.ok(content.includes('app/(payload)/admin/[[...segments]]/page'), 'Must map admin page route');
-    assert.ok(content.includes('app/(payload)/api/[...slug]/route'), 'Must map payload api route');
-    assert.ok(content.includes('app/(payload)/api/graphql/route'), 'Must map payload graphql route');
-    assert.ok(content.includes('admin/*'), 'Must pattern match admin/*');
+    assert.ok(content.includes('defineCloudflareConfig'), 'Must configure defineCloudflareConfig');
+    assert.ok(!content.includes('functions:'), 'Must NOT declare split functions map in unified single worker architecture');
   });
 
   it('should compile and extract authentic Payload CMS native CSS stylesheet into assets', () => {
@@ -128,95 +153,37 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.ok(!payloadContent.includes('@chrishop/ui'), 'Payload layout must NOT bleed storefront Header components');
   });
 
-  it('should route and render distinct collection views for all registered collections in worker', async () => {
+  it('should verify unified worker entrypoint (.open-next/worker.js) dispatches to default server-function', () => {
     const workerPath = path.join(rootDir, '.open-next/worker.js');
     assert.ok(fs.existsSync(workerPath), 'worker.js must exist');
-    const worker = (await import(workerPath)).default;
+    const content = fs.readFileSync(workerPath, 'utf-8');
 
-    const mockEnv = {
-      DB: { prepare: () => ({ all: () => [] }) },
-      NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
-      BUCKET: { get: () => null, put: () => {} },
-      ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
-      SITE_URL: 'https://chrishop.jacobmiller22.com',
-      CMS_URL: 'https://chrishop.jacobmiller22.com',
-    };
-
-    const collections = [
-      { slug: 'products', title: 'Products', itemMarker: 'The Bushwhack Storm Anorak' },
-      { slug: 'categories', title: 'Categories', itemMarker: 'Apparel' },
-      { slug: 'product-variations', title: 'Product Variations', itemMarker: 'Field Olive — Standard Run' },
-      { slug: 'media', title: 'Media', itemMarker: 'media/bushwhack-storm-anorak/hero.jpeg' },
-      { slug: 'users', title: 'Users', itemMarker: 'admin@chrishop.jacobmiller22.com' },
-    ];
-
-    for (const col of collections) {
-      const request = new Request(`https://chrishop.jacobmiller22.com/admin/collections/${col.slug}`);
-      const response = await worker.fetch(request, mockEnv, {});
-
-      assert.equal(response.status, 200, `Route /admin/collections/${col.slug} must return 200`);
-      assert.match(response.headers.get('content-type') || '', /text\/html/);
-
-      const html = await response.text();
-
-      // Crucial assertion: Must NOT render Administrative Dashboard!
-      assert.ok(!html.includes('Administrative Dashboard'), `Collection route ${col.slug} must NOT render Administrative Dashboard`);
-
-      // Must render collection title
-      assert.ok(html.includes(`<h1 class="payload-page-title">${col.title}</h1>`), `Must render ${col.title} heading`);
-
-      // Must contain breadcrumbs pointing back to Dashboard
-      assert.ok(html.includes('<nav class="payload-breadcrumbs">'), 'Must render breadcrumbs');
-      assert.ok(html.includes('href="/admin"'), 'Breadcrumbs must link to Dashboard');
-      assert.ok(html.includes(col.title), 'Breadcrumbs must include collection title');
-
-      // Must have active class in sidebar navigation
-      assert.ok(
-        html.includes(`href="/admin/collections/${col.slug}" class="payload-nav-link active"`),
-        `Sidebar link for ${col.slug} must have active class`
-      );
-
-      // Must render collection data table and records
-      assert.ok(html.includes('class="payload-table"'), 'Must render data table');
-      assert.ok(html.includes(col.itemMarker), `Must render authentic records containing ${col.itemMarker}`);
-
-      // Must render action buttons (+ Create New)
-      assert.ok(html.includes(`href="/admin/collections/${col.slug}/create"`), 'Must link to Create New view');
-    }
+    // Verifies unified single worker dispatching
+    assert.ok(
+      content.includes('./server-functions/default/handler.mjs'),
+      'Must route to default server-function'
+    );
+    assert.ok(
+      !content.includes('./server-functions/admin/handler.mjs'),
+      'Must not route to split admin server-function'
+    );
+    assert.ok(
+      content.includes('/api/health'),
+      'Must include edge health check probe'
+    );
+    assert.ok(
+      content.includes('/media/'),
+      'Must include R2 media direct delivery handler'
+    );
   });
 
-  it('should render document edit and create views under /admin/collections/:slug/*', async () => {
-    const workerPath = path.join(rootDir, '.open-next/worker.js');
-    const worker = (await import(workerPath)).default;
+  it('should verify deprecation of synthetic HTML mockups in build-worker.ts and worker.js', () => {
+    const buildWorkerContent = fs.readFileSync(path.join(rootDir, 'scripts/build-worker.ts'), 'utf-8');
+    assert.ok(!buildWorkerContent.includes('renderPayloadAdmin'), 'build-worker.ts must not contain renderPayloadAdmin mockup');
+    assert.ok(!buildWorkerContent.includes('PAYLOAD_COLLECTIONS'), 'build-worker.ts must not contain PAYLOAD_COLLECTIONS mock array');
 
-    const mockEnv = {
-      DB: { prepare: () => ({ all: () => [] }) },
-      NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
-      BUCKET: { get: () => null, put: () => {} },
-      ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
-      SITE_URL: 'https://chrishop.jacobmiller22.com',
-      CMS_URL: 'https://chrishop.jacobmiller22.com',
-    };
-
-    // Test Document Edit View
-    const editReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/bushwhack-storm-anorak');
-    const editRes = await worker.fetch(editReq, mockEnv, {});
-    assert.equal(editRes.status, 200);
-    const editHtml = await editRes.text();
-
-    assert.ok(!editHtml.includes('Administrative Dashboard'), 'Edit view must not render dashboard');
-    assert.ok(editHtml.includes('Edit Product: bushwhack-storm-anorak'), 'Edit view must display Edit Product heading');
-    assert.ok(editHtml.includes('Save Changes'), 'Must have Save Changes button');
-    assert.ok(editHtml.includes('href="/admin/collections/products"'), 'Must link back to collection');
-
-    // Test Document Create View
-    const createReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/create');
-    const createRes = await worker.fetch(createReq, mockEnv, {});
-    assert.equal(createRes.status, 200);
-    const createHtml = await createRes.text();
-
-    assert.ok(!createHtml.includes('Administrative Dashboard'), 'Create view must not render dashboard');
-    assert.ok(createHtml.includes('Create New Product'), 'Create view must display Create New heading');
-    assert.ok(createHtml.includes('Save &amp; Publish'), 'Must have Save & Publish button');
+    const workerContent = fs.readFileSync(path.join(rootDir, '.open-next/worker.js'), 'utf-8');
+    assert.ok(!workerContent.includes('renderPayloadAdmin'), 'worker.js must not contain renderPayloadAdmin mockup');
+    assert.ok(!workerContent.includes('PAYLOAD_COLLECTIONS'), 'worker.js must not contain PAYLOAD_COLLECTIONS mock array');
   });
 });

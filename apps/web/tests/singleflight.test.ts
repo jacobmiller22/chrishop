@@ -1,7 +1,7 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { SingleFlightGroup, catalogSingleFlight } from '../src/lib/singleflight';
-import { getProductBySlug } from '../src/lib/catalog';
+import { getProductBySlug, resetDatabase } from '../src/lib/catalog';
 
 describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
   describe('1. SingleFlightGroup Unit Tests', () => {
@@ -189,9 +189,37 @@ describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
   });
 
   describe('2. Catalog SingleFlight Integration', () => {
-    it('should coalesce simultaneous getProductBySlug queries into single execution', async () => {
-      catalogSingleFlight.resetMetrics();
+    const sampleProduct = {
+      id: 'prod-anorak',
+      title: 'Bushwhack Storm Anorak',
+      slug: 'bushwhack-storm-anorak',
+      base_price: 340,
+      status: 'published',
+      category_id: null,
+      shopify_product_id: 'gid://shopify/Product/anorak-01',
+      featured_image: 'products/bushwhack-storm-anorak/hero.jpg',
+      gallery: null,
+    };
 
+    beforeEach(() => {
+      catalogSingleFlight.resetMetrics();
+      resetDatabase();
+      (globalThis as any).DB = {
+        prepare: (_sql: string) => ({
+          bind: () => (globalThis as any).DB.prepare(_sql),
+          all: async () => ({ results: [] }),
+          first: async () => sampleProduct,
+          run: async () => ({ changes: 0 }),
+        }),
+      };
+    });
+
+    afterEach(() => {
+      delete (globalThis as any).DB;
+      resetDatabase();
+    });
+
+    it('should coalesce simultaneous getProductBySlug queries into single execution', async () => {
       const queries = Array.from({ length: 15 }, () =>
         getProductBySlug('bushwhack-storm-anorak')
       );
@@ -213,8 +241,6 @@ describe('SingleFlight Request Coalescing Engine (Story 3.12)', () => {
     });
 
     it('should support bypassSingleFlight option for forced revalidation', async () => {
-      catalogSingleFlight.resetMetrics();
-
       const p = await getProductBySlug('bushwhack-storm-anorak', {
         bypassSingleFlight: true,
       });
