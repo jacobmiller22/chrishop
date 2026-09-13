@@ -272,52 +272,62 @@ export default {
     if (env.NEXT_CACHE_WORKERS_KV) globalThis.NEXT_CACHE_WORKERS_KV = env.NEXT_CACHE_WORKERS_KV;
 
     // 5. Execute OpenNext Server Functions within Cloudflare Request Context
-    return runWithCloudflareRequestContext(request, env, executionCtx, async () => {
-      const response = maybeGetSkewProtectionResponse(request);
-      if (response) {
-        return response;
-      }
+    try {
+      return await runWithCloudflareRequestContext(request, env, executionCtx, async () => {
+        const response = maybeGetSkewProtectionResponse(request);
+        if (response) {
+          return response;
+        }
 
-      // Serve images in development
-      if (url.pathname.startsWith("/cdn-cgi/image/")) {
-        return handleCdnCgiImageRequest(url, env);
-      }
+        // Serve images in development
+        if (url.pathname.startsWith("/cdn-cgi/image/")) {
+          return handleCdnCgiImageRequest(url, env);
+        }
 
-      // Fallback for Next.js default image loader
-      if (
-        url.pathname ===
-        \`\${globalThis.__NEXT_BASE_PATH__}/_next/image\${globalThis.__TRAILING_SLASH__ ? "/" : ""}\`
-      ) {
-        return await handleImageRequest(url, request.headers, env);
-      }
+        // Fallback for Next.js default image loader
+        if (
+          url.pathname ===
+          \`\${globalThis.__NEXT_BASE_PATH__}/_next/image\${globalThis.__TRAILING_SLASH__ ? "/" : ""}\`
+        ) {
+          return await handleImageRequest(url, request.headers, env);
+        }
 
-      // Run Next.js edge middleware
-      const middlewareHandler = await getMiddlewareHandler();
-      const reqOrResp = await middlewareHandler(request, env, executionCtx);
-      if (reqOrResp instanceof Response) {
-        return reqOrResp;
-      }
+        // Run Next.js edge middleware
+        const middlewareHandler = await getMiddlewareHandler();
+        const reqOrResp = await middlewareHandler(request, env, executionCtx);
+        if (reqOrResp instanceof Response) {
+          return reqOrResp;
+        }
 
-      // 6. Route Dispatching: Genuine Payload CMS v3 vs Next.js Storefront
-      const pathname = url.pathname;
-      const isAdminRoute =
-        pathname === "/admin" ||
-        pathname.startsWith("/admin/") ||
-        (pathname.startsWith("/api/") &&
-          !pathname.startsWith("/api/cart/") &&
-          !pathname.startsWith("/api/checkout/"));
+        // 6. Route Dispatching: Genuine Payload CMS v3 vs Next.js Storefront
+        const pathname = url.pathname;
+        const isAdminRoute =
+          pathname === "/admin" ||
+          pathname.startsWith("/admin/") ||
+          (pathname.startsWith("/api/") &&
+            !pathname.startsWith("/api/cart/") &&
+            !pathname.startsWith("/api/checkout/"));
 
-      if (isAdminRoute) {
+        if (isAdminRoute) {
+          // @ts-expect-error: resolved by wrangler build
+          const { handler } = await import("./server-functions/admin/handler.mjs");
+          return await handler(reqOrResp, env, executionCtx, request.signal);
+        }
+
+        // Default Storefront Server Function
         // @ts-expect-error: resolved by wrangler build
-        const { handler } = await import("./server-functions/admin/handler.mjs");
-        return handler(reqOrResp, env, executionCtx, request.signal);
-      }
-
-      // Default Storefront Server Function
-      // @ts-expect-error: resolved by wrangler build
-      const { handler } = await import("./server-functions/default/handler.mjs");
-      return handler(reqOrResp, env, executionCtx, request.signal);
-    });
+        const { handler } = await import("./server-functions/default/handler.mjs");
+        return await handler(reqOrResp, env, executionCtx, request.signal);
+      });
+    } catch (err: any) {
+      return new Response(
+        \`OpenNext Edge Execution Error: \${err?.message || err}\\n\${err?.stack || ""}\`,
+        {
+          status: 500,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        }
+      );
+    }
   },
 };
 `;
