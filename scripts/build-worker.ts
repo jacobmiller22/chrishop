@@ -89,12 +89,65 @@ export function buildWorker(): void {
     console.warn('  ⚠️ Could not resolve @payloadcms/next/css:', err.message);
   }
 
-  // 4. Generate Unified Cloudflare Worker Entrypoint (.open-next/worker.js)
+  // 4. Generate Edge Environment Polyfills (.open-next/edge-env.js)
+  const edgeEnvContent = `/**
+ * Edge Environment Polyfills for Cloudflare Workers (workerd)
+ * Ensures standard Node.js globals expected by libraries like undici/payload exist.
+ */
+if (typeof process !== "undefined") {
+  try {
+    if (!process.versions) {
+      process.versions = { node: "22.0.0" };
+    } else if (!process.versions.node) {
+      process.versions.node = "22.0.0";
+    }
+  } catch {}
+  if (!process.version) {
+    try {
+      process.version = "v22.0.0";
+    } catch {}
+  }
+}
+if (typeof globalThis.MessagePort === "undefined") {
+  globalThis.MessagePort = class MessagePort {};
+}
+if (typeof globalThis.MessageChannel === "undefined") {
+  globalThis.MessageChannel = class MessageChannel {
+    constructor() {
+      this.port1 = new globalThis.MessagePort();
+      this.port2 = new globalThis.MessagePort();
+    }
+  };
+}
+if (typeof globalThis.WeakRef === "undefined") {
+  globalThis.WeakRef = class WeakRef {
+    constructor(target) {
+      this.target = target;
+    }
+    deref() {
+      return this.target;
+    }
+  };
+}
+if (typeof globalThis.FinalizationRegistry === "undefined") {
+  globalThis.FinalizationRegistry = class FinalizationRegistry {
+    constructor(cleanupCallback) {
+      this.cleanupCallback = cleanupCallback;
+    }
+    register() {}
+    unregister() {}
+  };
+}
+`;
+  fs.writeFileSync(path.join(openNextDir, 'edge-env.js'), edgeEnvContent, 'utf-8');
+
+  // 5. Generate Unified Cloudflare Worker Entrypoint (.open-next/worker.js)
   const workerContent = `/**
  * ChrisShop Unified Edge Worker Entrypoint
  * Option B: Single Worker Architecture (Storefront + Genuine Payload CMS v3)
  */
 
+import "./edge-env.js";
 //@ts-expect-error: Will be resolved by wrangler build
 import { handleCdnCgiImageRequest, handleImageRequest } from "./cloudflare/images.js";
 //@ts-expect-error: Will be resolved by wrangler build
