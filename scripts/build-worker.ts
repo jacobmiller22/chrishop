@@ -289,6 +289,12 @@ export default {
           const tablesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
           debugInfo.tables = (tablesResult?.results || []).map((t) => t.name);
 
+          const migrationsResult = await env.DB.prepare("SELECT name FROM d1_migrations ORDER BY id ASC").all().catch(() => null);
+          debugInfo.appliedMigrations = (migrationsResult?.results || []).map((m) => m.name);
+
+          const relsInfoResult = await env.DB.prepare("PRAGMA table_info(payload_locked_documents_rels)").all().catch(() => null);
+          debugInfo.lockedDocsRelsColumns = (relsInfoResult?.results || []).map((c) => c.name);
+
           const usersResult = await env.DB.prepare("SELECT id, email FROM users LIMIT 5").all();
           debugInfo.users = usersResult?.results || [];
 

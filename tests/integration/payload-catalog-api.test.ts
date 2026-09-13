@@ -65,6 +65,7 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
       '0002_payload_tables.sql',
       '0003_payload_catalog_tables.sql',
       '0004_payload_catalog_compatibility.sql',
+      '0005_payload_locked_documents_order_parent.sql',
     ];
 
     for (const m of migrations) {

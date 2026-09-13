@@ -120,17 +120,15 @@ CREATE INDEX IF NOT EXISTS product_variations_variation_images_image_idx ON prod
 
 CREATE TABLE IF NOT EXISTS payload_locked_documents_rels (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  "order" INTEGER,
-  _order INTEGER,
-  parent_id INTEGER,
-  _parent_id INTEGER,
+  _order INTEGER NOT NULL,
+  _parent_id INTEGER NOT NULL,
   path TEXT NOT NULL,
   categories_id TEXT,
   products_id TEXT,
   product_variations_id TEXT,
   media_id INTEGER,
   users_id INTEGER,
-  FOREIGN KEY (parent_id) REFERENCES payload_locked_documents(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (_parent_id) REFERENCES payload_locked_documents(id) ON UPDATE NO ACTION ON DELETE CASCADE,
   FOREIGN KEY (categories_id) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE CASCADE,
   FOREIGN KEY (products_id) REFERENCES products(id) ON UPDATE NO ACTION ON DELETE CASCADE,
   FOREIGN KEY (product_variations_id) REFERENCES product_variations(id) ON UPDATE NO ACTION ON DELETE CASCADE,
@@ -138,10 +136,8 @@ CREATE TABLE IF NOT EXISTS payload_locked_documents_rels (
   FOREIGN KEY (users_id) REFERENCES users(id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_order_idx ON payload_locked_documents_rels ("order");
-CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_parent_idx ON payload_locked_documents_rels (parent_id);
-CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_underscore_order_idx ON payload_locked_documents_rels (_order);
-CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_underscore_parent_idx ON payload_locked_documents_rels (_parent_id);
+CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_order_idx ON payload_locked_documents_rels (_order);
+CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_parent_idx ON payload_locked_documents_rels (_parent_id);
 CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_path_idx ON payload_locked_documents_rels (path);
 CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_categories_id_idx ON payload_locked_documents_rels (categories_id);
 CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_products_id_idx ON payload_locked_documents_rels (products_id);
