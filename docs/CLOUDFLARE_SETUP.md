@@ -364,7 +364,7 @@ Every pull request triggers an automated preview deployment via `.github/workflo
    pnpm exec wrangler deploy --env preview --name chrishop-preview-pr-<PR_NUMBER>
    ```
 5. **PR Notification & Verification**: Probes edge health (`/api/health`) and posts a sticky comment with the verified preview URL (`https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com`).
-6. **Teardown**: When the PR is closed or merged, `.github/workflows/preview-teardown.yml` executes automated resource cleanup via `wrangler delete`.
+6. **Teardown**: When the PR is closed or merged, `.github/workflows/preview-teardown.yml` executes automated resource cleanup via `wrangler delete` and `terraform destroy`, purging the ephemeral worker, custom route, and isolated Terraform preview state. Automated sweeps can also be performed via `pnpm run preview:cleanup`.
 
 ---
 

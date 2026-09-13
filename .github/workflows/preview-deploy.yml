@@ -128,7 +128,7 @@ jobs:
 
             let body = '';
             if (deployOutcome === 'success' && verifyOutcome === 'success') {
-              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is closed.*`;
+              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is merged or closed.*`;
             } else if (deployOutcome === 'skipped') {
               body = `⚠️ **Ephemeral PR Preview Skipped**\n\n- **Reason**: Cloudflare credentials (\`CLOUDFLARE_API_TOKEN\`, \`CLOUDFLARE_ACCOUNT_ID\`) are not configured in repository secrets.\n- **Local Verification**: Passed (typecheck, lint, unit tests, in-memory integration tests, build)\n- **Preview Environment**: Skipped deployment to edge\n\n*Configure Cloudflare repository secrets to enable automated preview environments on pull requests.*`;
             } else {
