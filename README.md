@@ -1,5 +1,4 @@
 > [!CAUTION]
->
 > # 🛑 DEPRECATED BRANCH — DO NOT TARGET OR BRANCH FROM `main`
 >
 > **The `main` branch is deprecated, read-only, and locked.**
@@ -12,7 +11,6 @@
 > ⚠️ **Pull requests targeting `main` are automatically retargeted to `staging` by `.github/workflows/pr-base-guard.yml` or blocked by CI.**
 >
 > **To start feature development, branch from `origin/staging`**:
->
 > ```bash
 > git fetch origin staging
 > pnpm run branch <feature-name>
@@ -23,29 +21,9 @@
 
 ---
 
-# ChrisShop — BankBeaters Adventure Gear (_"Curiosity > Fear"_)
+# ChrisShop — Cloudflare-Native Headless Commerce Platform
 
-A high-performance, resilient monorepo architecture for Chris's limited-edition outdoor adventure gear and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and generic operational **Webhooks**.
-
-- **Delivery Board**: [GitHub Project #4: ChrisShop Delivery Roadmap](https://github.com/users/jacobmiller22/projects/4)
-- **Live Staging Environment**: [staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
-- **Edge Health Gate**: `https://staging-chrishop.jacobmiller22.com/api/health` 🟢 Operational
-- **Target Public Drop Date**: **October 28, 2026** (Accelerated 1 month ahead of original late-November target)
-- **Total Progress**: **59.3% Complete** (83 / 140 stories closed · 201/201 integration tests passing · 99/99 unit tests passing)
-
----
-
-## Delivery Phases & Reconciled Roadmap
-
-| Phase  | Milestone                                                                                       | Closed / Total | Progress |   Target Date    | Gatekeeper Touchpoint                 |        Status        |
-| :----: | :---------------------------------------------------------------------------------------------- | :------------: | :------: | :--------------: | :------------------------------------ | :------------------: |
-| **P1** | [Phase 1: Prototyping & Local Dev](https://github.com/jacobmiller22/chrishop/milestone/1)       |    27 / 31     | **87%**  | **Sep 16, 2026** | Story 1.8: Local Demo Walkthrough     | 🟡 Active Touchpoint |
-| **P2** | [Phase 2: Infrastructure & Dependencies](https://github.com/jacobmiller22/chrishop/milestone/2) |    42 / 52     | **81%**  | **Sep 22, 2026** | Story 2.7: Staging Environment Demo   |     🟢 On Track      |
-| **P3** | [Phase 3: End-to-End Integration](https://github.com/jacobmiller22/chrishop/milestone/3)        |     9 / 22     | **41%**  | **Oct 08, 2026** | Story 3.7: Full Drop Dry Run          |    🔵 In Progress    |
-| **P4** | [Phase 4: DevOps & Failover Automation](https://github.com/jacobmiller22/chrishop/milestone/4)  |     2 / 24     |  **8%**  | **Oct 20, 2026** | Story 4.10: Drop Day Concurrency Gate |   ⚪ Shovel-Ready    |
-| **P5** | [Phase 5: Security Hardening](https://github.com/jacobmiller22/chrishop/milestone/5)            |     2 / 7      | **29%**  | **Oct 27, 2026** | Story 5.2: TOTP 2FA & WAF Turnstile   |   ⚪ Shovel-Ready    |
-|   🚀   | **OFFICIAL PUBLIC DROP #1**                                                                     |       —        |    —     | **Oct 28, 2026** | **Production Go-Live**                |      🎯 Target       |
-| **P6** | [Phase 6+: Feature Enhancements](https://github.com/jacobmiller22/chrishop/milestone/6)         |     1 / 4      | **25%**  | **Nov 15, 2026** | Post-Launch (Shippo, Waitlists)       |      ⚪ Planned      |
+A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and generic operational **Webhooks**.
 
 ---
 
@@ -55,7 +33,7 @@ A high-performance, resilient monorepo architecture for Chris's limited-edition 
 graph TD
     Client["Browser / Mobile Client"] --> CF["Cloudflare Edge Network (Global Anycast CDN & DDoS Protection)"]
     CF --> Workers["Next.js 15 Storefront & Edge Routes (Cloudflare Workers via OpenNext)"]
-
+    
     subgraph Edge Services ["Cloudflare Edge Ecosystem"]
         Workers -->|"Edge Relational Queries"| D1[("Cloudflare D1 (SQLite)")]
         Workers -->|"Edge ISR Cache Handler"| KV[("Cloudflare Workers KV")]
@@ -84,16 +62,16 @@ graph TD
 
 ## Tech Stack
 
-| Layer                   | Technology                                              | Rationale                                                                          |
-| :---------------------- | :------------------------------------------------------ | :--------------------------------------------------------------------------------- |
-| **Monorepo**            | `pnpm` + `Turborepo`                                    | Cached builds, strict dependency boundaries, fast CI/CD pipelines                  |
-| **Storefront & Edge**   | Next.js 15 (App Router, React 19) on Cloudflare Workers | Sub-millisecond global cold starts, edge rendering, zero container management      |
-| **Content Management**  | Payload CMS v3                                          | Embedded TypeScript CMS at `/admin`, native SQLite/D1 database adapter             |
-| **Edge Database**       | Cloudflare D1 (SQLite)                                  | Distributed SQL at the edge, ACID transactions, sub-5ms read latency               |
-| **Edge Caching**        | Cloudflare Workers KV                                   | Ultra-fast key-value store for Next.js incremental static revalidation (ISR)       |
-| **Object Storage**      | Cloudflare R2                                           | High-speed S3-compatible media storage with zero egress bandwidth fees             |
-| **Commerce & Checkout** | Shopify Headless                                        | Battle-tested inventory reservation, PCI SAQ-A compliance, multi-currency checkout |
-| **Notifications**       | Resend & Webhooks (`@chrishop/notifications`)           | Pluggable providers for customer email delivery and real-time operational ops      |
+| Layer | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Monorepo** | `pnpm` + `Turborepo` | Cached builds, strict dependency boundaries, fast CI/CD pipelines |
+| **Storefront & Edge** | Next.js 15 (App Router, React 19) on Cloudflare Workers | Sub-millisecond global cold starts, edge rendering, zero container management |
+| **Content Management** | Payload CMS v3 | Embedded TypeScript CMS at `/admin`, native SQLite/D1 database adapter |
+| **Edge Database** | Cloudflare D1 (SQLite) | Distributed SQL at the edge, ACID transactions, sub-5ms read latency |
+| **Edge Caching** | Cloudflare Workers KV | Ultra-fast key-value store for Next.js incremental static revalidation (ISR) |
+| **Object Storage** | Cloudflare R2 | High-speed S3-compatible media storage with zero egress bandwidth fees |
+| **Commerce & Checkout** | Shopify Headless | Battle-tested inventory reservation, PCI SAQ-A compliance, multi-currency checkout |
+| **Notifications** | Resend & Webhooks (`@chrishop/notifications`) | Pluggable providers for customer email delivery and real-time operational ops |
 
 ---
 
@@ -193,6 +171,7 @@ pnpm run verify:local
 - [Local Development Guide](LOCAL_DEVELOPMENT.md) — Local environment setup and workflows
 - [Project Setup & Issue Management](docs/GITHUB_PROJECT_INITIALIZATION.md) — Delivery phases and story specifications
 - [External Dependencies](docs/deps/README.md) — Technical specifications for Cloudflare, Shopify, Resend
+
 
 ---
 
