@@ -102,8 +102,10 @@ export const getS3StorageConfig = () => {
   const accessKeyId = process.env.R2_ACCESS_KEY_ID || '';
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || '';
   const bucketName = process.env.R2_BUCKET_NAME || 'chrishop-media';
+  const enabled = Boolean(endpoint && accessKeyId && secretAccessKey);
 
   return s3Storage({
+    enabled,
     collections: {
       media: {
         // Disable Payload's built-in prefix to use bucket root path structure
@@ -142,6 +144,7 @@ export default buildConfig({
   editor: lexicalEditor(),
   db: sqliteD1Adapter({
     binding: getD1Binding(),
+    push: false,
   }),
   plugins: [
     // Cloudflare R2 S3-compatible media storage adapter

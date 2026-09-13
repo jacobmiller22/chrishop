@@ -48,11 +48,14 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   addColumnIfNotExists('product_variations', 'variation_images TEXT');
   addColumnIfNotExists('product_variations', 'stock_quantity INTEGER NOT NULL DEFAULT 1');
 
-  // Apply schema migration
-  const migrationPath = path.resolve(process.cwd(), 'migrations/0001_initial.sql');
-  if (fs.existsSync(migrationPath)) {
-    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-    db.exec(migrationSql);
+  // Apply schema migrations
+  const migrationsDir = path.resolve(process.cwd(), 'migrations');
+  if (fs.existsSync(migrationsDir)) {
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+    for (const file of migrationFiles) {
+      const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+      db.exec(migrationSql);
+    }
   }
 
   console.log('🌱 [Seed] Seeding BankBeaters Categories (Depth 2)...');

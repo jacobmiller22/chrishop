@@ -69,6 +69,39 @@ function setHttpClientAndAgentOptions(config) {
   console.warn('[patch-dependencies] Could not resolve setup-http-agent-env.js:', err.message);
 }
 
+// 1c. Patch Next.js next-server.js to expose debug error headers on 500 responses
+try {
+  const nextServerPath = require.resolve('next/dist/server/next-server.js', { paths: candidatePaths });
+  if (fs.existsSync(nextServerPath)) {
+    let content = fs.readFileSync(nextServerPath, 'utf8');
+    if (!content.includes('x-debug-error')) {
+      content = content.replace(
+        'res.statusCode = 500;',
+        `try {
+          const errStr = (err && (err.stack || err.message || String(err))).replace(/\\r?\\n/g, ' -- ');
+          res.setHeader('x-debug-error', errStr.slice(0, 1000));
+        } catch {}
+        res.statusCode = 500;`
+      );
+      content = content.replace(
+        'res.statusCode = 500;\\n                    await this.renderError(error',
+        `try {
+          const errStr = (error && (error.stack || error.message || String(error))).replace(/\\r?\\n/g, ' -- ');
+          res.setHeader('x-debug-error', errStr.slice(0, 1000));
+        } catch {}
+        res.statusCode = 500;
+                    await this.renderError(error`
+      );
+      fs.writeFileSync(nextServerPath, content, 'utf8');
+      console.log('[patch-dependencies] Patched next-server.js for x-debug-error at', nextServerPath);
+    } else {
+      console.log('[patch-dependencies] next-server.js already patched for x-debug-error at', nextServerPath);
+    }
+  }
+} catch (err) {
+  console.warn('[patch-dependencies] Could not resolve next-server.js:', err.message);
+}
+
 // 2. Patch @opennextjs/cloudflare AST vercel-og patcher for multi-worker route splitting
 try {
   const openNextEntry = require.resolve('@opennextjs/cloudflare', { paths: candidatePaths });
