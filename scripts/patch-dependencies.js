@@ -442,6 +442,7 @@ try {
 
     const safeRequireBanner = `js: \`import {setInterval, clearInterval, setTimeout, clearTimeout} from "node:timers";
 import { createRequire as __topLevelCreateRequire } from "node:module";
+try { if (typeof globalThis.process === "undefined") { globalThis.process = { env: {}, versions: { node: "22.0.0" }, version: "v22.0.0", platform: "linux", arch: "x64" }; } else { if (!process.versions) { try { process.versions = { node: "22.0.0" }; } catch {} } if (!process.version) { try { process.version = "v22.0.0"; } catch {} } } } catch {}
 if (typeof globalThis.MessagePort === "undefined") globalThis.MessagePort = class MessagePort {};
 if (typeof globalThis.MessageChannel === "undefined") globalThis.MessageChannel = class MessageChannel { constructor() { this.port1 = new globalThis.MessagePort(); this.port2 = new globalThis.MessagePort(); } };
 if (typeof globalThis.FinalizationRegistry === "undefined") globalThis.FinalizationRegistry = class FinalizationRegistry { constructor() {} register() {} unregister() { return false; } };
