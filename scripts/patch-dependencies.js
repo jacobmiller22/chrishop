@@ -24,6 +24,51 @@ try {
   console.warn('[patch-dependencies] Could not resolve @next/env:', err.message);
 }
 
+// 1b. Patch Next.js setup-http-agent-env to guard against missing node:http in edge runtimes
+try {
+  const setupHttpAgentEnvPath = require.resolve('next/dist/server/setup-http-agent-env.js', { paths: candidatePaths });
+  if (fs.existsSync(setupHttpAgentEnvPath)) {
+    let content = fs.readFileSync(setupHttpAgentEnvPath, 'utf8');
+    if (!content.includes('// [patched for cloudflare-workers]')) {
+      content = `// [patched for cloudflare-workers]
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "setHttpClientAndAgentOptions", {
+    enumerable: true,
+    get: function() {
+        return setHttpClientAndAgentOptions;
+    }
+});
+function setHttpClientAndAgentOptions(config) {
+    try {
+        if (globalThis.__NEXT_HTTP_AGENT) return;
+        if (!config || !config.httpAgentOptions) return;
+        globalThis.__NEXT_HTTP_AGENT_OPTIONS = config.httpAgentOptions;
+        const _http = require("http");
+        const _https = require("https");
+        if (_http && typeof _http.Agent === "function") {
+            globalThis.__NEXT_HTTP_AGENT = new _http.Agent(config.httpAgentOptions);
+        }
+        if (_https && typeof _https.Agent === "function") {
+            globalThis.__NEXT_HTTPS_AGENT = new _https.Agent(config.httpAgentOptions);
+        }
+    } catch {
+        // Silently continue in edge workers where node:http may be stubbed or unavailable
+    }
+}
+`;
+      fs.writeFileSync(setupHttpAgentEnvPath, content, 'utf8');
+      console.log('[patch-dependencies] Patched setup-http-agent-env.js at', setupHttpAgentEnvPath);
+    } else {
+      console.log('[patch-dependencies] setup-http-agent-env.js already patched at', setupHttpAgentEnvPath);
+    }
+  }
+} catch (err) {
+  console.warn('[patch-dependencies] Could not resolve setup-http-agent-env.js:', err.message);
+}
+
 // 2. Patch @opennextjs/cloudflare AST vercel-og patcher for multi-worker route splitting
 try {
   const openNextEntry = require.resolve('@opennextjs/cloudflare', { paths: candidatePaths });
