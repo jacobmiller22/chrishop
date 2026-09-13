@@ -97,4 +97,20 @@ pnpm run audit:backlog
 # Trigger via Project Management skill
 /project-management roadmap audit
 ```
-
+### 3.4 Automated Staging-to-Production Release PR & Rolling Changelog Generation
+When features, bugfixes, or dependencies merge into the `staging` integration branch:
+1. **GitHub Actions Trigger**: `.github/workflows/staging-release-pr.yml` runs automatically on pushes to `staging`.
+2. **Delta & Manifest Composition**: Invokes `pnpm run release:notes` (`scripts/compose-release-notes.ts`) to compute the `production..staging` git delta:
+   - Merged pull requests and commit hashes.
+   - Closed issue references (`Fixes #X`, `Closes #X`, `Resolves #X`).
+   - Impacted monorepo workspaces (`apps/web`, `packages/*`, `infra/`, `.github/`, etc.).
+   - Pending D1 SQLite database migrations (`migrations/*.sql`) with execution alerts.
+   - Standard preflight promotion checklist.
+3. **Release PR Synchronization**:
+   - Queries GitHub API for an existing open PR with `head: staging` and `base: production`.
+   - If found: dynamically updates the PR title and description with the latest composed release manifest.
+   - If none exists: creates a new Release PR titled `chore(release): Promote staging to production [Pending Review]`.
+   - Attaches labels `type:release` and `status:needs-review`, and assigns designated reviewer (`jacobmiller22`).
+4. **Human Review Gate & Production Edge Deployment**:
+   - Maintainer reviews the rolling changelog, verifies staging edge health, and approves the PR.
+   - Merging into `production` triggers the multi-stage deployment pipeline in `.github/workflows/deploy.yml` (build ➔ deploy-staging ➔ test-staging ➔ human environment gate ➔ deploy-production).

@@ -1,0 +1,284 @@
+{
+  "timestamp": "2026-09-12T12:36:27.046Z",
+  "modelsCompared": {
+    "firstClassDropEntity": {
+      "pros": [
+        "Rich drop-level storytelling (maker statement, inspiration, field notes)",
+        "Independent hero photography and multi-photo lookbook gallery stored in Cloudflare R2",
+        "Explicit display ordering and curation of multiple products in the drop",
+        "Clear lifecycle state machine (draft -> scheduled -> live -> concluded -> archived)",
+        "Enables dedicated clean URLs like /drops/autumn-run-2026"
+      ],
+      "cons": [
+        "Requires new `drops` collection schema and `drop_products` join table in Cloudflare D1",
+        "Slightly higher administrative setup overhead for single-item quick releases"
+      ],
+      "sqlTableCount": 2
+    },
+    "tagAttributeGrouping": {
+      "pros": [
+        "Zero schema migration needed; leverages existing product fields or text tag",
+        "Fast and lightweight for informal releases or standalone one-offs"
+      ],
+      "cons": [
+        "No drop-level editorial story, banner media, or lookbook metadata",
+        "No independent drop lifecycle management; must update every product individually",
+        "Difficult to order or curate silhouettes within a capsule"
+      ],
+      "sqlTableCount": 0
+    },
+    "recommendation": "Implement the First-Class Drop Entity (`drops` + `drop_products`), while supporting a fallback tag or direct product scheduling for single-item releases. This enables full experimentation with both patterns before consolidating."
+  },
+  "ttlClippingProfile": [
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1120000,
+      "deltaSeconds": 120,
+      "isLive": false,
+      "sMaxAge": 30,
+      "staleWhileRevalidate": 5,
+      "cacheControlHeader": "public, s-maxage=30, stale-while-revalidate=5"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1045000,
+      "deltaSeconds": 45,
+      "isLive": false,
+      "sMaxAge": 10,
+      "staleWhileRevalidate": 5,
+      "cacheControlHeader": "public, s-maxage=10, stale-while-revalidate=5"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1010000,
+      "deltaSeconds": 10,
+      "isLive": false,
+      "sMaxAge": 10,
+      "staleWhileRevalidate": 0,
+      "cacheControlHeader": "public, s-maxage=10"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1005000,
+      "deltaSeconds": 5,
+      "isLive": false,
+      "sMaxAge": 5,
+      "staleWhileRevalidate": 0,
+      "cacheControlHeader": "public, s-maxage=5"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1001000,
+      "deltaSeconds": 1,
+      "isLive": false,
+      "sMaxAge": 1,
+      "staleWhileRevalidate": 0,
+      "cacheControlHeader": "public, s-maxage=1"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 1000000,
+      "deltaSeconds": 0,
+      "isLive": true,
+      "sMaxAge": 10,
+      "staleWhileRevalidate": 50,
+      "cacheControlHeader": "public, s-maxage=10, stale-while-revalidate=50"
+    },
+    {
+      "nowMs": 1000000,
+      "scheduledAtMs": 970000,
+      "deltaSeconds": -30,
+      "isLive": true,
+      "sMaxAge": 10,
+      "staleWhileRevalidate": 50,
+      "cacheControlHeader": "public, s-maxage=10, stale-while-revalidate=50"
+    }
+  ],
+  "concurrencyBenchmarks": {
+    "baseline": [
+      {
+        "concurrency": 50,
+        "productCount": 5,
+        "defenseEnabled": false,
+        "totalClientRequests": 50,
+        "successfulRequests": 50,
+        "d1QueriesExecuted": 100,
+        "uncoalescedQueriesWouldBe": 100,
+        "singleFlightCoalescedCount": 0,
+        "coalesceRatioPercent": 0,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 2,
+          "p90": 3,
+          "p95": 3,
+          "p99": 3,
+          "max": 3,
+          "mean": 2.28
+        },
+        "durationMs": 3,
+        "throughputRps": 16666.67
+      },
+      {
+        "concurrency": 100,
+        "productCount": 5,
+        "defenseEnabled": false,
+        "totalClientRequests": 100,
+        "successfulRequests": 100,
+        "d1QueriesExecuted": 200,
+        "uncoalescedQueriesWouldBe": 200,
+        "singleFlightCoalescedCount": 0,
+        "coalesceRatioPercent": 0,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 2,
+          "p90": 3,
+          "p95": 3,
+          "p99": 3,
+          "max": 3,
+          "mean": 2.02
+        },
+        "durationMs": 3,
+        "throughputRps": 33333.33
+      },
+      {
+        "concurrency": 250,
+        "productCount": 5,
+        "defenseEnabled": false,
+        "totalClientRequests": 250,
+        "successfulRequests": 250,
+        "d1QueriesExecuted": 500,
+        "uncoalescedQueriesWouldBe": 500,
+        "singleFlightCoalescedCount": 0,
+        "coalesceRatioPercent": 0,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 4,
+          "p90": 6,
+          "p95": 6,
+          "p99": 7,
+          "max": 7,
+          "mean": 3.77
+        },
+        "durationMs": 7,
+        "throughputRps": 35714.29
+      },
+      {
+        "concurrency": 500,
+        "productCount": 5,
+        "defenseEnabled": false,
+        "totalClientRequests": 500,
+        "successfulRequests": 500,
+        "d1QueriesExecuted": 1000,
+        "uncoalescedQueriesWouldBe": 1000,
+        "singleFlightCoalescedCount": 0,
+        "coalesceRatioPercent": 0,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 7,
+          "p90": 12,
+          "p95": 12,
+          "p99": 13,
+          "max": 13,
+          "mean": 6.7
+        },
+        "durationMs": 13,
+        "throughputRps": 38461.54
+      }
+    ],
+    "defended": [
+      {
+        "concurrency": 50,
+        "productCount": 5,
+        "defenseEnabled": true,
+        "totalClientRequests": 50,
+        "successfulRequests": 50,
+        "d1QueriesExecuted": 2,
+        "uncoalescedQueriesWouldBe": 100,
+        "singleFlightCoalescedCount": 49,
+        "coalesceRatioPercent": 98,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 1,
+          "p90": 1,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "mean": 1
+        },
+        "durationMs": 1,
+        "throughputRps": 50000
+      },
+      {
+        "concurrency": 100,
+        "productCount": 5,
+        "defenseEnabled": true,
+        "totalClientRequests": 100,
+        "successfulRequests": 100,
+        "d1QueriesExecuted": 2,
+        "uncoalescedQueriesWouldBe": 200,
+        "singleFlightCoalescedCount": 99,
+        "coalesceRatioPercent": 99,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 1,
+          "p90": 1,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "mean": 1
+        },
+        "durationMs": 1,
+        "throughputRps": 100000
+      },
+      {
+        "concurrency": 250,
+        "productCount": 5,
+        "defenseEnabled": true,
+        "totalClientRequests": 250,
+        "successfulRequests": 250,
+        "d1QueriesExecuted": 2,
+        "uncoalescedQueriesWouldBe": 500,
+        "singleFlightCoalescedCount": 249,
+        "coalesceRatioPercent": 99.6,
+        "latenciesMs": {
+          "min": 2,
+          "p50": 2,
+          "p90": 2,
+          "p95": 2,
+          "p99": 2,
+          "max": 2,
+          "mean": 2
+        },
+        "durationMs": 2,
+        "throughputRps": 125000
+      },
+      {
+        "concurrency": 500,
+        "productCount": 5,
+        "defenseEnabled": true,
+        "totalClientRequests": 500,
+        "successfulRequests": 500,
+        "d1QueriesExecuted": 2,
+        "uncoalescedQueriesWouldBe": 1000,
+        "singleFlightCoalescedCount": 499,
+        "coalesceRatioPercent": 99.8,
+        "latenciesMs": {
+          "min": 1,
+          "p50": 1,
+          "p90": 1,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "mean": 1
+        },
+        "durationMs": 1,
+        "throughputRps": 500000
+      }
+    ]
+  },
+  "thresholds": {
+    "p95LatencyUnder200ms": true,
+    "queryReductionOver95Percent": true,
+    "zeroLaunchLagConfirmed": true
+  }
+}
