@@ -227,6 +227,11 @@ export function buildWorker(): void {
       modified = true;
     }
 
+    if (!content.includes('globalThis.MessagePort=class MessagePort')) {
+      content = 'if(typeof globalThis.MessagePort==="undefined"){globalThis.MessagePort=class MessagePort{}};\nif(typeof globalThis.MessageChannel==="undefined"){globalThis.MessageChannel=class MessageChannel{constructor(){this.port1=new globalThis.MessagePort();this.port2=new globalThis.MessagePort();}}};\n' + content;
+      modified = true;
+    }
+
     if (modified) {
       fs.writeFileSync(filePath, content, "utf-8");
       console.log(`  ✔ Sanitized edge-incompatible Node builtins in ${path.relative(rootDir, filePath)}`);
@@ -293,6 +298,18 @@ export function buildWorker(): void {
  * Compatibility: nodejs_compat
  * OpenNext Function Splitting: Storefront (default) + Genuine Payload CMS v3 (admin)
  */
+
+if (typeof globalThis.MessagePort === "undefined") {
+  globalThis.MessagePort = class MessagePort {};
+}
+if (typeof globalThis.MessageChannel === "undefined") {
+  globalThis.MessageChannel = class MessageChannel {
+    constructor() {
+      this.port1 = new globalThis.MessagePort();
+      this.port2 = new globalThis.MessagePort();
+    }
+  };
+}
 
 //@ts-expect-error: Will be resolved by wrangler build
 import { handleCdnCgiImageRequest, handleImageRequest } from "./cloudflare/images.js";
