@@ -4,8 +4,9 @@ variable "cloudflare_account_id" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare Zone ID"
+  description = "Cloudflare Zone ID (optional, dynamically resolved via zone_name if omitted)"
   type        = string
+  default     = ""
 }
 
 variable "zone_name" {
