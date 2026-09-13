@@ -36,10 +36,7 @@ export function buildWorker(): void {
     });
   }
 
-  // 2. Clean & synchronize OpenNext compilation artifacts into root .open-next
-  if (fs.existsSync(openNextDir)) {
-    fs.rmSync(openNextDir, { recursive: true, force: true });
-  }
+  // 2. Synchronize OpenNext compilation artifacts into root .open-next
   fs.mkdirSync(openNextDir, { recursive: true });
 
   if (fs.existsSync(webOpenNextDir)) {
@@ -50,6 +47,16 @@ export function buildWorker(): void {
       filter: (src) => !src.includes('node_modules'),
     });
     console.log('  ✔ Synchronized OpenNext build artifacts to root .open-next');
+  }
+
+  // Ensure open-next.config.mjs is present at root of .open-next for direct relative imports
+  const buildConfigMjs = path.join(openNextDir, '.build/open-next.config.mjs');
+  const middlewareConfigMjs = path.join(openNextDir, 'middleware/open-next.config.mjs');
+  const targetConfigMjs = path.join(openNextDir, 'open-next.config.mjs');
+  if (fs.existsSync(buildConfigMjs)) {
+    fs.copyFileSync(buildConfigMjs, targetConfigMjs);
+  } else if (fs.existsSync(middlewareConfigMjs)) {
+    fs.copyFileSync(middlewareConfigMjs, targetConfigMjs);
   }
 
   // 3. Ensure static assets are complete
