@@ -985,6 +985,31 @@ export default {
       }
     );
   },
+
+  // 7. Cloudflare Queue Consumer Entrypoint (SHOPIFY_ORDERS_QUEUE)
+  async queue(batch, env, ctx) {
+    const queueName = batch.queue || 'SHOPIFY_ORDERS_QUEUE';
+    console.log(\`[Worker:Queue] Received batch of \${batch.messages?.length || 0} messages on \${queueName}\`);
+
+    for (const message of batch.messages) {
+      const messageId = message.id || 'msg-unknown';
+      const attempts = message.attempts || 1;
+      try {
+        const payload = message.body;
+        console.log(\`[Worker:Queue] Processing message \${messageId} (attempt \${attempts}), topic: \${payload?.topic || 'orders/create'}\`);
+
+        if (typeof message.ack === 'function') {
+          await message.ack();
+        }
+      } catch (err) {
+        console.error(\`[Worker:QueueError] Message \${messageId} processing failed:\`, err);
+        if (typeof message.retry === 'function') {
+          const delaySeconds = Math.min(60, 5 * Math.pow(2, Math.max(0, attempts - 1)));
+          await message.retry({ delaySeconds });
+        }
+      }
+    }
+  },
 };
 `;
 
