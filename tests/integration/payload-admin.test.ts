@@ -133,8 +133,15 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.ok(fs.existsSync(workerPath), 'worker.js must exist');
     const worker = (await import(workerPath)).default;
 
+    const mockStmt = {
+      all: async () => ({ results: [], success: true }),
+      run: async () => ({ success: true }),
+      raw: async () => [],
+      bind: () => mockStmt,
+    };
+
     const mockEnv = {
-      DB: { prepare: () => ({ all: () => [] }) },
+      DB: { prepare: () => mockStmt },
       NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
       BUCKET: { get: () => null, put: () => {} },
       ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
@@ -143,11 +150,11 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     };
 
     const collections = [
-      { slug: 'products', title: 'Products', itemMarker: 'The Bushwhack Storm Anorak' },
-      { slug: 'categories', title: 'Categories', itemMarker: 'Apparel' },
-      { slug: 'product-variations', title: 'Product Variations', itemMarker: 'Field Olive — Standard Run' },
-      { slug: 'media', title: 'Media', itemMarker: 'media/bushwhack-storm-anorak/hero.jpeg' },
-      { slug: 'users', title: 'Users', itemMarker: 'admin@chrishop.jacobmiller22.com' },
+      { slug: 'products', title: 'Products' },
+      { slug: 'categories', title: 'Categories' },
+      { slug: 'product_variations', title: 'Product_variations' },
+      { slug: 'media', title: 'Media' },
+      { slug: 'users', title: 'Users' },
     ];
 
     for (const col of collections) {
@@ -156,32 +163,15 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
 
       assert.equal(response.status, 200, `Route /admin/collections/${col.slug} must return 200`);
       assert.match(response.headers.get('content-type') || '', /text\/html/);
+      assert.match(response.headers.get('x-powered-by') || '', /Payload/);
 
       const html = await response.text();
 
-      // Crucial assertion: Must NOT render Administrative Dashboard!
-      assert.ok(!html.includes('Administrative Dashboard'), `Collection route ${col.slug} must NOT render Administrative Dashboard`);
-
-      // Must render collection title
-      assert.ok(html.includes(`<h1 class="payload-page-title">${col.title}</h1>`), `Must render ${col.title} heading`);
-
-      // Must contain breadcrumbs pointing back to Dashboard
-      assert.ok(html.includes('<nav class="payload-breadcrumbs">'), 'Must render breadcrumbs');
-      assert.ok(html.includes('href="/admin"'), 'Breadcrumbs must link to Dashboard');
-      assert.ok(html.includes(col.title), 'Breadcrumbs must include collection title');
-
-      // Must have active class in sidebar navigation
-      assert.ok(
-        html.includes(`href="/admin/collections/${col.slug}" class="payload-nav-link active"`),
-        `Sidebar link for ${col.slug} must have active class`
-      );
-
-      // Must render collection data table and records
-      assert.ok(html.includes('class="payload-table"'), 'Must render data table');
-      assert.ok(html.includes(col.itemMarker), `Must render authentic records containing ${col.itemMarker}`);
-
-      // Must render action buttons (+ Create New)
-      assert.ok(html.includes(`href="/admin/collections/${col.slug}/create"`), 'Must link to Create New view');
+      // Verify authentic HTML document structure and Payload metadata
+      assert.ok(html.includes('<!DOCTYPE html>'), 'Must start with <!DOCTYPE html>');
+      assert.ok(html.includes(`<title>${col.title} - Payload</title>`), `Must contain authentic title for ${col.title}`);
+      assert.ok(html.includes('data-theme'), 'Must contain Payload data-theme attribute');
+      assert.ok(html.includes('/_next/static'), 'Must load authentic Next.js bundles');
     }
   });
 
@@ -189,8 +179,15 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     const workerPath = path.join(rootDir, '.open-next/worker.js');
     const worker = (await import(workerPath)).default;
 
+    const mockStmt = {
+      all: async () => ({ results: [], success: true }),
+      run: async () => ({ success: true }),
+      raw: async () => [],
+      bind: () => mockStmt,
+    };
+
     const mockEnv = {
-      DB: { prepare: () => ({ all: () => [] }) },
+      DB: { prepare: () => mockStmt },
       NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
       BUCKET: { get: () => null, put: () => {} },
       ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
@@ -204,10 +201,9 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.equal(editRes.status, 200);
     const editHtml = await editRes.text();
 
-    assert.ok(!editHtml.includes('Administrative Dashboard'), 'Edit view must not render dashboard');
-    assert.ok(editHtml.includes('Edit Product: bushwhack-storm-anorak'), 'Edit view must display Edit Product heading');
-    assert.ok(editHtml.includes('Save Changes'), 'Must have Save Changes button');
-    assert.ok(editHtml.includes('href="/admin/collections/products"'), 'Must link back to collection');
+    assert.ok(editHtml.includes('<!DOCTYPE html>'));
+    assert.ok(editHtml.includes('<title>Editing - Product - Payload</title>'));
+    assert.match(editRes.headers.get('x-powered-by') || '', /Payload/);
 
     // Test Document Create View
     const createReq = new Request('https://chrishop.jacobmiller22.com/admin/collections/products/create');
@@ -215,8 +211,18 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     assert.equal(createRes.status, 200);
     const createHtml = await createRes.text();
 
-    assert.ok(!createHtml.includes('Administrative Dashboard'), 'Create view must not render dashboard');
-    assert.ok(createHtml.includes('Create New Product'), 'Create view must display Create New heading');
-    assert.ok(createHtml.includes('Save &amp; Publish'), 'Must have Save & Publish button');
+    assert.ok(createHtml.includes('<!DOCTYPE html>'));
+    assert.ok(createHtml.includes('<title>Creating - Product - Payload</title>'));
+    assert.match(createRes.headers.get('x-powered-by') || '', /Payload/);
+  });
+
+  it('should verify deprecation of synthetic HTML mockups in build-worker.ts and worker.js', () => {
+    const buildWorkerContent = fs.readFileSync(path.join(rootDir, 'scripts/build-worker.ts'), 'utf-8');
+    assert.ok(!buildWorkerContent.includes('renderPayloadAdmin'), 'build-worker.ts must not contain renderPayloadAdmin mockup');
+    assert.ok(!buildWorkerContent.includes('PAYLOAD_COLLECTIONS'), 'build-worker.ts must not contain PAYLOAD_COLLECTIONS mock array');
+
+    const workerContent = fs.readFileSync(path.join(rootDir, '.open-next/worker.js'), 'utf-8');
+    assert.ok(!workerContent.includes('renderPayloadAdmin'), 'worker.js must not contain renderPayloadAdmin mockup');
+    assert.ok(!workerContent.includes('PAYLOAD_COLLECTIONS'), 'worker.js must not contain PAYLOAD_COLLECTIONS mock array');
   });
 });

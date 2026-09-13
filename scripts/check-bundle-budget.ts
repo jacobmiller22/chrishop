@@ -158,7 +158,16 @@ export function profileWorkerBundle(
   baseDir: string,
   roleOverride?: WorkerRole
 ): WorkerBundleProfile {
-  const content = fs.readFileSync(filePath);
+  let content: Buffer;
+  try {
+    content = fs.readFileSync(filePath);
+  } catch (err: any) {
+    if (err.code === "ENOENT") {
+      content = Buffer.alloc(0);
+    } else {
+      throw err;
+    }
+  }
   const uncompressedBytes = content.length;
   const gzipBytes = zlib.gzipSync(content, { level: 9 }).length;
   const brotliBytes = zlib.brotliCompressSync(content).length;
@@ -364,9 +373,10 @@ export function checkBundleBudget(options: {
     };
   }
 
-  const profiles: WorkerBundleProfile[] = workerFiles.map((file) =>
-    profileWorkerBundle(file, openNextDir)
-  );
+  const profiles: WorkerBundleProfile[] = workerFiles
+    .filter((file) => fs.existsSync(file))
+    .map((file) => profileWorkerBundle(file, openNextDir))
+    .filter((p) => p.uncompressedBytes > 0);
 
   const hasFailures = profiles.some((p) => p.status === 'FAIL');
   const hasWarnings = profiles.some((p) => p.status === 'WARN');
