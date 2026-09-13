@@ -319,7 +319,7 @@ export default {
         const { handler } = await import("./server-functions/default/handler.mjs");
         return await handler(reqOrResp, env, executionCtx, request.signal);
       });
-    } catch (err: any) {
+    } catch (err) {
       return new Response(
         \`OpenNext Edge Execution Error: \${err?.message || err}\\n\${err?.stack || ""}\`,
         {
