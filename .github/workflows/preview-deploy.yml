@@ -36,13 +36,16 @@ jobs:
       - name: Typecheck & Lint
         run: pnpm run check
 
-      - name: Run Unit & Local In-Memory Integration Tests
-        run: pnpm run test:all
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Unit Tests
+        run: pnpm run test:unit
 
       - name: Build Application
         run: pnpm run build
+
+      - name: Run Local In-Memory Integration Tests
+        run: pnpm run test:integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute Preview Variables
         id: vars
