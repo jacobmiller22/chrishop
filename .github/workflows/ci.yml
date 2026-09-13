@@ -16,7 +16,6 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Target branch (base): ${{ github.base_ref }}"
             echo "Source branch (head): ${{ github.head_ref }}"
-<<<<<<< HEAD
 
             # Prohibit direct PRs targeting legacy 'main'
             if [ "${{ github.base_ref }}" = "main" ]; then
