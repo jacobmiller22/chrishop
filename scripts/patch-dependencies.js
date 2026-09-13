@@ -255,7 +255,7 @@ try {
       if (!content.includes('"node:sqlite":')) {
         content = content.replace(
           '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),',
-          '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
+          '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "node:vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
         );
         modified = true;
       }
@@ -272,10 +272,10 @@ try {
       modified = true;
     }
 
-    if (!content.includes('"node:sqlite":')) {
+    if (!content.includes('"node:vm":')) {
       content = content.replace(
         '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),',
-        '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
+        '"@next/env": path.join(buildOpts.outputDir, "cloudflare-templates/shims/env.js"),\n            "node:sqlite": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "node:vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),\n            "vm": path.join(buildOpts.outputDir, "cloudflare-templates/shims/empty.js"),'
       );
       modified = true;
     }
