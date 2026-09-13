@@ -45,6 +45,9 @@ coverage
 .wrangler/
 worker-configuration.d.ts
 
+# Media staging
+media-staging/
+
 # Terraform
 **/.terraform/
 *.tfstate

@@ -7,7 +7,28 @@
  * Specification: docs/HIGH_LEVEL_DESIGN.md Section 3
  */
 
-import { DatabaseSync } from 'node:sqlite';
+// DatabaseSync is resolved dynamically at runtime to support Node.js local dev while allowing
+// clean Cloudflare Workers (workerd) edge bundling without bundling native C++ node:sqlite.
+export type DatabaseSync = any;
+
+function getDatabaseSyncClass(): any {
+  try {
+    const req =
+      typeof (globalThis as any).__non_webpack_require__ === 'function'
+        ? (globalThis as any).__non_webpack_require__
+        : typeof require !== 'undefined'
+          ? require
+          : null;
+    if (typeof req === 'function') {
+      const mod = req('node:sqlite');
+      return mod ? mod.DatabaseSync : null;
+    }
+  } catch {
+    // node:sqlite is not available in edge runtime (Cloudflare Workers)
+  }
+  return null;
+}
+
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
@@ -97,6 +118,21 @@ export function getDatabase(customPath?: string): DatabaseSync {
     return singletonDb;
   }
 
+  const DatabaseSyncClass = getDatabaseSyncClass();
+  if (!DatabaseSyncClass) {
+    // Return stub for Cloudflare Workers edge environment where native SQLite is not loaded
+    const stubDb = {
+      exec: () => {},
+      prepare: () => ({
+        all: () => [],
+        get: () => null,
+        run: () => ({ changes: 0 }),
+      }),
+    };
+    if (!customPath) singletonDb = stubDb;
+    return stubDb;
+  }
+
   const dbPath =
     customPath ||
     process.env.SQLITE_DB_PATH ||
@@ -104,7 +140,7 @@ export function getDatabase(customPath?: string): DatabaseSync {
 
   try {
     if (fs.existsSync(dbPath)) {
-      const db = new DatabaseSync(dbPath);
+      const db = new DatabaseSyncClass(dbPath);
       db.exec('PRAGMA foreign_keys = ON;');
       if (!customPath) singletonDb = db;
       return db;
@@ -114,7 +150,7 @@ export function getDatabase(customPath?: string): DatabaseSync {
   }
 
   // Fallback in-memory database seeded with baseline catalog
-  const fallbackDb = new DatabaseSync(':memory:');
+  const fallbackDb = new DatabaseSyncClass(':memory:');
   fallbackDb.exec('PRAGMA foreign_keys = ON;');
   ensureSchemaAndBaselineData(fallbackDb);
   if (!customPath) singletonDb = fallbackDb;

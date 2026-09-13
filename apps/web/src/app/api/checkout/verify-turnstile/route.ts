@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractBuyerIp } from '../../../../lib/shopify';
 import { verifyTurnstileToken } from '../../../../lib/turnstile';
 
-export const runtime = 'edge';
-
 export async function POST(request: NextRequest) {
   try {
     const buyerIp = extractBuyerIp(request);

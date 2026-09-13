@@ -48,11 +48,14 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
   addColumnIfNotExists('product_variations', 'variation_images TEXT');
   addColumnIfNotExists('product_variations', 'stock_quantity INTEGER NOT NULL DEFAULT 1');
 
-  // Apply schema migration
-  const migrationPath = path.resolve(process.cwd(), 'migrations/0001_initial.sql');
-  if (fs.existsSync(migrationPath)) {
-    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-    db.exec(migrationSql);
+  // Apply schema migrations
+  const migrationsDir = path.resolve(process.cwd(), 'migrations');
+  if (fs.existsSync(migrationsDir)) {
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+    for (const file of migrationFiles) {
+      const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+      db.exec(migrationSql);
+    }
   }
 
   console.log('🌱 [Seed] Seeding BankBeaters Categories (Depth 2)...');
@@ -802,6 +805,16 @@ export function exportSeedSql(outputPath?: string): string {
     '-- BankBeaters Adventure Gear D1 Seed Script',
     'PRAGMA foreign_keys = ON;',
   ];
+
+  // Include all schema migrations so D1 databases have all tables created
+  const migrationsDir = path.resolve(process.cwd(), 'migrations');
+  if (fs.existsSync(migrationsDir)) {
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+    for (const file of migrationFiles) {
+      lines.push(`-- Schema Migration: ${file}`);
+      lines.push(fs.readFileSync(path.join(migrationsDir, file), 'utf-8'));
+    }
+  }
 
   const categories = memDb.prepare('SELECT * FROM categories ORDER BY parent_id ASC, id ASC').all() as any[];
   for (const c of categories) {

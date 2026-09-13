@@ -14,7 +14,9 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
 
   // Build worker bundle before testing
   before(() => {
-    execSync('pnpm run build:worker', { cwd: rootDir, stdio: 'pipe' });
+    if (!fs.existsSync(workerPath)) {
+      execSync('pnpm run build:worker', { cwd: rootDir, stdio: 'pipe' });
+    }
   });
 
   describe('1. OpenNext Configuration & Bundle Structure', () => {
@@ -45,8 +47,14 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
   describe('2. Deep Semantic Route Content Verification', () => {
     // Import worker entrypoint dynamically
     let worker: any;
+    const mockStmt = {
+      all: async () => ({ results: [], success: true }),
+      run: async () => ({ success: true }),
+      raw: async () => [],
+      bind: () => mockStmt,
+    };
     const mockEnv = {
-      DB: { prepare: () => ({ all: () => [] }) },
+      DB: { prepare: () => mockStmt },
       NEXT_CACHE_WORKERS_KV: { get: () => null, put: () => {} },
       BUCKET: { get: () => null, put: () => {} },
       ASSETS: { fetch: async () => new Response('Asset Not Found', { status: 404 }) },
@@ -152,12 +160,12 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
 
       assert.equal(response.status, 200, 'API route must return HTTP 200');
       assert.match(response.headers.get('content-type') || '', /application\/json/);
+      assert.match(response.headers.get('x-powered-by') || '', /Payload/);
 
       const body = await response.json();
-      assert.equal(body.service, '@chrishop/web');
-      assert.equal(body.runtime, 'cloudflare-workers');
-      assert.equal(body.endpoint, '/api/products');
-      assert.equal(body.status, 'online');
+      assert.ok(Array.isArray(body.docs), 'Payload REST API must return docs array');
+      assert.equal(typeof body.totalDocs, 'number', 'Payload REST API must return totalDocs');
+      assert.equal(typeof body.limit, 'number', 'Payload REST API must return limit');
     });
 
     it('Route 3: Admin (/admin) must serve Payload CMS v3 Administrative Panel with deep markers', async () => {
@@ -170,32 +178,18 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
         /text\/html/,
         'Content-Type must be text/html'
       );
+      assert.match(response.headers.get('x-powered-by') || '', /Payload/);
 
       const html = await response.text();
 
-      // Deep verification of Payload CMS administrative markers (NOT just 200 OK)
+      // Deep verification of authentic Payload CMS administrative markers (NOT synthetic mockup)
       assert.ok(html.includes('<!DOCTYPE html>'), 'Must start with <!DOCTYPE html>');
-      assert.ok(html.includes('Payload Admin'), 'Must contain Payload Admin title');
       assert.ok(
-        html.includes('Payload CMS') || html.includes('payload-admin'),
-        'Must contain Payload CMS admin markers'
+        html.includes('Dashboard - Payload') || html.includes('Payload'),
+        'Must contain authentic Payload title or header'
       );
-      assert.ok(
-        html.includes('Administrative Dashboard'),
-        'Must contain Administrative Dashboard heading'
-      );
-      assert.ok(
-        html.includes('Products') && html.includes('Categories') && html.includes('Media'),
-        'Must contain Payload content collection links'
-      );
-      assert.ok(
-        html.includes('Cloudflare D1') || html.includes('v3.'),
-        'Must reference Payload CMS version or D1 database'
-      );
-      assert.ok(
-        html.includes('__PAYLOAD_ADMIN_LOADED__'),
-        'Must include Payload admin script initialization hook'
-      );
+      assert.ok(html.includes('data-theme'), 'Must contain Payload data-theme attribute');
+      assert.ok(html.includes('/_next/static'), 'Must load authentic Next.js bundles');
     });
 
     it('Route 4: Static assets bridge must delegate to env.ASSETS', async () => {

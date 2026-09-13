@@ -16,7 +16,6 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Target branch (base): ${{ github.base_ref }}"
             echo "Source branch (head): ${{ github.head_ref }}"
-
             # Prohibit direct PRs targeting legacy 'main'
             if [ "${{ github.base_ref }}" = "main" ]; then
               echo "❌ ERROR: Pull requests targeting legacy 'main' are strictly prohibited."
@@ -42,6 +41,7 @@ jobs:
               echo "Please retarget your pull request to 'staging' using: gh pr edit <PR_NUMBER> --base staging"
               exit 1
             fi
+
             echo "✅ Promotion rule check passed (Base: ${{ github.base_ref }}, Head: ${{ github.head_ref }})."
           else
             echo "Push event on ref: ${{ github.ref }}. Promotion check satisfied."
@@ -84,13 +84,13 @@ jobs:
       - name: Run Unit Tests
         run: pnpm run test:unit
 
+      - name: Build Monorepo Workspaces
+        run: pnpm run build
+
       - name: Run Local In-Memory Integration Tests
         run: pnpm run test:integration
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Monorepo Workspaces
-        run: pnpm run build
 
       - name: Check Worker Bundle Size Budget Gate
         run: pnpm run check:bundle

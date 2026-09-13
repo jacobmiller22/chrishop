@@ -15,17 +15,67 @@ const dirname = path.dirname(filename);
 
 /**
  * Cloudflare D1 Database Binding Resolver
- * Resolves process.env.DB or globalThis.DB provided by Cloudflare Workers / Miniflare,
- * falling back to an empty mock object during build and static typecheck.
+ * Resolves process.env.DB, globalThis.DB, or Cloudflare context provided by
+ * Cloudflare Workers / Miniflare, falling back to a resilient proxy during
+ * build and static typecheck so drizzle/payload never encounters an undefined client.
  */
 export const getD1Binding = (): any => {
-  if (typeof process !== 'undefined' && process.env?.DB) {
-    return process.env.DB;
-  }
-  if (typeof globalThis !== 'undefined' && (globalThis as any).DB) {
-    return (globalThis as any).DB;
-  }
-  return {};
+  return new Proxy({} as any, {
+    get(target, prop, receiver) {
+      // 1. Resolve active live D1 binding
+      const activeDb =
+        (typeof globalThis !== 'undefined' && (globalThis as any).DB) ||
+        (typeof globalThis !== 'undefined' &&
+          (globalThis as any)[Symbol.for('__cloudflare-context__')]?.env?.DB) ||
+        (typeof process !== 'undefined' && (process.env as any)?.DB);
+
+      if (activeDb && typeof activeDb[prop] !== 'undefined') {
+        const val = Reflect.get(activeDb, prop, receiver);
+        return typeof val === 'function' ? val.bind(activeDb) : val;
+      }
+
+      // 2. Safe fallback during build / static analysis / standalone initialization
+      if (prop === 'prepare') {
+        return (_sql: string) => {
+          return {
+            bind: (..._params: any[]) => ({
+              all: async () => ({ results: [], success: true, meta: {} }),
+              first: async () => null,
+              run: async () => ({ success: true, meta: { changes: 0 } }),
+              raw: async () => [],
+            }),
+            all: async () => ({ results: [], success: true, meta: {} }),
+            first: async () => null,
+            run: async () => ({ success: true, meta: { changes: 0 } }),
+            raw: async () => [],
+          };
+        };
+      }
+
+      if (prop === 'batch') {
+        return async (statements: any[]) => {
+          return statements.map(() => ({ results: [], success: true, meta: {} }));
+        };
+      }
+
+      if (prop === 'exec') {
+        return async (_query: string) => {
+          return { count: 0, duration: 0 };
+        };
+      }
+
+      if (prop === 'withSession') {
+        return () => receiver;
+      }
+
+      if (activeDb) {
+        const val = Reflect.get(activeDb, prop, receiver);
+        return typeof val === 'function' ? val.bind(activeDb) : val;
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 };
 
 // Export alias for consistency with DEP_PAYLOAD_CMS.md and HLD Section 3.2
@@ -52,8 +102,10 @@ export const getS3StorageConfig = () => {
   const accessKeyId = process.env.R2_ACCESS_KEY_ID || '';
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || '';
   const bucketName = process.env.R2_BUCKET_NAME || 'chrishop-media';
+  const enabled = Boolean(endpoint && accessKeyId && secretAccessKey);
 
   return s3Storage({
+    enabled,
     collections: {
       media: {
         // Disable Payload's built-in prefix to use bucket root path structure
@@ -92,6 +144,7 @@ export default buildConfig({
   editor: lexicalEditor(),
   db: sqliteD1Adapter({
     binding: getD1Binding(),
+    push: false,
   }),
   plugins: [
     // Cloudflare R2 S3-compatible media storage adapter
