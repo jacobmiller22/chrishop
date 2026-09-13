@@ -55,6 +55,20 @@ export function buildWorker(): void {
     console.log('  ✔ Synchronized OpenNext build artifacts to root .open-next');
   }
 
+  // Ensure OpenNext require-hook shim is applied to Next 16 server bundle on Cloudflare Workers
+  const handlerFile = path.join(openNextDir, 'server-functions/default/apps/web/handler.mjs');
+  if (fs.existsSync(handlerFile)) {
+    let handlerContent = fs.readFileSync(handlerFile, 'utf-8');
+    if (handlerContent.includes('require_require_hook()')) {
+      handlerContent = handlerContent.replace(
+        'require_require_hook()',
+        '/* OpenNext require-hook edge shim */ void 0'
+      );
+      fs.writeFileSync(handlerFile, handlerContent, 'utf-8');
+      console.log('  ✔ Applied OpenNext edge require-hook shim to server handler');
+    }
+  }
+
   // Ensure open-next.config.mjs is present at root of .open-next for direct relative imports
   const buildConfigMjs = path.join(openNextDir, '.build/open-next.config.mjs');
   const middlewareConfigMjs = path.join(openNextDir, 'middleware/open-next.config.mjs');
