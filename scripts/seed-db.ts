@@ -10,6 +10,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const DB_PATH = process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '.wrangler/state/v3/d1/local.sqlite');
 
@@ -17,6 +18,7 @@ export interface SeedResult {
   categoriesCount: number;
   productsCount: number;
   variationsCount: number;
+  usersCount?: number;
 }
 
 export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
@@ -778,16 +780,54 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
     );
   }
 
+  // ─── ADMINISTRATIVE USERS (PAYLOAD CMS V3) ──────────────────────────────────
+  console.log('\n🌱 [Seed] Seeding Administrative Users...');
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'Password123!';
+
+  // Payload CMS password hashing: PBKDF2 with sha256, 25000 iterations, 512 bytes
+  const hashPassword = (password: string, salt: string): string => {
+    return crypto.pbkdf2Sync(password, salt, 25000, 512, 'sha256').toString('hex');
+  };
+
+  // Deterministic salts for reproducible and idempotent seeds
+  const adminUsers = [
+    {
+      email: 'admin@chrishop.jacobmiller22.com',
+      salt: 'c1a06a0901e959b85c138be789f2a243292415175960098dfc38481352467d1a',
+    },
+    {
+      email: 'chris@chrishop.jacobmiller22.com',
+      salt: 'f3b18d2209e848a74d227cf678e1b132181304064859987ceb27370241356e0b',
+    },
+  ];
+
+  const insertUser = db.prepare(`
+    INSERT INTO users (email, salt, hash, login_attempts, created_at, updated_at)
+    VALUES (?, ?, ?, 0, datetime('now'), datetime('now'))
+    ON CONFLICT(email) DO UPDATE SET
+      salt=excluded.salt,
+      hash=excluded.hash,
+      updated_at=excluded.updated_at;
+  `);
+
+  for (const u of adminUsers) {
+    const hash = hashPassword(defaultPassword, u.salt);
+    insertUser.run(u.email, u.salt, hash);
+    console.log(`  Processed admin user: ${u.email}`);
+  }
+
   console.log('\n🎉 BankBeaters Adventure Gear database seed completed successfully!');
   console.log(`Summary:`);
   console.log(`  - Categories: ${categories.length} (Depth 2 Hierarchy)`);
   console.log(`  - Products: ${products.length} (Hand-Sewn Silhouettes)`);
-  console.log(`  - Product Variations: ${variations.length} (Standard + Micro-Batches)\n`);
+  console.log(`  - Product Variations: ${variations.length} (Standard + Micro-Batches)`);
+  console.log(`  - Administrative Users: ${adminUsers.length}\n`);
 
   return {
     categoriesCount: categories.length,
     productsCount: products.length,
     variationsCount: variations.length,
+    usersCount: adminUsers.length,
   };
 }
 
@@ -840,6 +880,14 @@ export function exportSeedSql(outputPath?: string): string {
   for (const v of variations) {
     lines.push(
       `INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES (${escapeVal(v.id)}, ${escapeVal(v.product_id)}, ${escapeVal(v.shopify_variant_id)}, ${escapeVal(v.variation_name)}, ${escapeVal(v.sku)}, ${escapeVal(v.variation_type)}, ${escapeVal(v.edition_badge)}, ${escapeVal(v.variation_notes)}, ${escapeVal(v.variation_images)}, ${escapeVal(v.price_override)}, ${escapeVal(v.is_limited_edition)}, ${escapeVal(v.total_edition_count)}, ${escapeVal(v.stock_quantity)}, ${escapeVal(v.release_date)}, ${escapeVal(v.status)}) ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;`
+    );
+  }
+
+  lines.push('-- Administrative Users (Payload CMS v3)');
+  const users = memDb.prepare('SELECT * FROM users ORDER BY id ASC').all() as any[];
+  for (const u of users) {
+    lines.push(
+      `INSERT INTO users (email, salt, hash, login_attempts, created_at, updated_at) VALUES (${escapeVal(u.email)}, ${escapeVal(u.salt)}, ${escapeVal(u.hash)}, 0, ${escapeVal(u.created_at)}, ${escapeVal(u.updated_at)}) ON CONFLICT(email) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, updated_at=excluded.updated_at;`
     );
   }
 
