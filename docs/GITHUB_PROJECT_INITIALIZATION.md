@@ -1,4 +1,4 @@
-# GitHub Project Setup & Issue Population Guide (`docs/PROJECT_SETUP.md`)
+# GitHub Project Setup & Issue Population Guide (`docs/GITHUB_PROJECT_INITIALIZATION.md`)
 
 This document provides exact, agentic instructions for setting up the GitHub Project v2 board, Milestones, Labels, custom Project fields, and populating all user stories/issues for the **ChrisShop** monorepo.
 

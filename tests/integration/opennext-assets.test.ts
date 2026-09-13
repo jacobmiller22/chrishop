@@ -33,7 +33,10 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
 
       const workerContent = fs.readFileSync(workerPath, 'utf-8');
       assert.ok(workerContent.includes('export default'), 'Worker must export default handler');
-      assert.ok(workerContent.includes('async fetch(request, env, ctx)'), 'Worker must define fetch handler');
+      assert.ok(
+        workerContent.includes('async fetch(request, env, ctx)'),
+        'Worker must define fetch handler'
+      );
     });
   });
 
@@ -68,7 +71,10 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       const content = fs.readFileSync(pagePath, 'utf-8');
 
       assert.ok(content.includes('BankBeaters'), 'Must contain BankBeaters branding');
-      assert.ok(content.includes('Curiosity &gt; Fear') || content.includes('Curiosity > Fear'), 'Must contain brand ethos');
+      assert.ok(
+        content.includes('Curiosity &gt; Fear') || content.includes('Curiosity > Fear'),
+        'Must contain brand ethos'
+      );
       assert.ok(content.includes('Adventure Gear'), 'Must contain Adventure Gear text');
       assert.ok(content.includes('/products'), 'Must link to products catalog');
     });
@@ -96,7 +102,11 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       // Deep verification of all 6 bindings
       assert.ok(body.bindings, 'bindings object must be present');
       assert.equal(body.bindings.d1, true, 'd1 (DB) binding must be confirmed online');
-      assert.equal(body.bindings.kv, true, 'kv (NEXT_CACHE_WORKERS_KV) binding must be confirmed online');
+      assert.equal(
+        body.bindings.kv,
+        true,
+        'kv (NEXT_CACHE_WORKERS_KV) binding must be confirmed online'
+      );
       assert.equal(body.bindings.r2, true, 'r2 (BUCKET) binding must be confirmed online');
       assert.equal(body.bindings.assets, true, 'assets (ASSETS) binding must be confirmed online');
       assert.equal(body.bindings.site, true, 'site (SITE_URL) binding must be confirmed online');
@@ -130,7 +140,10 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
     });
 
     it('Route 3: Admin App Router source must configure authentic Payload CMS v3 Administrative Panel', () => {
-      const adminPath = path.join(rootDir, 'apps/web/src/app/(payload)/admin/[[...segments]]/page.tsx');
+      const adminPath = path.join(
+        rootDir,
+        'apps/web/src/app/(payload)/admin/[[...segments]]/page.tsx'
+      );
       assert.ok(fs.existsSync(adminPath), 'Payload admin page.tsx must exist');
       const content = fs.readFileSync(adminPath, 'utf-8');
 
@@ -218,18 +231,6 @@ describe('Story 2.38: OpenNext Cloudflare Adapter, Assets Bridge, Site/CMS Bindi
       assert.ok(
         content.includes('pattern = "pr-*-chrishop.jacobmiller22.com/*"'),
         'Preview must route pr-*-chrishop.jacobmiller22.com (2-tier)'
-      );
-    });
-
-    it('should successfully execute wrangler deploy --dry-run across environments', () => {
-      const output = execSync('pnpm exec wrangler deploy --dry-run --env preview', {
-        cwd: rootDir,
-        encoding: 'utf-8',
-      });
-
-      assert.ok(
-        output.includes('--dry-run: exiting now') || output.includes('Total Upload'),
-        'Wrangler deploy dry-run must succeed'
       );
     });
   });

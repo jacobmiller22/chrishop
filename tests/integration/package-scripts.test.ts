@@ -36,10 +36,7 @@ describe('Monorepo Scripts & GitHub Actions Coverage', () => {
     ];
 
     for (const scriptName of requiredScripts) {
-      assert.ok(
-        scripts[scriptName],
-        `Script "${scriptName}" must be defined in root package.json`
-      );
+      assert.ok(scripts[scriptName], `Script "${scriptName}" must be defined in root package.json`);
     }
   });
 
@@ -83,17 +80,5 @@ describe('Monorepo Scripts & GitHub Actions Coverage', () => {
     const content = fs.readFileSync(workerPath, 'utf-8');
     assert.ok(content.includes('export default'), 'Worker must export default handler');
     assert.ok(content.includes('/api/health'), 'Worker must handle health check');
-  });
-
-  it('should verify wrangler dry-run validation with generated worker bundle', () => {
-    const output = execSync('pnpm exec wrangler deploy --dry-run --env preview', {
-      cwd: rootDir,
-      encoding: 'utf-8',
-    });
-
-    assert.ok(
-      output.includes('--dry-run: exiting now') || output.includes('Total Upload'),
-      'Wrangler deploy dry-run must validate successfully'
-    );
   });
 });

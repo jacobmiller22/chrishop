@@ -3,67 +3,19 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 
 describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)', () => {
   let db: DatabaseSync;
+  const migrationSql = fs.readFileSync(
+    path.resolve(__dirname, '../../migrations/0001_initial.sql'),
+    'utf-8'
+  );
 
   beforeEach(() => {
     // Create an ephemeral in-memory SQLite database matching D1 runtime semantics
     db = new DatabaseSync(':memory:');
-
-    // Apply D1 Content Schema per docs/deps/DEP_CLOUDFLARE_D1.md
-    db.exec(`
-      CREATE TABLE categories (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        slug TEXT NOT NULL UNIQUE,
-        parent_id TEXT,
-        description TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
-      );
-
-      CREATE TABLE products (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        slug TEXT NOT NULL UNIQUE,
-        description TEXT,
-        maker_field_notes TEXT,
-        materials TEXT,
-        weight TEXT,
-        fit_profile TEXT,
-        origin TEXT,
-        base_price REAL NOT NULL,
-        status TEXT NOT NULL DEFAULT 'draft',
-        category_id TEXT,
-        shopify_product_id TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-      );
-
-      CREATE TABLE product_variations (
-        id TEXT PRIMARY KEY,
-        product_id TEXT NOT NULL,
-        sku TEXT NOT NULL UNIQUE,
-        variation_name TEXT NOT NULL,
-        variation_type TEXT NOT NULL DEFAULT 'standard',
-        edition_badge TEXT,
-        variation_notes TEXT,
-        variation_images TEXT,
-        price_override REAL,
-        stock_quantity INTEGER NOT NULL DEFAULT 0,
-        shopify_variant_id TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-      );
-
-      -- Mandatory Query Indexes per DEP_CLOUDFLARE_D1.md Section 3
-      CREATE INDEX idx_products_slug ON products(slug);
-      CREATE INDEX idx_products_shopify_id ON products(shopify_product_id);
-      CREATE INDEX idx_product_variations_sku ON product_variations(sku);
-      CREATE INDEX idx_product_variations_product_id ON product_variations(product_id);
-      CREATE INDEX idx_categories_parent_id ON categories(parent_id);
-    `);
+    db.exec(migrationSql);
   });
 
   it('should verify all required D1 tables are created in ephemeral SQLite', () => {
@@ -95,10 +47,7 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
       indexes.includes('idx_product_variations_product_id'),
       'idx_product_variations_product_id must exist'
     );
-    assert.ok(
-      indexes.includes('idx_categories_parent_id'),
-      'idx_categories_parent_id must exist'
-    );
+    assert.ok(indexes.includes('idx_categories_parent_id'), 'idx_categories_parent_id must exist');
   });
 
   it('should execute relational insert, query, and join operations', () => {
@@ -332,10 +281,7 @@ describe('Cloudflare D1 Local In-Memory Database Integration (DEP_CLOUDFLARE_D1)
       'idx_product_variations_product_id must exist'
     );
     assert.ok(indexes.includes('idx_categories_slug'), 'idx_categories_slug must exist');
-    assert.ok(
-      indexes.includes('idx_categories_parent_id'),
-      'idx_categories_parent_id must exist'
-    );
+    assert.ok(indexes.includes('idx_categories_parent_id'), 'idx_categories_parent_id must exist');
   });
 
   it('should verify wrangler.toml D1 database bindings for staging and production', () => {

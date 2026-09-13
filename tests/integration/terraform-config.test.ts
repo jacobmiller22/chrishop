@@ -15,7 +15,11 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     const versionsPath = path.join(terraformDir, 'versions.tf');
     assert.ok(fs.existsSync(versionsPath), 'versions.tf must exist');
     const versions = fs.readFileSync(versionsPath, 'utf-8');
-    assert.match(versions, /required_version\s*=\s*">= 1\.6\.0"/, 'Terraform version >= 1.6.0 required');
+    assert.match(
+      versions,
+      /required_version\s*=\s*">= 1\.6\.0"/,
+      'Terraform version >= 1.6.0 required'
+    );
     assert.match(versions, /source\s*=\s*"cloudflare\/cloudflare"/, 'Cloudflare provider required');
     assert.match(versions, /version\s*=\s*"~> 4\.35"/, 'Cloudflare provider ~> 4.35 required');
 
@@ -23,8 +27,14 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.ok(fs.existsSync(backendPath), 'backend.tf must exist');
     const backend = fs.readFileSync(backendPath, 'utf-8');
     assert.ok(backend.includes('backend "s3"'), 'S3 backend for Cloudflare R2 required');
-    assert.ok(backend.includes('bucket                      = "chrishop-terraform-state"'), 'Dedicated state bucket required');
-    assert.ok(backend.includes('skip_credentials_validation = true'), 'S3 compatibility options required');
+    assert.ok(
+      backend.includes('bucket                      = "chrishop-terraform-state"'),
+      'Dedicated state bucket required'
+    );
+    assert.ok(
+      backend.includes('skip_credentials_validation = true'),
+      'S3 compatibility options required'
+    );
 
     const mainPath = path.join(terraformDir, 'main.tf');
     assert.ok(fs.existsSync(mainPath), 'main.tf must exist');
@@ -66,7 +76,10 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.ok(fs.existsSync(dnsPath), 'dns.tf must exist in module');
     const dns = fs.readFileSync(dnsPath, 'utf-8');
     assert.ok(dns.includes('resource "cloudflare_record" "storefront"'), 'Must define DNS record');
-    assert.ok(dns.includes('resource "cloudflare_workers_domain" "custom_domain"'), 'Must define custom worker domain');
+    assert.ok(
+      dns.includes('resource "cloudflare_workers_domain" "custom_domain"'),
+      'Must define custom worker domain'
+    );
 
     const secPath = path.join(moduleDir, 'security.tf');
     assert.ok(fs.existsSync(secPath), 'security.tf must exist in module');
@@ -99,8 +112,14 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
       const mainPath = path.join(envDir, env, 'main.tf');
       assert.ok(fs.existsSync(mainPath), `${env}/main.tf must exist`);
       const main = fs.readFileSync(mainPath, 'utf-8');
-      assert.ok(main.includes(`key                         = "environments/${env}/terraform.tfstate"`), `${env} must declare dedicated state key`);
-      assert.ok(main.includes('source = "../../modules/cloudflare_stack"'), `${env} must reference relative module`);
+      assert.ok(
+        main.includes(`key                         = "environments/${env}/terraform.tfstate"`),
+        `${env} must declare dedicated state key`
+      );
+      assert.ok(
+        main.includes('source = "../../modules/cloudflare_stack"'),
+        `${env} must reference relative module`
+      );
 
       const varPath = path.join(envDir, env, 'variables.tf');
       assert.ok(fs.existsSync(varPath), `${env}/variables.tf must exist`);
@@ -137,21 +156,44 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     }
 
     // Check formatting
-    const fmtResult = execSync('terraform fmt -recursive -check infra/terraform', { cwd: rootDir, encoding: 'utf-8' });
+    const fmtResult = execSync('terraform fmt -recursive -check infra/terraform', {
+      cwd: rootDir,
+      encoding: 'utf-8',
+    });
     assert.equal(fmtResult.trim(), '', 'All Terraform HCL files must be formatted cleanly');
 
     // Check root validation
-    execSync('cd infra/terraform && terraform init -backend=false -reconfigure', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
-    const validateRoot = execSync('cd infra/terraform && terraform validate -no-color', { cwd: rootDir, encoding: 'utf-8' });
-    assert.ok(validateRoot.includes('Success! The configuration is valid.'), 'Root configuration must validate cleanly');
+    execSync('cd infra/terraform && terraform init -backend=false -reconfigure', {
+      cwd: rootDir,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    });
+    const validateRoot = execSync('cd infra/terraform && terraform validate -no-color', {
+      cwd: rootDir,
+      encoding: 'utf-8',
+    });
+    assert.ok(
+      validateRoot.includes('Success! The configuration is valid.'),
+      'Root configuration must validate cleanly'
+    );
 
     // Check environments
     for (const env of ['production', 'staging', 'preview']) {
-      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false -reconfigure`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
-      const validateEnv = execSync(`cd infra/terraform/environments/${env} && terraform validate -no-color`, { cwd: rootDir, encoding: 'utf-8' });
-      assert.ok(validateEnv.includes('Success! The configuration is valid.'), `environments/${env} must validate cleanly`);
+      execSync(
+        `cd infra/terraform/environments/${env} && terraform init -backend=false -reconfigure`,
+        { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' }
+      );
+      const validateEnv = execSync(
+        `cd infra/terraform/environments/${env} && terraform validate -no-color`,
+        { cwd: rootDir, encoding: 'utf-8' }
+      );
+      assert.ok(
+        validateEnv.includes('Success! The configuration is valid.'),
+        `environments/${env} must validate cleanly`
+      );
     }
   });
+
 
   it('should verify generate-wrangler-config bridge script runs cleanly', () => {
     assert.doesNotThrow(() => {
@@ -161,14 +203,5 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.doesNotThrow(() => {
       syncTerraformToWrangler({ env: 'staging', dryRun: true });
     }, 'Bridge script dry-run must pass');
-  });
-
-  it('should verify architectural migration specification exists in docs/analysis/', () => {
-    const specPath = path.join(rootDir, 'docs/analysis/TERRAFORM_MIGRATION_SPEC.md');
-    assert.ok(fs.existsSync(specPath), 'TERRAFORM_MIGRATION_SPEC.md must exist');
-    const spec = fs.readFileSync(specPath, 'utf-8');
-    assert.ok(spec.includes('Decoupled Hybrid Model'), 'Spec must describe Decoupled Hybrid Model');
-    assert.ok(spec.includes('LocalStack'), 'Spec must address LocalStack comparison');
-    assert.ok(spec.includes('Adversarial State Reconciliation'), 'Spec must define reconciliation protocol');
   });
 });

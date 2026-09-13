@@ -47,6 +47,7 @@ worker-configuration.d.ts
 
 # Media staging
 media-staging/
+product-catalog-staging/
 
 # Terraform
 **/.terraform/
@@ -62,6 +63,3 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
-
-# Media staging
-media-staging/

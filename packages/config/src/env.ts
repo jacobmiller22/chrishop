@@ -51,18 +51,15 @@ export const serverEnvSchema = z.object({
   // Channel-Agnostic Transactional Email & Operational Alert Credentials
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_FROM_EMAIL: z.string().optional(),
-  MERCHANT_ALERT_EMAIL: z.string().email('MERCHANT_ALERT_EMAIL must be a valid email address').optional(),
+  MERCHANT_ALERT_EMAIL: z
+    .string()
+    .email('MERCHANT_ALERT_EMAIL must be a valid email address')
+    .optional(),
   OPS_ALERT_WEBHOOK_URL: z.string().url('OPS_ALERT_WEBHOOK_URL must be a valid URL').optional(),
 
   // Legacy / Deprecated Notification Credentials (retained for backward compatibility)
   /** @deprecated Use RESEND_FROM_EMAIL instead */
   EMAIL_FROM: z.string().optional(),
-  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
-  DISCORD_WEBHOOK_URL: z.string().url('DISCORD_WEBHOOK_URL must be a valid URL').optional(),
-  /** @deprecated Use OPS_ALERT_WEBHOOK_URL or MERCHANT_ALERT_EMAIL instead */
-  DISCORD_WEBHOOK_ORDERS: z.string().url('DISCORD_WEBHOOK_ORDERS must be a valid URL').optional(),
-  /** @deprecated Use OPS_ALERT_WEBHOOK_URL instead */
-  DISCORD_WEBHOOK_ALERTS: z.string().url('DISCORD_WEBHOOK_ALERTS must be a valid URL').optional(),
 
   // Feature Flag Configurations (ADR-001)
   FLAG_IS_DROP_ACTIVE: z.coerce.boolean().optional(),
