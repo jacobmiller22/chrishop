@@ -477,8 +477,8 @@ Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitH
 - **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
 - **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
 - **Staging Edge API Health Probe**: [https://staging-chrishop.jacobmiller22.com/api/health](https://staging-chrishop.jacobmiller22.com/api/health)
-- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com)
-- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin)
+- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com) *(Active during PR review; decommissioned upon merge)*
+- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin) *(Active during PR review; decommissioned upon merge)*
 - **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
 - **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`status:completed` · Open awaiting PR merge / Closed if PR merged)
 - **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)

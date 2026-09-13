@@ -228,6 +228,44 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('pr-${PR_NUM}-chrishop.jacobmiller22.com'), 'Must construct preview URL');
   });
 
+  it('should verify ephemeral PR preview teardown workflow destroys stack on all closed PRs', () => {
+    const teardownWorkflowPath = path.join(rootDir, '.github/workflows/preview-teardown.yml');
+    assert.ok(fs.existsSync(teardownWorkflowPath), 'preview-teardown.yml must exist');
+    const content = fs.readFileSync(teardownWorkflowPath, 'utf-8');
+
+    // Trigger on closed PRs
+    assert.ok(content.includes('pull_request:'), 'Must trigger on pull_request');
+    assert.ok(content.includes('types: [closed]'), 'Must trigger on closed');
+
+    // Deletion steps
+    assert.ok(content.includes('wrangler-action@v3'), 'Must use wrangler-action for teardown');
+    assert.ok(content.includes('delete --name chrishop-preview-pr-'), 'Must delete preview worker script');
+    assert.ok(content.includes('terraform destroy -auto-approve'), 'Must destroy Terraform preview state');
+
+    // Must NOT be restricted to unmerged PRs only
+    assert.ok(
+      !content.includes('github.event.pull_request.merged == false'),
+      'Teardown must execute for both merged and unmerged PRs (no merged == false gate)'
+    );
+
+    // PR comment update
+    assert.ok(content.includes('Comment Teardown Status on PR'), 'Must post teardown status to PR');
+  });
+
+  it('should verify preview cleanup workflow and script configuration', () => {
+    const cleanupWorkflowPath = path.join(rootDir, '.github/workflows/preview-cleanup.yml');
+    assert.ok(fs.existsSync(cleanupWorkflowPath), 'preview-cleanup.yml must exist');
+    const workflowContent = fs.readFileSync(cleanupWorkflowPath, 'utf-8');
+
+    assert.ok(workflowContent.includes('schedule:'), 'Must configure scheduled cron');
+    assert.ok(workflowContent.includes('workflow_dispatch:'), 'Must configure workflow_dispatch');
+    assert.ok(workflowContent.includes('preview:cleanup'), 'Must invoke preview:cleanup script');
+
+    const pkgJsonPath = path.join(rootDir, 'package.json');
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    assert.ok(pkgJson.scripts['preview:cleanup'], 'package.json must declare preview:cleanup script');
+  });
+
   it('should verify wrangler CLI supports local emulation dev command', () => {
     const output = execSync('pnpm exec wrangler dev --help', { cwd: rootDir, encoding: 'utf-8' });
     assert.ok(output.includes('wrangler dev'), 'Wrangler CLI must support dev command');

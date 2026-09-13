@@ -90,3 +90,14 @@ jobs:
 
       - name: Build Monorepo Workspaces
         run: pnpm run build
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Validate Terraform Configuration & Formatting
+        run: |
+          terraform fmt -recursive -check infra/terraform
+          cd infra/terraform && terraform init -backend=false && terraform validate -no-color
+
