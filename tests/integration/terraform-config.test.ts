@@ -45,17 +45,21 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.ok(fs.existsSync(d1Path), 'd1.tf must exist in module');
     const d1 = fs.readFileSync(d1Path, 'utf-8');
     assert.ok(d1.includes('resource "cloudflare_d1_database" "primary"'), 'Must define D1 database resource');
-    assert.ok(d1.includes('name       = "chrishop-${var.environment}-db"'), 'D1 DB name must follow tier pattern');
+    assert.ok(d1.includes('name       = local.d1_database_name'), 'D1 DB name must reference local.d1_database_name');
+    assert.ok(d1.includes('chrishop-preview-pr-${var.pr_number}-db'), 'Must support isolated per-PR database naming');
 
     const kvPath = path.join(moduleDir, 'kv.tf');
     assert.ok(fs.existsSync(kvPath), 'kv.tf must exist in module');
     const kv = fs.readFileSync(kvPath, 'utf-8');
     assert.ok(kv.includes('resource "cloudflare_workers_kv_namespace" "cache"'), 'Must define KV cache namespace');
+    assert.ok(kv.includes('title      = local.kv_namespace_title'), 'KV title must reference local.kv_namespace_title');
+    assert.ok(kv.includes('NEXT_CACHE_WORKERS_KV_PREVIEW_PR_${var.pr_number}'), 'Must support isolated per-PR KV naming');
 
     const r2Path = path.join(moduleDir, 'r2.tf');
     assert.ok(fs.existsSync(r2Path), 'r2.tf must exist in module');
     const r2 = fs.readFileSync(r2Path, 'utf-8');
     assert.ok(r2.includes('resource "cloudflare_r2_bucket" "media"'), 'Must define R2 bucket resource');
+    assert.ok(r2.includes('count      = var.manage_shared_resources ? 1 : 0'), 'R2 bucket must be guarded by manage_shared_resources');
     assert.ok(r2.includes('location   = "ENAM"'), 'Location must be ENAM');
 
     const dnsPath = path.join(moduleDir, 'dns.tf');
@@ -68,10 +72,30 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.ok(fs.existsSync(secPath), 'security.tf must exist in module');
     const sec = fs.readFileSync(secPath, 'utf-8');
     assert.ok(sec.includes('resource "cloudflare_turnstile_widget" "checkout"'), 'Must define Turnstile widget');
+    assert.ok(sec.includes('count      = var.manage_shared_resources ? 1 : 0'), 'Turnstile widget must be guarded by manage_shared_resources');
+
+    const varPath = path.join(moduleDir, 'variables.tf');
+    assert.ok(fs.existsSync(varPath), 'variables.tf must exist in module');
+    const vars = fs.readFileSync(varPath, 'utf-8');
+    assert.ok(vars.includes('variable "manage_shared_resources"'), 'Must define manage_shared_resources variable');
+    assert.ok(vars.includes('variable "pr_number"'), 'Must define pr_number variable');
+  });
+
+  it('should verify Story 2.51: Ephemeral PR Preview isolation and shared resource preservation', () => {
+    const previewMainPath = path.join(envDir, 'preview/main.tf');
+    assert.ok(fs.existsSync(previewMainPath), 'preview/main.tf must exist');
+    const previewMain = fs.readFileSync(previewMainPath, 'utf-8');
+    assert.ok(previewMain.includes('pr_number               = var.pr_number'), 'Must pass pr_number to module');
+    assert.ok(previewMain.includes('manage_shared_resources = var.pr_number == ""'), 'Must exclude shared resources when pr_number is set');
+
+    const previewOutputsPath = path.join(moduleDir, 'outputs.tf');
+    assert.ok(fs.existsSync(previewOutputsPath), 'outputs.tf must exist');
+    const outputs = fs.readFileSync(previewOutputsPath, 'utf-8');
+    assert.ok(outputs.includes('var.manage_shared_resources ? cloudflare_r2_bucket.media[0].name : "chrishop-media-${var.environment}"'), 'r2_bucket_name must safely fallback when manage_shared_resources is false');
   });
 
   it('should verify production, staging, and preview environment configurations', () => {
-    for (const env of ['production', 'staging', 'preview']) {
+    for (const env of ['production', 'staging']) {
       const mainPath = path.join(envDir, env, 'main.tf');
       assert.ok(fs.existsSync(mainPath), `${env}/main.tf must exist`);
       const main = fs.readFileSync(mainPath, 'utf-8');
@@ -84,6 +108,18 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
       const outPath = path.join(envDir, env, 'outputs.tf');
       assert.ok(fs.existsSync(outPath), `${env}/outputs.tf must exist`);
     }
+
+    const previewMainPath = path.join(envDir, 'preview', 'main.tf');
+    assert.ok(fs.existsSync(previewMainPath), 'preview/main.tf must exist');
+    const previewMain = fs.readFileSync(previewMainPath, 'utf-8');
+    assert.ok(previewMain.includes('backend "local"'), 'preview must declare local backend for wrangler R2 state sync');
+    assert.ok(previewMain.includes('source = "../../modules/cloudflare_stack"'), 'preview must reference relative module');
+
+    const previewVarPath = path.join(envDir, 'preview', 'variables.tf');
+    assert.ok(fs.existsSync(previewVarPath), 'preview/variables.tf must exist');
+
+    const previewOutPath = path.join(envDir, 'preview', 'outputs.tf');
+    assert.ok(fs.existsSync(previewOutPath), 'preview/outputs.tf must exist');
   });
 
   it('should execute terraform fmt -check and terraform validate -no-color cleanly', () => {
@@ -105,13 +141,13 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.equal(fmtResult.trim(), '', 'All Terraform HCL files must be formatted cleanly');
 
     // Check root validation
-    execSync('cd infra/terraform && terraform init -backend=false', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+    execSync('cd infra/terraform && terraform init -backend=false -reconfigure', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
     const validateRoot = execSync('cd infra/terraform && terraform validate -no-color', { cwd: rootDir, encoding: 'utf-8' });
     assert.ok(validateRoot.includes('Success! The configuration is valid.'), 'Root configuration must validate cleanly');
 
     // Check environments
     for (const env of ['production', 'staging', 'preview']) {
-      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false -reconfigure`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
       const validateEnv = execSync(`cd infra/terraform/environments/${env} && terraform validate -no-color`, { cwd: rootDir, encoding: 'utf-8' });
       assert.ok(validateEnv.includes('Success! The configuration is valid.'), `environments/${env} must validate cleanly`);
     }

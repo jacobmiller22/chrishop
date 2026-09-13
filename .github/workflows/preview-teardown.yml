@@ -55,12 +55,26 @@ jobs:
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          cd infra/terraform/environments/preview
-          terraform init -backend-config="endpoints={s3=\"https://${{ env.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com\"}" -backend-config="key=\"environments/preview-pr-${PR_NUM}/terraform.tfstate\"" || true
-          terraform destroy -auto-approve \
-            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
-            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
-            -var="pr_number=${PR_NUM}" || true
+          STATE_FILE="infra/terraform/environments/preview/terraform.tfstate"
+          STATE_KEY="environments/preview-pr-${PR_NUM}/terraform.tfstate"
+
+          echo "Fetching remote Terraform state from R2 for PR #${PR_NUM}..."
+          pnpm exec wrangler r2 object get "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" 2>/dev/null || true
+
+          if [ -f "${STATE_FILE}" ]; then
+            echo "State file found. Destroying ephemeral resources for PR #${PR_NUM}..."
+            cd infra/terraform/environments/preview
+            terraform init
+            terraform destroy -auto-approve \
+              -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+              -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+              -var="pr_number=${PR_NUM}"
+            cd ../../..
+            echo "Cleaning up remote state object from R2..."
+            pnpm exec wrangler r2 object delete "chrishop-terraform-state/${STATE_KEY}" || true
+          else
+            echo "No Terraform state file found in R2 for PR #${PR_NUM}. Skipping Terraform destroy."
+          fi
 
       - name: Comment Teardown Status on PR
         if: always()

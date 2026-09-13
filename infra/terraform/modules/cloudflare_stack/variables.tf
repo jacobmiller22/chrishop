@@ -4,8 +4,9 @@ variable "cloudflare_account_id" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare Zone ID"
+  description = "Cloudflare Zone ID (optional, dynamically resolved via zone_name if omitted)"
   type        = string
+  default     = ""
 }
 
 variable "zone_name" {
@@ -35,4 +36,16 @@ variable "media_retention_days" {
   description = "Retention period in days before ephemeral media deletion"
   type        = number
   default     = 90
+}
+
+variable "manage_shared_resources" {
+  description = "Whether to manage shared tier resources like the R2 media bucket and Turnstile widget (false for ephemeral PR previews)"
+  type        = bool
+  default     = true
+}
+
+variable "pr_number" {
+  description = "Pull request number for ephemeral preview stack isolation"
+  type        = string
+  default     = ""
 }
