@@ -18,6 +18,14 @@ export const ProductVariations: CollectionConfig = {
   },
   fields: [
     {
+      name: 'id',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Unique variation identifier (e.g. var-anorak-olive)',
+      },
+    },
+    {
       name: 'product_id',
       type: 'relationship',
       relationTo: 'products',

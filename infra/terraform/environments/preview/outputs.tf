@@ -2,6 +2,10 @@ output "d1_database_id" {
   value = module.preview_stack.d1_database_id
 }
 
+output "d1_database_name" {
+  value = module.preview_stack.d1_database_name
+}
+
 output "kv_namespace_id" {
   value = module.preview_stack.kv_namespace_id
 }

@@ -27,6 +27,7 @@ import type { CollectionConfig } from 'payload';
 export const Media: CollectionConfig = {
   slug: 'media',
   upload: {
+    disableLocalStorage: true,
     // Supported MIME types for product photography, artwork galleries, and digital certificates.
     // JPEG and WebP are the primary formats for high-resolution artwork.
     // PNG is supported for logos, icons, and transparency-required assets.
