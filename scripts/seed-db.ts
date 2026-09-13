@@ -221,7 +221,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Relaxed Athletic (Engineered for layering and overhead casting mobility)',
       origin: "Hand-cut & sewn in small batches in Chris's workshop",
       base_price: 340.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-storm-shells',
       shopify_product_id: 'gid://shopify/Product/101',
       featured_image: '/media/bushwhack-storm-anorak/hero.jpeg',
@@ -248,7 +248,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Technical Straight (Articulated knees, gusseted seat for steep cut-bank scrambles)',
       origin: "Hand-cut & sewn in small batches in Chris's workshop",
       base_price: 215.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-brush-pants',
       shopify_product_id: 'gid://shopify/Product/102',
       featured_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
@@ -275,7 +275,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Ambidextrous Sling / Lumbar Switchable with Breathable 3D Spacer Mesh',
       origin: "Hand-crafted in Chris's workshop",
       base_price: 195.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-sling-packs',
       shopify_product_id: 'gid://shopify/Product/103',
       featured_image: '/media/the-cutbank-lumbar-sling-pack/hero.jpeg',
@@ -302,7 +302,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Low-Profile 4-Point Harness (Rides high above deep wading lines)',
       origin: "Hand-crafted in Chris's workshop",
       base_price: 135.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-chest-rigs',
       shopify_product_id: 'gid://shopify/Product/104',
       featured_image: '/media/minimalist-bank-chest-rig/hero.jpeg',
@@ -329,7 +329,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Tri-Fold Compact (Fits into any thigh pocket or pack exterior sleeve)',
       origin: 'Hand-cut, waxed, and stitched with bonded nylon thread',
       base_price: 75.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-tool-rolls',
       shopify_product_id: 'gid://shopify/Product/105',
       featured_image: '/media/waxed-canvas-cordura-tool-roll/hero.jpeg',
@@ -356,7 +356,7 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
         'Low Crown 5-Panel with Nylon Webbing Quick-Release Adjuster',
       origin: 'Sewn and shaped in workshop',
       base_price: 44.0,
-      status: 'published',
+      status: 'active',
       category_id: 'cat-headwear',
       shopify_product_id: 'gid://shopify/Product/106',
       featured_image: '/media/the-bankbeaters-5-panel-guide-cap/hero.jpeg',
@@ -404,12 +404,43 @@ export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
       gallery=excluded.gallery;
   `);
 
+  const createLexicalDescription = (text: string): string =>
+    JSON.stringify({
+      root: {
+        type: 'root',
+        format: '',
+        indent: 0,
+        version: 1,
+        direction: 'ltr',
+        children: [
+          {
+            type: 'paragraph',
+            format: '',
+            indent: 0,
+            version: 1,
+            direction: 'ltr',
+            children: [
+              {
+                mode: 'normal',
+                text,
+                type: 'text',
+                style: '',
+                detail: 0,
+                format: 0,
+                version: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
   for (const p of products) {
     insertProd.run(
       p.id,
       p.title,
       p.slug,
-      p.description,
+      createLexicalDescription(p.description),
       p.maker_field_notes,
       p.maker_field_notes,
       p.materials,
