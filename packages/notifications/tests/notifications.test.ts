@@ -1,12 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DiscordNotificationProvider,
   ConsoleNotificationProvider,
   CompositeNotificationProvider,
   ResendNotificationProvider,
   WebhookNotificationProvider,
-  DISCORD_COLORS,
   type NotificationPayload,
   type OrderReceiptPayload,
   type ShippingUpdatePayload,
@@ -14,216 +12,6 @@ import {
 import type { Order } from '@chrishop/types';
 
 describe('Notification Providers (@chrishop/notifications)', () => {
-  // --------------------------------------------------------------------------
-  // Discord Notification Provider Tests
-  // --------------------------------------------------------------------------
-  describe('DiscordNotificationProvider', () => {
-    it('should skip alert gracefully when Discord webhook URL is empty', async () => {
-      const provider = new DiscordNotificationProvider('');
-      await assert.doesNotReject(async () => {
-        await provider.send({
-          title: 'Test Title',
-          message: 'Test Message',
-          severity: 'info',
-        });
-      });
-    });
-
-    it('should format Discord webhook embed payload correctly on notifyOrderCreated', async () => {
-      let capturedBody: any = null;
-      const mockUrl = 'https://discord.com/api/webhooks/mock/test';
-
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async (url: any, init: any) => {
-        if (url === mockUrl) {
-          capturedBody = JSON.parse(init.body);
-          return {
-            ok: true,
-            statusText: 'OK',
-          } as Response;
-        }
-        return originalFetch(url, init);
-      }) as any;
-
-      try {
-        const provider = new DiscordNotificationProvider(mockUrl);
-        const testOrder: Order = {
-          id: 'ord-12345678-abcd',
-          customer_email: 'buyer@example.com',
-          shipping_name: 'Jane Collector',
-          amount_total: 495.0,
-          currency: 'usd',
-          shopify_order_id: 'gid://shopify/Order/1234567890',
-          order_status: 'paid',
-          shipping_status: 'pending',
-          shipping_address: {
-            street: '123 Main St',
-            city: 'New York',
-            state: 'NY',
-            postal_code: '10001',
-            country: 'US',
-          },
-        };
-
-        await provider.notifyOrderCreated(testOrder);
-
-        assert.ok(capturedBody, 'Webhook request body should be captured');
-        assert.ok(Array.isArray(capturedBody.embeds), 'Body should contain embeds array');
-        assert.equal(capturedBody.embeds.length, 1);
-
-        const embed = capturedBody.embeds[0];
-        assert.ok(embed.title.includes('ord-1234'));
-        assert.ok(embed.description.includes('Jane Collector'));
-        assert.ok(embed.description.includes('buyer@example.com'));
-        assert.equal(embed.color, 0x22c55e, 'Success severity should map to green (0x22c55e)');
-
-        const fieldMap = Object.fromEntries(embed.fields.map((f: any) => [f.name, f.value]));
-        assert.equal(fieldMap.Total, '$495.00');
-        assert.equal(fieldMap.Status, 'paid');
-        assert.equal(fieldMap.Shipping, 'pending');
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('should map severity levels to distinct Discord colors', async () => {
-      const capturedColors: Record<string, number> = {};
-      const mockUrl = 'https://discord.com/api/webhooks/mock/colors';
-
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async (_url: any, init: any) => {
-        const parsed = JSON.parse(init.body);
-        const title = parsed.embeds[0].title;
-        capturedColors[title] = parsed.embeds[0].color;
-        return { ok: true, statusText: 'OK' } as Response;
-      }) as any;
-
-      try {
-        const provider = new DiscordNotificationProvider(mockUrl);
-        const severities: NotificationPayload['severity'][] = ['info', 'success', 'warning', 'error'];
-
-        for (const severity of severities) {
-          await provider.send({
-            title: severity || 'none',
-            message: `testing ${severity}`,
-            severity,
-          });
-        }
-
-        assert.equal(capturedColors['info'], 0x3b82f6);
-        assert.equal(capturedColors['success'], 0x22c55e);
-        assert.equal(capturedColors['warning'], 0xeab308);
-        assert.equal(capturedColors['error'], 0xef4444);
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('should format low stock and sold-out notifications per DEP_DISCORD.md Section 2', async () => {
-      const capturedPayloads: any[] = [];
-      const mockUrl = 'https://discord.com/api/webhooks/mock/inventory';
-
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async (_url: any, init: any) => {
-        capturedPayloads.push(JSON.parse(init.body));
-        return { ok: true, statusText: 'OK' } as Response;
-      }) as any;
-
-      try {
-        const provider = new DiscordNotificationProvider(mockUrl);
-
-        // Low stock warning (stock = 2)
-        await provider.notifyLowStock('Obsidian Beast', 'Gold Edition', 2, 'BEAST-GOLD');
-        // Sold out alert (stock = 0)
-        await provider.notifyLowStock('Obsidian Beast', 'Gold Edition', 0, 'BEAST-GOLD');
-
-        assert.equal(capturedPayloads.length, 2);
-
-        // Low stock: yellow (0xF1C40F / 15844367)
-        const lowStockEmbed = capturedPayloads[0].embeds[0];
-        assert.ok(lowStockEmbed.title.includes('Low Stock Alert'));
-        assert.equal(lowStockEmbed.color, DISCORD_COLORS.lowStock);
-        assert.ok(lowStockEmbed.fields.some((f: any) => f.name === 'Remaining Stock' && f.value.includes('2 units left')));
-
-        // Sold out: orange (0xE67E22 / 15105570)
-        const soldOutEmbed = capturedPayloads[1].embeds[0];
-        assert.ok(soldOutEmbed.title.includes('Sold Out Alert'));
-        assert.equal(soldOutEmbed.color, DISCORD_COLORS.soldOut);
-        assert.ok(soldOutEmbed.fields.some((f: any) => f.name === 'Remaining Stock' && f.value.includes('0 units left')));
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('should handle dev alerts per DEP_DISCORD.md Section 2', async () => {
-      let capturedBody: any = null;
-      const mockUrl = 'https://discord.com/api/webhooks/mock/dev';
-
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async (_url: any, init: any) => {
-        capturedBody = JSON.parse(init.body);
-        return { ok: true, statusText: 'OK' } as Response;
-      }) as any;
-
-      try {
-        const provider = new DiscordNotificationProvider(mockUrl);
-        await provider.notifyDevAlert('Edge Health Check Failed', 'HTTP 500 received from /api/health', 'error', {
-          Route: '/api/health',
-          Latency: '1240ms',
-        });
-
-        assert.ok(capturedBody);
-        assert.equal(capturedBody.username, 'ChrisShop Ops [Dev Alerts]');
-        const embed = capturedBody.embeds[0];
-        assert.equal(embed.color, DISCORD_COLORS.healthFailure);
-        assert.ok(embed.title.includes('Edge Health Check Failed'));
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('should retry on HTTP 429 rate limits using X-RateLimit-Reset-After', async () => {
-      let attemptCount = 0;
-      const mockUrl = 'https://discord.com/api/webhooks/mock/ratelimit';
-
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = (async (_url: any, _init: any) => {
-        attemptCount++;
-        if (attemptCount === 1) {
-          return {
-            ok: false,
-            status: 429,
-            statusText: 'Too Many Requests',
-            headers: new Headers({ 'X-RateLimit-Reset-After': '0.01' }),
-          } as Response;
-        }
-        return {
-          ok: true,
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers(),
-        } as Response;
-      }) as any;
-
-      try {
-        const provider = new DiscordNotificationProvider(mockUrl, {
-          maxRetries: 2,
-          initialRetryDelayMs: 10,
-        });
-
-        await provider.send({
-          title: 'Rate Limit Test',
-          message: 'Retrying under throttle',
-          severity: 'info',
-        });
-
-        assert.equal(attemptCount, 2, 'Should retry after 429 rate limit');
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-  });
-
   // --------------------------------------------------------------------------
   // Resend Email Notification Provider Tests
   // --------------------------------------------------------------------------
@@ -350,7 +138,8 @@ describe('Notification Providers (@chrishop/notifications)', () => {
           customer_email: 'jane@example.com',
           carrier: 'USPS',
           tracking_number: '9400100000000000000000',
-          tracking_url: 'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400100000000000000000',
+          tracking_url:
+            'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400100000000000000000',
         };
 
         const result = await provider.notifyShippingUpdate(shippingPayload);
@@ -517,7 +306,11 @@ describe('Notification Providers (@chrishop/notifications)', () => {
         // Low stock payload assertions
         const lowStock = capturedPayloads[0];
         assert.equal(lowStock.to, 'ops@shop.jacobmiller22.com');
-        assert.ok(lowStock.subject.includes('⚠️ Low Stock Alert: Bronze Helix — Limited Edition (3 units left)'));
+        assert.ok(
+          lowStock.subject.includes(
+            '⚠️ Low Stock Alert: Bronze Helix — Limited Edition (3 units left)'
+          )
+        );
         assert.ok(lowStock.html.includes('3 UNITS REMAINING'));
         assert.ok(lowStock.html.includes('BH-LTD-01'));
         assert.ok(lowStock.text.includes('Remaining Units: 3'));
@@ -575,11 +368,21 @@ describe('Notification Providers (@chrishop/notifications)', () => {
 
         await provider.notifyOrderCreated(testOrder);
 
-        assert.equal(capturedPayloads.length, 2, 'Should dispatch 2 emails: receipt and merchant alert');
+        assert.equal(
+          capturedPayloads.length,
+          2,
+          'Should dispatch 2 emails: receipt and merchant alert'
+        );
 
         const recipients = capturedPayloads.map((p) => p.to);
-        assert.ok(recipients.includes('buyer@example.com'), 'Customer receipt must be sent to customer');
-        assert.ok(recipients.includes('merchant@shop.jacobmiller22.com'), 'Merchant alert must be sent to merchant');
+        assert.ok(
+          recipients.includes('buyer@example.com'),
+          'Customer receipt must be sent to customer'
+        );
+        assert.ok(
+          recipients.includes('merchant@shop.jacobmiller22.com'),
+          'Merchant alert must be sent to merchant'
+        );
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -807,7 +610,12 @@ describe('Notification Providers (@chrishop/notifications)', () => {
         assert.equal(resLow.statusCode, 200);
 
         // Sold out: remaining = 0
-        const resSoldOut = await provider.notifyLowStock('Prism Core', 'Crystal Cut', 0, 'PRISM-CC');
+        const resSoldOut = await provider.notifyLowStock(
+          'Prism Core',
+          'Crystal Cut',
+          0,
+          'PRISM-CC'
+        );
         assert.equal(resSoldOut.success, true);
         assert.equal(resSoldOut.statusCode, 200);
 

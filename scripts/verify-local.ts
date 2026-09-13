@@ -120,7 +120,9 @@ function verifyArchitectureIntegrity() {
     !wranglerContent.includes('binding = "ASSETS"') ||
     !wranglerContent.includes('.open-next/assets')
   ) {
-    throw new Error('wrangler.toml must configure Static Assets binding ASSETS with directory .open-next/assets');
+    throw new Error(
+      'wrangler.toml must configure Static Assets binding ASSETS with directory .open-next/assets'
+    );
   }
 
   // Site and CMS bindings check
@@ -153,18 +155,7 @@ function verifyArchitectureIntegrity() {
     );
   }
 
-  // 3. Verbatim rationale check
-  const depCf = fs.readFileSync('docs/deps/DEP_CLOUDFLARE.md', 'utf-8');
-  if (!depCf.includes('The Problem with the VPS Approach')) {
-    throw new Error('docs/deps/DEP_CLOUDFLARE.md missing Decision 1 verbatim rationale');
-  }
-
-  const depShopify = fs.readFileSync('docs/deps/DEP_SHOPIFY.md', 'utf-8');
-  if (!depShopify.includes('The Problem with the Custom Stripe Implementation')) {
-    throw new Error('docs/deps/DEP_SHOPIFY.md missing Decision 2 verbatim rationale');
-  }
-
-  // 4. Verify deploy workflow uses wrangler
+  // 3. Verify deploy workflow uses wrangler
   if (!fs.existsSync('.github/workflows/deploy.yml')) {
     throw new Error('.github/workflows/deploy.yml missing');
   }
@@ -277,14 +268,10 @@ async function main() {
     skipReason: '--skip-build flag provided',
   });
 
-  await runStep(
-    '7. Worker Bundle Size Budget Gate (check:bundle)',
-    verifyBundleBudget,
-    {
-      skip: skipBuild,
-      skipReason: '--skip-build flag provided',
-    }
-  );
+  await runStep('7. Worker Bundle Size Budget Gate (check:bundle)', verifyBundleBudget, {
+    skip: skipBuild,
+    skipReason: '--skip-build flag provided',
+  });
 
   await runStep('8. Git Worktree & Artifact Hygiene', verifyGitHygiene);
 

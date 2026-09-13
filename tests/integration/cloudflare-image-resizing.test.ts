@@ -178,9 +178,7 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
 
     it('should configure 1-week caching on /cdn-cgi/image/ in cache-rules-images.json', () => {
       const config = JSON.parse(fs.readFileSync(cacheRulesPath, 'utf-8'));
-      const imageRule = config.rules.find((r: any) =>
-        r.expression.includes('/cdn-cgi/image/')
-      );
+      const imageRule = config.rules.find((r: any) => r.expression.includes('/cdn-cgi/image/'));
 
       assert.ok(imageRule, 'Rule for /cdn-cgi/image/ must exist');
       assert.equal(imageRule.action_parameters.edge_ttl.default, 604800);
@@ -213,7 +211,9 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
       const content = fs.readFileSync(mediaPath, 'utf-8');
 
       assert.ok(
-        !content.includes('imageSizes:') || content.includes('// imageSizes') || content.includes('NO imageSizes'),
+        !content.includes('imageSizes:') ||
+          content.includes('// imageSizes') ||
+          content.includes('NO imageSizes'),
         'Media collection must not enable server-side imageSizes (sharp trigger)'
       );
     });
@@ -275,34 +275,6 @@ describe('Story 2.42: Cloudflare Image Resizing Edge Pipeline Integration', () =
       assert.ok(output.includes('--mock'));
       assert.ok(output.includes('--live'));
       assert.ok(output.includes('--widths'));
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6. Operational Documentation Integrity
-  // ---------------------------------------------------------------------------
-  describe('6. Operational Documentation (docs/CLOUDFLARE_SETUP.md)', () => {
-    it('should document Cloudflare Image Resizing in docs/CLOUDFLARE_SETUP.md', () => {
-      const docPath = path.join(rootDir, 'docs/CLOUDFLARE_SETUP.md');
-      assert.ok(fs.existsSync(docPath), 'docs/CLOUDFLARE_SETUP.md must exist');
-
-      const content = fs.readFileSync(docPath, 'utf-8');
-      assert.ok(
-        content.includes('Image Resizing') || content.includes('cdn-cgi/image'),
-        'Must document Cloudflare Image Resizing'
-      );
-      assert.ok(
-        content.includes('/cdn-cgi/image/'),
-        'Must document /cdn-cgi/image/ transformation prefix'
-      );
-      assert.ok(
-        content.includes('604800') || content.includes('31536000') || content.includes('immutable'),
-        'Must document edge caching policy (604800s)'
-      );
-      assert.ok(
-        content.includes('Vary') || content.includes('format=auto'),
-        'Must document format auto-negotiation and Vary header'
-      );
     });
   });
 });

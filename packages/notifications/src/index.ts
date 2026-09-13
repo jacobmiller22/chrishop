@@ -115,7 +115,9 @@ export class ResendNotificationProvider implements NotificationProvider {
     this.fromEmail =
       options.fromEmail ||
       (typeof process !== 'undefined'
-        ? process.env?.RESEND_FROM_EMAIL || process.env?.EMAIL_FROM || 'orders@shop.jacobmiller22.com'
+        ? process.env?.RESEND_FROM_EMAIL ||
+          process.env?.EMAIL_FROM ||
+          'orders@shop.jacobmiller22.com'
         : 'orders@shop.jacobmiller22.com');
     this.merchantAlertEmail =
       options.merchantAlertEmail ||
@@ -183,7 +185,10 @@ export class ResendNotificationProvider implements NotificationProvider {
           attempt++;
           if (attempt > this.maxRetries) {
             const errText = await response.text().catch(() => response.statusText);
-            return { success: false, error: `Resend API Error HTTP ${response.status}: ${errText}` };
+            return {
+              success: false,
+              error: `Resend API Error HTTP ${response.status}: ${errText}`,
+            };
           }
           const retryAfter = response.headers.get('Retry-After');
           const delayMs = retryAfter
@@ -200,7 +205,9 @@ export class ResendNotificationProvider implements NotificationProvider {
         if (attempt > this.maxRetries) {
           return { success: false, error: err?.message || String(err) };
         }
-        await new Promise((r) => setTimeout(r, this.initialRetryDelayMs * Math.pow(2, attempt - 1)));
+        await new Promise((r) =>
+          setTimeout(r, this.initialRetryDelayMs * Math.pow(2, attempt - 1))
+        );
       }
     }
 
@@ -447,10 +454,7 @@ ${isSoldOut ? 'Status: Depleted / Sold Out' : 'Status: Threshold Reached'}
       created_at: order.created_at,
     };
 
-    await Promise.all([
-      this.notifyOrderReceipt(receipt),
-      this.notifyMerchantOrderAlert(order),
-    ]);
+    await Promise.all([this.notifyOrderReceipt(receipt), this.notifyMerchantOrderAlert(order)]);
   }
 }
 
@@ -712,245 +716,12 @@ export class CompositeNotificationProvider implements NotificationProvider {
         p.notifyLowStock
           ? p.notifyLowStock(productTitle, variationName, remainingStock, sku)
           : p.send({
-              title: remainingStock <= 0 ? `Sold Out: ${productTitle}` : `Low Stock: ${productTitle}`,
+              title:
+                remainingStock <= 0 ? `Sold Out: ${productTitle}` : `Low Stock: ${productTitle}`,
               message: `${variationName}: ${remainingStock} remaining`,
               severity: remainingStock <= 0 ? 'error' : 'warning',
             })
       )
     );
-  }
-}
-
-// ============================================================================
-// 5. Legacy / Deprecated Discord Notification Provider
-// Retained strictly for backward compatibility.
-// ============================================================================
-
-/**
- * Discord severity and channel event colors.
- * @deprecated Retained for legacy compatibility. Use ResendNotificationProvider or WebhookNotificationProvider.
- */
-export const DISCORD_COLORS = {
-  // Severity colors
-  info: 0x3b82f6,
-  success: 0x22c55e,
-  warning: 0xeab308,
-  error: 0xef4444,
-  // Channel event colors
-  orderPaid: 0x2ecc71,
-  lowStock: 0xf1c40f,
-  soldOut: 0xe67e22,
-  healthFailure: 0xe74c3c,
-  exception: 0x9b59b6,
-  deployment: 0x3498db,
-};
-
-export interface DiscordProviderOptions {
-  username?: string;
-  avatarUrl?: string;
-  maxRetries?: number;
-  initialRetryDelayMs?: number;
-}
-
-/**
- * Discord Webhook Notification Provider
- * @deprecated Deprecated in favor of ResendNotificationProvider (email-first) and
- * WebhookNotificationProvider (generic ops payloads). Retained for legacy compatibility.
- */
-export class DiscordNotificationProvider implements NotificationProvider {
-  constructor(
-    private webhookUrl: string,
-    private options: DiscordProviderOptions = {}
-  ) {}
-
-  async send(payload: NotificationPayload): Promise<void> {
-    if (!this.webhookUrl) {
-      console.warn('[DiscordNotificationProvider] Webhook URL not provided. Skipping alert.');
-      return;
-    }
-
-    const colorMap = {
-      info: DISCORD_COLORS.info,
-      success: DISCORD_COLORS.success,
-      warning: DISCORD_COLORS.warning,
-      error: DISCORD_COLORS.error,
-    };
-
-    const embed: Record<string, any> = {
-      title: payload.title,
-      description: payload.message,
-      color: colorMap[payload.severity || 'info'],
-      timestamp: new Date().toISOString(),
-      fields: payload.fields
-        ? Object.entries(payload.fields).map(([name, value]) => ({
-            name,
-            value,
-            inline: true,
-          }))
-        : [],
-      footer: {
-        text: 'ChrisShop Order Management',
-      },
-    };
-
-    const username = this.options.username || 'ChrisShop Ops';
-    const body: Record<string, any> = {
-      username,
-      embeds: [embed],
-    };
-    if (this.options.avatarUrl) {
-      body.avatar_url = this.options.avatarUrl;
-    }
-
-    let attempt = 0;
-    const maxRetries = this.options.maxRetries ?? 2;
-    const initialDelay = this.options.initialRetryDelayMs ?? 100;
-
-    while (attempt <= maxRetries) {
-      try {
-        const response = await fetch(this.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-
-        if (response.ok) {
-          return;
-        }
-
-        if (response.status === 429) {
-          attempt++;
-          if (attempt > maxRetries) {
-            console.error('[DiscordNotificationProvider] Rate limit exceeded (429)');
-            return;
-          }
-          const retryAfter =
-            response.headers.get('X-RateLimit-Reset-After') ||
-            response.headers.get('Retry-After');
-          const delayMs = retryAfter
-            ? parseFloat(retryAfter) * 1000
-            : initialDelay * Math.pow(2, attempt - 1);
-          await new Promise((r) => setTimeout(r, delayMs));
-          continue;
-        }
-
-        console.error(
-          `[DiscordNotificationProvider] Failed to dispatch alert: ${response.statusText}`
-        );
-        return;
-      } catch (err) {
-        attempt++;
-        if (attempt > maxRetries) {
-          console.error('[DiscordNotificationProvider] Error sending notification:', err);
-          return;
-        }
-        await new Promise((r) => setTimeout(r, initialDelay * Math.pow(2, attempt - 1)));
-      }
-    }
-  }
-
-  async notifyOrderCreated(order: Order): Promise<void> {
-    await this.send({
-      title: `🛒 New Order Placed: #${order.id.slice(0, 8)}`,
-      message: `Customer **${order.shipping_name}** (${order.customer_email}) placed an order.`,
-      severity: 'success',
-      fields: {
-        Total: `$${order.amount_total.toFixed(2)}`,
-        Status: order.order_status,
-        Shipping: order.shipping_status,
-      },
-    });
-  }
-
-  async notifyLowStock(
-    productTitle: string,
-    variationName: string,
-    remainingStock: number,
-    sku?: string
-  ): Promise<void> {
-    const isSoldOut = remainingStock <= 0;
-    const color = isSoldOut ? DISCORD_COLORS.soldOut : DISCORD_COLORS.lowStock;
-    const title = isSoldOut
-      ? `🚫 Sold Out Alert: ${productTitle}`
-      : `⚠️ Low Stock Alert: ${productTitle}`;
-    const description = isSoldOut
-      ? 'Inventory depleted for limited-edition release.'
-      : 'Inventory threshold reached for limited-edition release.';
-
-    const fields: Record<string, string> = {
-      Variation: variationName + (sku ? ` (\`${sku}\`)` : ''),
-      'Remaining Stock': isSoldOut ? '**0 units left**' : `**${remainingStock} units left**`,
-    };
-
-    if (!this.webhookUrl) return;
-
-    const embed = {
-      title,
-      description,
-      color,
-      timestamp: new Date().toISOString(),
-      fields: Object.entries(fields).map(([name, value]) => ({
-        name,
-        value,
-        inline: true,
-      })),
-      footer: { text: 'ChrisShop Inventory Management' },
-    };
-
-    try {
-      await fetch(this.webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: this.options.username || 'ChrisShop Ops',
-          embeds: [embed],
-        }),
-      });
-    } catch (err) {
-      console.error('[DiscordNotificationProvider] Error sending low stock alert:', err);
-    }
-  }
-
-  async notifyDevAlert(
-    title: string,
-    message: string,
-    severity: 'info' | 'warning' | 'error' = 'error',
-    details?: Record<string, string>
-  ): Promise<void> {
-    const colorMap = {
-      info: DISCORD_COLORS.deployment,
-      warning: DISCORD_COLORS.warning,
-      error: DISCORD_COLORS.healthFailure,
-    };
-
-    if (!this.webhookUrl) return;
-
-    const embed = {
-      title,
-      description: message,
-      color: colorMap[severity] || DISCORD_COLORS.healthFailure,
-      timestamp: new Date().toISOString(),
-      fields: details
-        ? Object.entries(details).map(([name, value]) => ({
-            name,
-            value,
-            inline: true,
-          }))
-        : [],
-      footer: { text: 'ChrisShop Dev Alerts' },
-    };
-
-    try {
-      await fetch(this.webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'ChrisShop Ops [Dev Alerts]',
-          embeds: [embed],
-        }),
-      });
-    } catch (err) {
-      console.error('[DiscordNotificationProvider] Error sending dev alert:', err);
-    }
   }
 }

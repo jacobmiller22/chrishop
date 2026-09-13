@@ -23,7 +23,6 @@ Per ADR-2026-09-11 (`ADR_CLOUDFLARE_SECRETS_EVALUATION.md`), application runtime
 | **`SHOPIFY_WEBHOOK_SECRET`** | Cloudflare Workers Secret | Production, Staging | 180 Days / Incident | Failed HMAC validation for order webhooks |
 | **`RESEND_API_KEY`** | Cloudflare Workers Secret | Production, Staging | 180 Days / Incident | Transactional email notification delivery |
 | **`OPS_ALERT_WEBHOOK_URL`** | Cloudflare Workers Secret | Production, Staging | 365 Days / Incident | Operational webhook alerts delivery |
-| **`DISCORD_WEBHOOK_URL`** | Cloudflare Workers Secret (Legacy) | Production, Staging | 365 Days / Incident | Legacy internal team alerts delivery |
 | **`CLOUDFLARE_API_TOKEN`** | GitHub Repository Secret | GitHub Actions CI/CD | 90 Days / Incident | Automated deployment pipelines blocked |
 
 ---
@@ -169,19 +168,14 @@ Used to cryptographically verify the `X-Shopify-Hmac-Sha256` signature header on
 
 ---
 
-### 3.5 `OPS_ALERT_WEBHOOK_URL` & `DISCORD_WEBHOOK_URL` (Operational Alerts)
+### 3.5 `OPS_ALERT_WEBHOOK_URL` (Operational Alerts)
 
 1. **`OPS_ALERT_WEBHOOK_URL`** (Generic Webhooks / Slack / Zapier):
    ```bash
    pnpm exec wrangler secret put OPS_ALERT_WEBHOOK_URL --env staging
    pnpm exec wrangler secret put OPS_ALERT_WEBHOOK_URL --env production
    ```
-2. **`DISCORD_WEBHOOK_URL`** (Legacy / Deprecated):
-   ```bash
-   pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env staging
-   pnpm exec wrangler secret put DISCORD_WEBHOOK_URL --env production
-   ```
-3. Verify test webhook alert receipt.
+2. Verify test webhook alert receipt.
 
 ---
 
@@ -215,7 +209,7 @@ The `CLOUDFLARE_API_TOKEN` resides in GitHub Actions Repository Secrets.
 In the event of suspected key exfiltration or developer workstation compromise:
 
 1. **Immediate Revocation**:
-   - Immediately delete or revoke the compromised key at the external provider console (Shopify, Resend, Cloudflare, Discord).
+   - Immediately delete or revoke the compromised key at the external provider console (Shopify, Resend, Cloudflare).
 2. **Edge Overwrite**:
    - Immediately overwrite the Cloudflare Worker secret with a dummy value to sever rogue worker traffic:
      ```bash

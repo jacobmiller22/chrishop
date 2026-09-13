@@ -29,6 +29,11 @@ git remote set-head origin -a
 
 ## 2. Staging-First Branching Protocol
 
+> [!CAUTION]
+> **The `main` branch is deprecated, read-only, and locked.**
+> 
+> Pull requests targeting `main` are strictly prohibited and will be automatically retargeted to `staging` by `.github/workflows/pr-base-guard.yml` or blocked by CI.
+
 ChrisShop enforces a strict two-stage git promotion pipeline: `feature/*` ➔ `staging` ➔ `production`.
 
 ### ⚠️ Why Branch from `staging` (Not `production` or `main`)?

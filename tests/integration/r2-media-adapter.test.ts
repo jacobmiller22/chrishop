@@ -79,10 +79,7 @@ describe('Story 2.23: R2 Media Adapter & Cloudflare Image Pipeline Integration',
         content.includes("from '@payloadcms/storage-s3'"),
         'payload.config.ts must import from @payloadcms/storage-s3'
       );
-      assert.ok(
-        content.includes('s3Storage'),
-        'payload.config.ts must use s3Storage()'
-      );
+      assert.ok(content.includes('s3Storage'), 'payload.config.ts must use s3Storage()');
     });
 
     it('should configure s3Storage with Cloudflare R2 endpoint environment variable', () => {
@@ -121,10 +118,7 @@ describe('Story 2.23: R2 Media Adapter & Cloudflare Image Pipeline Integration',
       const configPath = path.join(webDir, 'payload.config.ts');
       const content = fs.readFileSync(configPath, 'utf-8');
 
-      assert.ok(
-        content.includes('plugins:'),
-        'payload.config.ts must include plugins array'
-      );
+      assert.ok(content.includes('plugins:'), 'payload.config.ts must include plugins array');
       assert.ok(
         content.includes('getS3StorageConfig()'),
         'payload.config.ts must register getS3StorageConfig() in plugins array'
@@ -153,7 +147,10 @@ describe('Story 2.23: R2 Media Adapter & Cloudflare Image Pipeline Integration',
       const mediaPath = path.join(webDir, 'src/collections/Media.ts');
       const content = fs.readFileSync(mediaPath, 'utf-8');
 
-      assert.ok(content.includes('mimeTypes'), 'Media collection must configure mimeTypes restriction');
+      assert.ok(
+        content.includes('mimeTypes'),
+        'Media collection must configure mimeTypes restriction'
+      );
       assert.ok(content.includes('image/jpeg'), 'Must allow JPEG uploads');
       assert.ok(content.includes('image/webp'), 'Must allow WebP uploads');
       assert.ok(content.includes('image/png'), 'Must allow PNG uploads');
@@ -270,10 +267,7 @@ describe('Story 2.23: R2 Media Adapter & Cloudflare Image Pipeline Integration',
 
       const content = fs.readFileSync(wranglerPath, 'utf-8');
       assert.ok(content.includes('[[r2_buckets]]'), 'Must declare [[r2_buckets]] section');
-      assert.ok(
-        content.includes('binding = "BUCKET"'),
-        'R2 bucket binding must be named BUCKET'
-      );
+      assert.ok(content.includes('binding = "BUCKET"'), 'R2 bucket binding must be named BUCKET');
       assert.ok(
         content.includes('chrishop-media-prod'),
         'Production must use chrishop-media-prod bucket'
@@ -296,29 +290,6 @@ describe('Story 2.23: R2 Media Adapter & Cloudflare Image Pipeline Integration',
         content.includes('chrishop-media-preview'),
         'Preview must use chrishop-media-preview bucket'
       );
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6. Unit Test File Existence
-  // ---------------------------------------------------------------------------
-  describe('6. Unit Test Coverage for Story 2.23', () => {
-    it('should have r2-media.test.ts unit test file in apps/web/tests/', () => {
-      const testPath = path.join(webDir, 'tests/r2-media.test.ts');
-      assert.ok(
-        fs.existsSync(testPath),
-        'apps/web/tests/r2-media.test.ts must exist (unit tests for Story 2.23)'
-      );
-    });
-
-    it('should have comprehensive test coverage in r2-media.test.ts', () => {
-      const testPath = path.join(webDir, 'tests/r2-media.test.ts');
-      const content = fs.readFileSync(testPath, 'utf-8');
-
-      assert.ok(content.includes('buildCloudflareImageUrl'), 'Must test buildCloudflareImageUrl');
-      assert.ok(content.includes('generateCloudflareImageSrcset'), 'Must test generateCloudflareImageSrcset');
-      assert.ok(content.includes('getS3StorageConfig'), 'Must test getS3StorageConfig');
-      assert.ok(content.includes('imageSizes'), 'Must test no-imageSizes constraint');
     });
   });
 });

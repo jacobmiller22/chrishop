@@ -37,7 +37,7 @@ chrishop/
 ├── packages/
 │   ├── types/                  # Shared TypeScript models for storefront, Payload, and Shopify
 │   ├── ui/                     # Accessible (WCAG 2.1 AA) UI system (Tailwind CSS v4 + Radix UI)
-│   ├── notifications/          # Pluggable Notification Engine (Resend Email, Generic Webhooks, Legacy Discord)
+│   ├── notifications/          # Pluggable Notification Engine (Resend Email, Generic Webhooks)
 │   └── config/                 # Shared environment schemas (Zod), tsconfig, and lint presets
 ├── infra/
 │   ├── r2/                     # R2 CORS configuration and bucket definitions
@@ -216,10 +216,7 @@ export interface NotificationProvider {
    - Built-in automatic retry with exponential backoff on HTTP 429 and 5xx responses.
 
 3. **Composite Dispatch (`CompositeNotificationProvider`)**:
-   - Fans out domain events (orders, low-stock warnings, system alerts) simultaneously across multiple channels (e.g., Resend email + Slack webhook).
-
-4. **Legacy Discord (`DiscordNotificationProvider`) [Deprecated]**:
-   - Retained strictly for backward compatibility. Discord-specific embed schemas are segregated from core domain interfaces.
+   - Fans out domain events (orders, low-stock warnings, system alerts) simultaneously across multiple channels (e.g., Resend email + generic ops webhook).
 
 ### Notification Extension Points:
 New notification sinks (e.g., SMS alerts via Twilio, native Slack App bots, Pushover mobile push) can be plugged in by implementing the `NotificationProvider` interface and registering them with `CompositeNotificationProvider`.
@@ -272,12 +269,13 @@ flowchart LR
 
 ## 9. Observability & Monitoring Matrix
 
-| Component               | Metric / Health Probe       | Frequency / Trigger | Target Channel                       | Corrective Action              |
-| :---------------------- | :-------------------------- | :------------------ | :----------------------------------- | :----------------------------- |
-| **Edge Health**         | HTTP GET `/api/health`      | Every 60 seconds    | Better Stack & Discord `#dev-alerts` | Automated edge retry & alert   |
-| **Application Errors**  | Unhandled JS Exceptions     | Event-driven        | Sentry & Discord `#dev-alerts`       | Triage error stack trace       |
-| **New Purchases**       | Shopify `orders/create`     | Event-driven        | Discord `#store-orders`              | Fulfillment review             |
-| **Low Stock Telemetry** | Product stock $\le 2$ units | Event-driven        | Discord `#store-orders`              | Prepare post-drop announcement |
+| Component               | Metric / Health Probe       | Frequency / Trigger | Target Channel                                | Corrective Action              |
+| :---------------------- | :-------------------------- | :------------------ | :-------------------------------------------- | :----------------------------- |
+| **Edge Health**         | HTTP GET `/api/health`      | Every 60 seconds    | Better Stack & Ops Webhook                    | Automated edge retry & alert   |
+| **Application Errors**  | Unhandled JS Exceptions     | Event-driven        | Sentry & Ops Webhook                          | Triage error stack trace       |
+| **New Purchases**       | Shopify `orders/create`     | Event-driven        | Resend (`MERCHANT_ALERT_EMAIL`) & Ops Webhook | Fulfillment review             |
+| **Low Stock Telemetry** | Product stock $\le 2$ units | Event-driven        | Resend (`MERCHANT_ALERT_EMAIL`) & Ops Webhook | Prepare post-drop announcement |
+
 
 ---
 

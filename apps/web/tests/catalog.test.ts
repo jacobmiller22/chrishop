@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
   getCategories,
@@ -16,62 +18,15 @@ import {
 import { getEffectivePrice, type Product, type ProductVariation } from '@chrishop/types';
 
 describe('Catalog Data Access Layer & Price Resolution', () => {
-  // Setup in-memory test database
+  // Setup in-memory test database using canonical migrations
   const testDb = new DatabaseSync(':memory:');
-  testDb.exec('PRAGMA foreign_keys = ON;');
+  const migrationPath = fileURLToPath(
+    new URL('../../../migrations/0001_initial.sql', import.meta.url)
+  );
+  const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+  testDb.exec(migrationSql);
 
   testDb.exec(`
-    CREATE TABLE categories (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      parent_id TEXT,
-      description TEXT,
-      image TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE products (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      description TEXT,
-      maker_field_notes TEXT,
-      artist_statement TEXT,
-      materials TEXT,
-      weight TEXT,
-      fit_profile TEXT,
-      origin TEXT,
-      base_price REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft',
-      category_id TEXT,
-      shopify_product_id TEXT UNIQUE,
-      featured_image TEXT,
-      gallery TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE product_variations (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      shopify_variant_id TEXT UNIQUE,
-      variation_name TEXT NOT NULL,
-      sku TEXT NOT NULL UNIQUE,
-      variation_type TEXT NOT NULL DEFAULT 'standard',
-      edition_badge TEXT,
-      variation_notes TEXT,
-      variation_images TEXT,
-      price_override REAL,
-      is_limited_edition INTEGER NOT NULL DEFAULT 1,
-      total_edition_count INTEGER,
-      stock_quantity INTEGER NOT NULL DEFAULT 1,
-      release_date TEXT,
-      status TEXT NOT NULL DEFAULT 'coming_soon',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    );
 
     INSERT INTO categories (id, name, slug, description) VALUES
       ('c-1', 'Sculptures', 'sculptures', 'Physical artifacts'),
