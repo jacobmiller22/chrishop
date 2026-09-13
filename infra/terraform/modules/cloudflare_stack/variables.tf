@@ -36,3 +36,15 @@ variable "media_retention_days" {
   type        = number
   default     = 90
 }
+
+variable "manage_shared_resources" {
+  description = "Whether to manage shared tier resources like the R2 media bucket and Turnstile widget (false for ephemeral PR previews)"
+  type        = bool
+  default     = true
+}
+
+variable "pr_number" {
+  description = "Pull request number for ephemeral preview stack isolation"
+  type        = string
+  default     = ""
+}

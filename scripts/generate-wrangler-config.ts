@@ -56,6 +56,7 @@ export function syncTerraformToWrangler(options: BridgeOptions): void {
   }
 
   let d1Id = process.env[`TF_OUT_D1_ID`] || process.env[`D1_DATABASE_ID`];
+  let d1Name = process.env[`TF_OUT_D1_NAME`] || process.env[`D1_DATABASE_NAME`];
   let kvId = process.env[`TF_OUT_KV_ID`] || process.env[`KV_NAMESPACE_ID`];
   let r2Bucket = process.env[`TF_OUT_R2_BUCKET`] || process.env[`R2_BUCKET_NAME`];
 
@@ -63,11 +64,13 @@ export function syncTerraformToWrangler(options: BridgeOptions): void {
     const raw = fs.readFileSync(options.tfOutputFile, 'utf-8');
     const parsed: TerraformOutputs = JSON.parse(raw);
     if (parsed.d1_database_id?.value) d1Id = parsed.d1_database_id.value;
+    if (parsed.d1_database_name?.value) d1Name = parsed.d1_database_name.value;
     if (parsed.kv_namespace_id?.value) kvId = parsed.kv_namespace_id.value;
     if (parsed.r2_bucket_name?.value) r2Bucket = parsed.r2_bucket_name.value;
   }
 
   console.log(`\n🔗 [Terraform-Wrangler Bridge] Target Environment: ${options.env}`);
+  console.log(`  - D1 Database Name: ${d1Name || '(retaining current)'}`);
   console.log(`  - D1 Database ID:   ${d1Id || '(retaining current)'}`);
   console.log(`  - KV Namespace ID:  ${kvId || '(retaining current)'}`);
   console.log(`  - R2 Bucket:        ${r2Bucket || '(retaining current)'}`);
@@ -125,6 +128,12 @@ export function syncTerraformToWrangler(options: BridgeOptions): void {
       );
     }
   } else if (options.env === 'preview') {
+    if (d1Name) {
+      content = content.replace(
+        /\[\[env\.preview\.d1_databases\]\][\s\S]*?database_name\s*=\s*"[^"]+"/,
+        (match) => match.replace(/database_name\s*=\s*"[^"]+"/, `database_name = "${d1Name}"`)
+      );
+    }
     if (d1Id) {
       content = content.replace(
         /\[\[env\.preview\.d1_databases\]\][\s\S]*?database_id\s*=\s*"[^"]+"/,

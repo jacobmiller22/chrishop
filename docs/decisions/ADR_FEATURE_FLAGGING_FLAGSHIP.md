@@ -67,22 +67,26 @@ Cloudflare Flagship is Cloudflare's first-party feature flagging service built s
 
 ## 4. Formal Architectural Recommendation
 
-### 🏆 Recommendation: Dedicated Flagship App Per Environment (Strategy A)
+### 🏆 Recommendation: Dedicated Flagship App Per Persistent Environment & Decoupled Preview Precedence (Strategy A + Story 2.47)
 
-We formally adopt **Strategy A: A Dedicated Flagship App per Environment** (`chrishop-preview`, `chrishop-staging`, `chrishop-production`):
+We adopt dedicated Flagship applications for persistent environments (`chrishop-staging`, `chrishop-production`), while decoupling ephemeral PR previews via **Story 2.47**:
 
 ```mermaid
 flowchart TD
     subgraph Cloudflare Account
-        AppPreview[Flagship App: chrishop-preview]
         AppStaging[Flagship App: chrishop-staging]
         AppProd[Flagship App: chrishop-production]
     end
 
-    subgraph Wrangler Environments
-        WorkerPreview[Ephemeral PR Preview Worker] -->|env.FLAGS| AppPreview
+    subgraph Persistent Environments
         WorkerStaging[Staging Worker] -->|env.FLAGS| AppStaging
         WorkerProd[Production Worker] -->|env.FLAGS| AppProd
+    end
+
+    subgraph Ephemeral PR Previews (Story 2.47)
+        WorkerPreview[Ephemeral PR Preview Worker] -->|1. Session Override| SessionQuery[?flag:KEY=val / Cookie]
+        WorkerPreview -->|2. PR Worker Var| PRVars[wrangler.toml env.preview.vars]
+        WorkerPreview -->|3. Fallback Binding| AppStaging
     end
 
     subgraph Local Development
@@ -91,29 +95,27 @@ flowchart TD
 ```
 
 #### Rationale & Key Advantages:
-1. **Strict Blast Radius Isolation**: A toggle or experiment tested in `chrishop-preview` or `chrishop-staging` physically cannot leak into or compromise `chrishop-production`. During high-stakes drops, operational safety is absolute.
-2. **App-Scoped RBAC & Token Security**:
-   - PR Preview CI pipelines and junior developers can be issued Cloudflare API tokens scoped strictly to `chrishop-preview` with `Write` permissions.
-   - Staging automated tests can be granted write access to `chrishop-staging`.
+1. **Strict Blast Radius Isolation**: A toggle or experiment tested in staging physically cannot leak into or compromise `chrishop-production`. During high-stakes drops, operational safety is absolute.
+2. **Zero Cross-PR Contamination in Previews (Story 2.47)**: Sharing a single preview Flagship app across multiple concurrent PRs would cause cross-PR mutation (PR #1 toggling a flag on would break PR #2's review). Previews instead isolate flag overrides via PR branch variables (`[env.preview.vars]`) and reviewer session query params, cascading safely to the Staging Flagship app.
+3. **App-Scoped RBAC & Token Security**:
+   - Staging automated tests and QA can be granted write access to `chrishop-staging`.
    - Production (`chrishop-production`) write permissions are restricted strictly to authorized release managers and incident response automation.
-3. **Native Wrangler Multi-Environment Mapping**: Wrangler's configuration format natively supports per-environment bindings:
+4. **Native Wrangler Multi-Environment Mapping**:
    ```toml
-   # Default / Preview Environment
-   [[flagship]]
-   binding = "FLAGS"
-   app_id = "<PREVIEW_FLAGSHIP_APP_ID>"
-
+   # Staging Environment
    [env.staging]
    [[env.staging.flagship]]
    binding = "FLAGS"
    app_id = "<STAGING_FLAGSHIP_APP_ID>"
 
+   # Production Environment
    [env.production]
    [[env.production.flagship]]
    binding = "FLAGS"
    app_id = "<PRODUCTION_FLAGSHIP_APP_ID>"
+
+   # Ephemeral PR Previews: Decoupled via [env.preview.vars] with fallback to Staging Flagship
    ```
-4. **Clean Targeting Rules**: Rule definitions in Production do not require repetitive `if (environment === 'production')` guards. Rules describe user targeting purely (e.g. VIP drop access, 10% canary), while Preview environments can default features to `true` across the board for immediate testing.
 
 ---
 

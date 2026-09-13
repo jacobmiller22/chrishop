@@ -30,11 +30,13 @@ provider "cloudflare" {
 module "preview_stack" {
   source = "../../modules/cloudflare_stack"
 
-  cloudflare_account_id = var.cloudflare_account_id
-  cloudflare_zone_id    = var.cloudflare_zone_id
-  zone_name             = var.zone_name
-  environment           = "preview"
-  subdomain_prefix      = var.pr_number != "" ? "pr-${var.pr_number}" : "preview"
-  aliases               = []
-  media_retention_days  = 14
+  cloudflare_account_id   = var.cloudflare_account_id
+  cloudflare_zone_id      = var.cloudflare_zone_id
+  zone_name               = var.zone_name
+  environment             = "preview"
+  subdomain_prefix        = var.pr_number != "" ? "pr-${var.pr_number}" : "preview"
+  pr_number               = var.pr_number
+  manage_shared_resources = var.pr_number == ""
+  aliases                 = []
+  media_retention_days    = 14
 }

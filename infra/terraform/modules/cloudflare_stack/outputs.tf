@@ -15,7 +15,7 @@ output "kv_namespace_id" {
 
 output "r2_bucket_name" {
   description = "Name of the R2 media bucket"
-  value       = cloudflare_r2_bucket.media.name
+  value       = var.manage_shared_resources ? cloudflare_r2_bucket.media[0].name : "chrishop-media-${var.environment}"
 }
 
 output "storefront_url" {
@@ -25,5 +25,5 @@ output "storefront_url" {
 
 output "turnstile_site_key" {
   description = "Turnstile widget site key"
-  value       = cloudflare_turnstile_widget.checkout.id
+  value       = var.manage_shared_resources ? cloudflare_turnstile_widget.checkout[0].id : ""
 }
