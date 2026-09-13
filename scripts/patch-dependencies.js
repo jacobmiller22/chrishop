@@ -333,6 +333,22 @@ try {
       console.log('[patch-dependencies] @opennextjs/cloudflare templates/worker.js already patched at', workerTemplatePath);
     }
   }
+
+  // Patch compile-env-files.js to avoid duplicate exports on multiple compilations
+  const compileEnvFilesPath = path.join(pkgDir, 'dist/cli/build/open-next/compile-env-files.js');
+  if (fs.existsSync(compileEnvFilesPath)) {
+    let content = fs.readFileSync(compileEnvFilesPath, 'utf8');
+    if (!content.includes('next-env.mjs`), ""')) {
+      content = content.replace(
+        'fs.mkdirSync(envDir, { recursive: true });',
+        'fs.mkdirSync(envDir, { recursive: true });\n    fs.writeFileSync(path.join(envDir, `next-env.mjs`), "");'
+      );
+      fs.writeFileSync(compileEnvFilesPath, content, 'utf8');
+      console.log('[patch-dependencies] Patched @opennextjs/cloudflare compile-env-files.js at', compileEnvFilesPath);
+    } else {
+      console.log('[patch-dependencies] @opennextjs/cloudflare compile-env-files.js already patched at', compileEnvFilesPath);
+    }
+  }
 } catch (err) {
   console.warn('[patch-dependencies] Could not resolve @opennextjs/cloudflare:', err.message);
 }

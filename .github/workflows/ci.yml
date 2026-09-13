@@ -65,13 +65,13 @@ jobs:
       - name: Run Unit Tests
         run: pnpm run test:unit
 
+      - name: Build Monorepo Workspaces
+        run: pnpm run build
+
       - name: Run Local In-Memory Integration Tests
         run: pnpm run test:integration
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Monorepo Workspaces
-        run: pnpm run build
 
       - name: Check Worker Bundle Size Budget Gate
         run: pnpm run check:bundle

@@ -102,6 +102,14 @@ export function buildWorker(): void {
     "utf-8"
   );
 
+  // Ensure cloudflare/next-env.mjs has no duplicate exports
+  const envFilePath = path.join(openNextDir, "cloudflare/next-env.mjs");
+  if (fs.existsSync(envFilePath)) {
+    const lines = fs.readFileSync(envFilePath, "utf-8").split("\n").filter(Boolean);
+    const uniqueLines = Array.from(new Set(lines));
+    fs.writeFileSync(envFilePath, uniqueLines.join("\n") + "\n", "utf-8");
+  }
+
   // 4. Ensure server-functions handler.mjs export bridges exist
   for (const fnName of ["admin", "default"]) {
     const fnDir = path.join(openNextDir, "server-functions", fnName);
