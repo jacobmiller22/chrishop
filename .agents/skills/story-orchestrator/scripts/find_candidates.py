@@ -48,6 +48,8 @@ def is_shovel_ready(issue, closed_numbers):
         return False, "Has 'blocked' label"
     if 'status:in-progress' in labels:
         return False, "Already 'in-progress'"
+    if 'status:completed' in labels:
+        return False, "Already completed (PR awaiting merge)"
     if 'creator-review' in labels:
         return False, "Human Creator Review touchpoint"
     if 'needs-refinement' in labels:

@@ -24,7 +24,7 @@ The **Adversarial Roadmap Evaluation Workflow** enforces continuous synchronizat
 ### Pillar 2: Milestone Hygiene & Zero-Orphan Policy
 - **Zero Orphaned Issues**: Every open issue MUST be assigned to an Epic label (`epic:phase-X`) AND an active GitHub Milestone. Floating issues with `milestone: null` are strictly forbidden.
 - **De-duplication**: Proactively identify duplicate stories across phases (e.g. CI/CD deploy pipeline stories split across Phase 2 and Phase 4) and consolidate them immediately.
-- **Issue Lifecycle Sync**: Any story marked `status:completed` or documented in `docs/` as finished MUST be formally closed on GitHub with linked commits/PRs.
+- **Issue Lifecycle Sync**: Stories marked `status:completed` legitimately remain open while their respective pull requests are pending review/merge. Once the pull request is merged, the issue MUST be formally closed on GitHub with linked commits/PRs.
 
 ### Pillar 3: Priority-First Governance
 Every story MUST be classified into a standardized priority tier:
@@ -83,14 +83,18 @@ python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4
 python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4 --min-priority high
 ```
 
-### 3.3 Automated Scheduled Daemon (`launchd`)
-The adversarial audit is wired into the 12-hour local `launchd` service (`com.chrishop.backlog-refinement`). Every scheduled execution at 02:00 and 14:00 runs:
-1. Monorepo health check (`pnpm run check`).
-2. Adversarial backlog critique (`refinement_audit.py`).
-3. Roadmap & milestone audit (`pnpm run audit:roadmap`).
+### 3.3 On-Demand Execution & Project Management Skill
+The legacy 12-hour background `launchd` daemon has been decommissioned in favor of an on-demand, unified TypeScript auditor.
 
-To test the daemon run manually:
+Operators and AI agents can invoke the audit instantly:
 ```bash
-./infra/launchd/install.sh run-now
-./infra/launchd/install.sh logs
+# Direct CLI execution
+pnpm run audit:roadmap
+
+# With full codebase deliverables verification
+pnpm run audit:backlog
+
+# Trigger via Project Management skill
+/project-management roadmap audit
 ```
+

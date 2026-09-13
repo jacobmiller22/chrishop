@@ -55,6 +55,7 @@ The root `package.json` provides an organized suite of scripts for development, 
 | `pnpm run dev:wrangler` | `wrangler dev --port 8787` | Runs **only** the Cloudflare Wrangler edge worker emulator |
 | `pnpm run dev:types` | `wrangler types` | Generates/refreshes TypeScript types for Cloudflare bindings |
 | `pnpm run dev:db` | `tsx scripts/seed-db.ts` | Seeds the local SQLite/D1 database with catalog fixtures |
+| `pnpm run branch <name>` | `bash scripts/create-branch.sh` | **Branch Helper**: Fetches `origin/staging` and provisions an isolated worktree from `staging` |
 
 ### 2.2 Production Build Scripts
 | Command | Action | Description |
@@ -95,6 +96,29 @@ ChrisShop is designed to run locally with **zero external background daemons or 
 - **Cloudflare Edge Worker (`http://localhost:8787`)**: Local Miniflare instance emulating Cloudflare edge environment.
 - **Local D1 Database**: Backed by a local SQLite file stored under `.wrangler/state/v3/d1/local.sqlite` (or ephemeral `:memory:` during automated tests).
 - **Local KV Store**: Backed by local filesystem storage under `.wrangler/state/v3/kv`.
+
+---
+
+## 3.1 Git Workflow & Staging-First Branching Protocol
+
+ChrisShop follows a strict staged promotion pipeline: `feature/*` ➔ `staging` ➔ `production`.
+
+- **`staging`**: Active integration target where all feature branches merge. All new branches **MUST** branch from fresh `origin/staging`.
+- **`production`**: Protected live release edge. Direct PRs to `production` are strictly blocked; code promotes from `staging` via release PRs.
+- **`main`**: Legacy branch. Direct PRs to `main` are strictly blocked by CI (`enforce-promotion-rules`).
+
+### Branching Commands
+```bash
+# Recommended turnkey command
+pnpm run branch feature/story-<X>-<Y>-<shortname>
+
+# Or manually with worktrunk:
+git fetch origin staging && wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging
+```
+
+### Pull Request & Teardown Protocol
+- Always target `staging`: `gh pr create --base staging ...`
+- Worktree teardown: switch back to `staging`: `wt switch staging && wt remove --reap feature/...`
 
 ---
 
