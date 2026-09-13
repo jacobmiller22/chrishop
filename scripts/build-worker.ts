@@ -28,7 +28,13 @@ export function buildWorker(): void {
 
   // 1. Compile Next.js & Payload CMS via unpatched OpenNext if needed
   const defaultHandler = path.join(webOpenNextDir, 'server-functions/default/handler.mjs');
-  if (!fs.existsSync(defaultHandler)) {
+  const webNextDir = path.join(webAppDir, '.next');
+  const needsCompile =
+    !fs.existsSync(defaultHandler) ||
+    (fs.existsSync(webNextDir) &&
+      fs.statSync(webNextDir).mtimeMs > fs.statSync(defaultHandler).mtimeMs);
+
+  if (needsCompile) {
     console.log('  ▶ Compiling via @opennextjs/cloudflare...');
     execSync('pnpm --filter @chrishop/web exec opennextjs-cloudflare build --skipWranglerConfigCheck', {
       cwd: rootDir,

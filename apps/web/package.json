@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:opennext": "opennextjs-cloudflare build",
+    "build": "next build --webpack",
+    "build:opennext": "opennextjs-cloudflare build --skipWranglerConfigCheck",
     "generate:importmap": "payload generate:importmap",
     "prebuild": "payload generate:importmap",
     "start": "next start",
