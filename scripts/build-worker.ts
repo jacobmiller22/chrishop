@@ -194,6 +194,43 @@ export default {
       );
     }
 
+    // 2. Diagnostic Edge Debug Probe (/api/debug)
+    if (url.pathname === "/api/debug") {
+      const debugInfo: Record<string, any> = {
+        runtime: "cloudflare-workers",
+        timestamp: new Date().toISOString(),
+        bindings: {
+          d1: Boolean(env.DB),
+          kv: Boolean(env.NEXT_CACHE_WORKERS_KV),
+          r2: Boolean(env.BUCKET),
+          assets: Boolean(env.ASSETS),
+        },
+      };
+
+      if (env.DB && typeof env.DB.prepare === "function") {
+        try {
+          const tablesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+          debugInfo.tables = (tablesResult?.results || []).map((t: any) => t.name);
+
+          const usersResult = await env.DB.prepare("SELECT id, email FROM users LIMIT 5").all();
+          debugInfo.users = usersResult?.results || [];
+
+          const productsResult = await env.DB.prepare("SELECT count(*) as count FROM products").all();
+          debugInfo.productsCount = productsResult?.results?.[0]?.count;
+        } catch (dbErr: any) {
+          debugInfo.dbError = { message: dbErr?.message, stack: dbErr?.stack };
+        }
+      }
+
+      return new Response(JSON.stringify(debugInfo, null, 2), {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    }
+
     // 2. Edge R2 Media Handler (/media/*)
     if (url.pathname.startsWith("/media/")) {
       const r2Key = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
@@ -268,20 +305,38 @@ export default {
         // @ts-expect-error: resolved by wrangler build
         const { handler } = await import("./server-functions/default/handler.mjs");
 
-        // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
-        // to preserve the request body stream and eliminate duplicate stream consumption.
-        const isMutation = request.method !== "GET" && request.method !== "HEAD";
-        if (isMutation || url.pathname.startsWith("/api/")) {
-          return await handler(request, env, executionCtx, request.signal);
-        }
+        let lastError = "";
+        const origError = console.error;
+        console.error = (...args) => {
+          lastError += args.map((a) => (typeof a === "object" ? (a?.stack || a?.message || JSON.stringify(a)) : String(a))).join(" ") + "\n";
+          origError.apply(console, args);
+        };
 
-        // Run Next.js edge middleware for GET/HEAD page navigation
-        const reqOrResp = await middlewareHandler(request, env, executionCtx);
-        if (reqOrResp instanceof Response) {
-          return reqOrResp;
-        }
+        try {
+          // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
+          // to preserve the request body stream and eliminate duplicate stream consumption.
+          const isMutation = request.method !== "GET" && request.method !== "HEAD";
+          let resp;
+          if (isMutation || url.pathname.startsWith("/api/")) {
+            resp = await handler(request, env, executionCtx, request.signal);
+          } else {
+            // Run Next.js edge middleware for GET/HEAD page navigation
+            const reqOrResp = await middlewareHandler(request, env, executionCtx);
+            if (reqOrResp instanceof Response) {
+              return reqOrResp;
+            }
+            resp = await handler(reqOrResp, env, executionCtx, request.signal);
+          }
 
-        return await handler(reqOrResp, env, executionCtx, request.signal);
+          if (resp && resp.status >= 500 && lastError) {
+            const h = new Headers(resp.headers);
+            h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+            return new Response(resp.body, { status: resp.status, headers: h });
+          }
+          return resp;
+        } finally {
+          console.error = origError;
+        }
       });
     } catch (err) {
       return new Response(
