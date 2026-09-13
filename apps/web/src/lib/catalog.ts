@@ -1,15 +1,25 @@
 /**
  * ChrisShop Catalog Data Access Layer
  *
- * Cloudflare-native / SQLite catalog query engine with price fallback resolution
+ * Cloudflare D1 catalog query engine with price fallback resolution
  * and Cloudflare R2 media URL formatting.
  *
  * Specification: docs/HIGH_LEVEL_DESIGN.md Section 3
  */
 
-import { DatabaseSync } from 'node:sqlite';
-import fs from 'node:fs';
-import path from 'node:path';
+export interface D1DatabaseLike {
+  prepare(sql: string): {
+    bind?(...params: any[]): any;
+    all(...params: any[]): Promise<any> | any;
+    get(...params: any[]): Promise<any> | any;
+    first?(...params: any[]): Promise<any> | any;
+    run(...params: any[]): Promise<any> | any;
+  };
+  exec?(sql: string): Promise<any> | any;
+}
+
+export type DatabaseSync = D1DatabaseLike;
+
 import type {
   Category,
   Product,
@@ -87,454 +97,62 @@ export interface GetProductsOptions {
 }
 
 // ============================================================================
-// Database Connection Resolver (Local SQLite / Miniflare D1)
+// Database Connection Resolver (Cloudflare D1)
 // ============================================================================
 
-let singletonDb: DatabaseSync | null = null;
+let singletonDb: D1DatabaseLike | null = null;
 
-export function getDatabase(customPath?: string): DatabaseSync {
-  if (singletonDb && !customPath) {
+export function getDatabase(): D1DatabaseLike {
+  if (singletonDb) {
     return singletonDb;
   }
 
-  const dbPath =
-    customPath ||
-    process.env.SQLITE_DB_PATH ||
-    path.resolve(process.cwd(), '.wrangler/state/v3/d1/local.sqlite');
+  // Check if live Cloudflare D1 binding is available
+  const d1 =
+    (typeof globalThis !== 'undefined' && (globalThis as any).DB) ||
+    (typeof globalThis !== 'undefined' &&
+      (globalThis as any)[Symbol.for('__cloudflare-context__')]?.env?.DB);
 
-  try {
-    if (fs.existsSync(dbPath)) {
-      const db = new DatabaseSync(dbPath);
-      db.exec('PRAGMA foreign_keys = ON;');
-      if (!customPath) singletonDb = db;
-      return db;
-    }
-  } catch {
-    // Fall back to in-memory SQLite if file cannot be opened
+  if (d1) {
+    const d1Wrapper: D1DatabaseLike = {
+      prepare(sql: string) {
+        return {
+          bind: (...params: any[]) => d1.prepare(sql).bind(...params),
+          all: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.all().then((res: any) => res?.results || []);
+          },
+          get: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.first();
+          },
+          run: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.run();
+          },
+        };
+      },
+      exec: async (sql: string) => d1.exec(sql),
+    };
+    singletonDb = d1Wrapper;
+    return d1Wrapper;
   }
 
-  // Fallback in-memory database seeded with baseline catalog
-  const fallbackDb = new DatabaseSync(':memory:');
-  fallbackDb.exec('PRAGMA foreign_keys = ON;');
-  ensureSchemaAndBaselineData(fallbackDb);
-  if (!customPath) singletonDb = fallbackDb;
-  return fallbackDb;
+  // Pure edge / mock stub when no D1 binding is attached (e.g. static pre-render)
+  const stubDb: D1DatabaseLike = {
+    exec: async () => {},
+    prepare: () => ({
+      bind: () => stubDb.prepare(''),
+      all: async () => [],
+      get: async () => null,
+      run: async () => ({ changes: 0 }),
+    }),
+  };
+  return stubDb;
 }
 
 export function resetDatabase(): void {
   singletonDb = null;
-}
-
-function ensureSchemaAndBaselineData(db: DatabaseSync): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      parent_id TEXT,
-      description TEXT,
-      image TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      description TEXT,
-      maker_field_notes TEXT,
-      artist_statement TEXT,
-      materials TEXT,
-      weight TEXT,
-      fit_profile TEXT,
-      origin TEXT,
-      base_price REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft',
-      category_id TEXT,
-      shopify_product_id TEXT UNIQUE,
-      featured_image TEXT,
-      gallery TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS product_variations (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      shopify_variant_id TEXT UNIQUE,
-      variation_name TEXT NOT NULL,
-      sku TEXT NOT NULL UNIQUE,
-      variation_type TEXT NOT NULL DEFAULT 'standard',
-      edition_badge TEXT,
-      variation_notes TEXT,
-      variation_images TEXT,
-      price_override REAL,
-      is_limited_edition INTEGER NOT NULL DEFAULT 1,
-      total_edition_count INTEGER,
-      stock_quantity INTEGER NOT NULL DEFAULT 1,
-      release_date TEXT,
-      status TEXT NOT NULL DEFAULT 'coming_soon',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
-    CREATE INDEX IF NOT EXISTS idx_products_shopify_id ON products(shopify_product_id);
-    CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
-    CREATE INDEX IF NOT EXISTS idx_product_variations_sku ON product_variations(sku);
-    CREATE INDEX IF NOT EXISTS idx_product_variations_product_id ON product_variations(product_id);
-    CREATE INDEX IF NOT EXISTS idx_product_variations_shopify_id ON product_variations(shopify_variant_id);
-    CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
-    CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
-  `);
-
-  // Baseline Category Hierarchy (Depth 2)
-  const baselineCategories = [
-    { id: 'cat-apparel', name: 'Apparel', slug: 'apparel', parent_id: null, description: 'Technical outerwear, guide pants, and weather-resistant midlayers.' },
-    { id: 'cat-outerwear', name: 'Outerwear', slug: 'outerwear', parent_id: 'cat-apparel', description: 'Weather-defense anoraks, wading shells, and storm jackets.' },
-    { id: 'cat-pants', name: 'Pants & Shorts', slug: 'pants', parent_id: 'cat-apparel', description: 'Heavyweight ripstop guide pants with Cordura brush reinforcement.' },
-    { id: 'cat-storm-shells', name: 'Waterproof Storm Shells', slug: 'waterproof-storm-shells', parent_id: 'cat-outerwear', description: '3-layer fully seam-taped waterproof breathable membranes.' },
-    { id: 'cat-brush-pants', name: 'Technical Brush Pants', slug: 'technical-brush-pants', parent_id: 'cat-pants', description: '4-way stretch DWR pants with 1000D Cordura knee and ankle scuff guards.' },
-    { id: 'cat-packs', name: 'Packs & Carry', slug: 'packs-carry', parent_id: null, description: 'Waterproof composite lumbar slings, modular chest rigs, and submersible gear duffels.' },
-    { id: 'cat-sling-packs', name: 'Lumbar & Sling Packs', slug: 'sling-packs', parent_id: 'cat-packs', description: 'One-handed access lumbar and sling packs engineered for uninhibited casting.' },
-    { id: 'cat-chest-rigs', name: 'Chest Rigs & Harnesses', slug: 'chest-rigs', parent_id: 'cat-packs', description: 'Modular chest workstations with drop-down fly/tackle shelves.' },
-    { id: 'cat-accessories', name: 'Field Accessories', slug: 'field-accessories', parent_id: null, description: 'Waxed canvas tool rolls, Kevlar-reinforced casting gloves, and floating brim guide caps.' },
-    { id: 'cat-tool-rolls', name: 'Tool Rolls & Wallets', slug: 'tool-rolls', parent_id: 'cat-accessories', description: 'Martexin waxed canvas leader rolls and tool organizers.' },
-    { id: 'cat-headwear', name: 'Caps & Headwear', slug: 'headwear', parent_id: 'cat-accessories', description: 'Floating brim 5-panel guide caps and waxed cotton sun covers.' },
-  ];
-
-  const insertCat = db.prepare(`
-    INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-  for (const c of baselineCategories) {
-    insertCat.run(c.id, c.name, c.slug, c.parent_id, c.description);
-  }
-
-  // Baseline Products (Authentic BankBeaters Catalog)
-  const baselineProducts = [
-    {
-      id: 'prod-bushwhack-anorak',
-      title: 'The Bushwhack Storm Anorak',
-      slug: 'bushwhack-storm-anorak',
-      description: 'Bombproof 3-layer waterproof/breathable membrane with 500D Cordura reinforced forearms and oversized tackle kangaroo pouch.',
-      maker_field_notes: 'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles.',
-      materials: '3-Layer DWR Toray Ripstop, 500D Cordura® Panels, YKK AquaGuard®',
-      weight: '21.4 oz (606g)',
-      fit_profile: 'Relaxed Athletic (Engineered for layering and double-haul casting)',
-      origin: "Hand-cut & sewn in small batches in Chris's workshop",
-      base_price: 340.0,
-      status: 'published',
-      category_id: 'cat-storm-shells',
-      shopify_product_id: 'gid://shopify/Product/101',
-      featured_image: '/media/bushwhack-storm-anorak/hero.jpeg',
-      gallery: JSON.stringify(['/media/bushwhack-storm-anorak/field-action.jpeg', '/media/bushwhack-storm-anorak/workbench-detail.jpeg', '/media/bushwhack-storm-anorak/camo-variation.jpeg']),
-    },
-    {
-      id: 'prod-bramble-buster-pant',
-      title: 'Bramble-Buster Technical Guide Pant',
-      slug: 'bramble-buster-technical-guide-pant',
-      description: 'Heavyweight stretch ripstop guide pants fortified with 1000D Cordura scuff guards on knees and ankles.',
-      maker_field_notes: 'Standard fishing waders get shredded by briars on the walk-in. These pants wear over thermal tights or wet-wading socks, taking direct abuse from blackberry canes.',
-      materials: 'Heavyweight 4-Way Stretch DWR Ripstop, 1000D Cordura® Knee & Ankle Panels',
-      weight: '17.8 oz (505g)',
-      fit_profile: 'Technical Straight (Articulated knees, gusseted seat)',
-      origin: "Hand-cut & sewn in small batches in Chris's workshop",
-      base_price: 215.0,
-      status: 'published',
-      category_id: 'cat-brush-pants',
-      shopify_product_id: 'gid://shopify/Product/102',
-      featured_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
-      gallery: JSON.stringify(['/media/bramble-buster-technical-guide-pant/field-action.jpeg', '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg', '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg']),
-    },
-    {
-      id: 'prod-cutbank-sling-pack',
-      title: 'The Cutbank Lumbar & Sling Convertible Pack',
-      slug: 'the-cutbank-lumbar-sling-pack',
-      description: 'Waterproof X-Pac composite sling that converts to a lumbar pack in seconds with integrated magnetic net slot.',
-      maker_field_notes: 'When wading chest-deep or scrambling over downed timber, you need your pack out of your stroke until the second you land a fish.',
-      materials: 'Waterproof X-Pac® VX21 Composite Sailcloth, 500D Cordura® Base, YKK AquaGuard®',
-      weight: '14.2 oz (402g)',
-      fit_profile: 'Ambidextrous Sling / Lumbar Switchable with Breathable 3D Spacer Mesh',
-      origin: "Hand-crafted in Chris's workshop",
-      base_price: 195.0,
-      status: 'published',
-      category_id: 'cat-sling-packs',
-      shopify_product_id: 'gid://shopify/Product/103',
-      featured_image: '/media/the-cutbank-lumbar-sling-pack/hero.jpeg',
-      gallery: JSON.stringify(['/media/the-cutbank-lumbar-sling-pack/field-action.jpeg', '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg', '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg']),
-    },
-    {
-      id: 'prod-minimalist-chest-rig',
-      title: 'Minimalist Bank Chest Rig',
-      slug: 'minimalist-bank-chest-rig',
-      description: 'Ultralight modular chest station with fold-down tackle workbench shelf and interchangeable EVA fly/lure patch.',
-      maker_field_notes: 'Eliminates heavy vests. Rides high on your chest so you can wade to your armpits without soaking your terminal fly boxes.',
-      materials: '500D Mil-Spec Cordura®, High-Density Closed-Cell EVA Fly Patch, Duraflex® Mojave Buckles',
-      weight: '9.6 oz (272g)',
-      fit_profile: 'Low-Profile 4-Point Harness (Rides high above deep wading lines)',
-      origin: "Hand-crafted in Chris's workshop",
-      base_price: 135.0,
-      status: 'published',
-      category_id: 'cat-chest-rigs',
-      shopify_product_id: 'gid://shopify/Product/104',
-      featured_image: '/media/minimalist-bank-chest-rig/hero.jpeg',
-      gallery: JSON.stringify(['/media/minimalist-bank-chest-rig/field-action.jpeg', '/media/minimalist-bank-chest-rig/workbench-detail.jpeg', '/media/minimalist-bank-chest-rig/prototype-variation.jpeg']),
-    },
-    {
-      id: 'prod-waxed-tool-roll',
-      title: 'Waxed Canvas & Cordura Tool Roll / Leader Wallet',
-      slug: 'waxed-canvas-cordura-tool-roll',
-      description: 'Heavyweight waxed canvas organizer with 6 internal slots for tippet spools, leader wallets, pliers, and knot tools.',
-      maker_field_notes: 'Built with Martexin waxed canvas that sheds river spray and weathers into a deep personal patina.',
-      materials: '12oz Martexin Original Waxed Canvas, 420D Hi-Vis Blaze Orange Packcloth, Solid Brass Snaps',
-      weight: '6.5 oz (184g)',
-      fit_profile: 'Tri-Fold Compact (Fits into any thigh pocket or pack exterior sleeve)',
-      origin: 'Hand-cut, waxed, and stitched with bonded nylon thread',
-      base_price: 75.0,
-      status: 'published',
-      category_id: 'cat-tool-rolls',
-      shopify_product_id: 'gid://shopify/Product/105',
-      featured_image: '/media/waxed-canvas-cordura-tool-roll/hero.jpeg',
-      gallery: JSON.stringify(['/media/waxed-canvas-cordura-tool-roll/field-action.jpeg', '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg', '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg']),
-    },
-    {
-      id: 'prod-5panel-guide-cap',
-      title: 'The BankBeaters 5-Panel Guide Cap',
-      slug: 'the-bankbeaters-5-panel-guide-cap',
-      description: 'Waxed cotton 5-panel guide cap engineered with an unsinkable floatable EVA foam brim and dark glare-reducing underbill.',
-      maker_field_notes: 'If your hat blows off in a river rapid, normal caps sink immediately. Built with an EVA foam core brim that stays buoyant.',
-      materials: 'Dry-Finish Waxed Cotton Canvas, Floatable Closed-Cell EVA Foam Brim, Antiqued Brass Eyelets',
-      weight: '2.9 oz (82g)',
-      fit_profile: 'Low Crown 5-Panel with Nylon Webbing Quick-Release Adjuster',
-      origin: 'Sewn and shaped in workshop',
-      base_price: 44.0,
-      status: 'published',
-      category_id: 'cat-headwear',
-      shopify_product_id: 'gid://shopify/Product/106',
-      featured_image: '/media/the-bankbeaters-5-panel-guide-cap/hero.jpeg',
-      gallery: JSON.stringify(['/media/the-bankbeaters-5-panel-guide-cap/field-action.jpeg', '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg', '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg']),
-    },
-  ];
-
-  const insertProd = db.prepare(`
-    INSERT OR IGNORE INTO products (id, title, slug, description, maker_field_notes, artist_statement, materials, weight, fit_profile, origin, base_price, status, category_id, shopify_product_id, featured_image, gallery)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const p of baselineProducts) {
-    insertProd.run(
-      p.id,
-      p.title,
-      p.slug,
-      p.description,
-      p.maker_field_notes,
-      p.maker_field_notes,
-      p.materials,
-      p.weight,
-      p.fit_profile,
-      p.origin,
-      p.base_price,
-      p.status,
-      p.category_id,
-      p.shopify_product_id,
-      p.featured_image,
-      p.gallery
-    );
-  }
-
-  // Baseline Variations
-  const baselineVariations = [
-    {
-      id: 'var-anorak-olive',
-      product_id: 'prod-bushwhack-anorak',
-      shopify_variant_id: 'gid://shopify/ProductVariant/201',
-      variation_name: 'Field Olive — Standard Run',
-      sku: 'BWK-ANRK-OLV-STD',
-      variation_type: 'standard',
-      edition_badge: 'Standard Production',
-      variation_notes: 'Standard production run in bombproof 3-layer olive ripstop with black 500D Cordura scuff guards.',
-      variation_images: null,
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 25,
-      stock_quantity: 12,
-      status: 'active',
-    },
-    {
-      id: 'var-anorak-camo-micro',
-      product_id: 'prod-bushwhack-anorak',
-      shopify_variant_id: 'gid://shopify/ProductVariant/202',
-      variation_name: 'Deadstock Duck Camo Pocket Edition',
-      sku: 'BWK-ANRK-CAMO-LTD',
-      variation_type: 'micro_batch',
-      edition_badge: 'Only 3 Crafted',
-      variation_notes: 'Crafted at the sewing bench using salvaged 1990s deadstock Mil-Spec duck camo Cordura for the oversized kangaroo chest drop pouch.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/bushwhack-storm-anorak/camo-variation.jpeg',
-          caption: 'Bench shot: Deadstock 500D duck camo chest pouch under machine needle',
-        },
-        {
-          image: '/media/bushwhack-storm-anorak/workbench-detail.jpeg',
-          caption: 'Bench shot: AquaGuard zipper bar-tacking and hand-stamped edition tag',
-        },
-      ]),
-      price_override: 385.0,
-      is_limited_edition: 1,
-      total_edition_count: 3,
-      stock_quantity: 3,
-      status: 'active',
-    },
-    {
-      id: 'var-pant-olive-32',
-      product_id: 'prod-bramble-buster-pant',
-      shopify_variant_id: 'gid://shopify/ProductVariant/203',
-      variation_name: 'Field Olive Ripstop — 32x32',
-      sku: 'BMB-PNT-OLV-3232',
-      variation_type: 'standard',
-      edition_badge: 'Batch of 30',
-      variation_notes: 'Field olive stretch ripstop with black 1000D Cordura knees and cuffs.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/bramble-buster-technical-guide-pant/camo-variation.jpeg',
-          caption: 'Bench shot: Triple-stitched camo knee overlay with bonded nylon thread',
-        },
-        {
-          image: '/media/bramble-buster-technical-guide-pant/workbench-detail.jpeg',
-          caption: 'Bench shot: Heavyweight DWR ripstop scuff guard seam detail',
-        },
-      ]),
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 30,
-      stock_quantity: 10,
-      status: 'active',
-    },
-    {
-      id: 'var-sling-camo-xpac',
-      product_id: 'prod-cutbank-sling-pack',
-      shopify_variant_id: 'gid://shopify/ProductVariant/204',
-      variation_name: 'MultiCam Alpine X-Pac Edition',
-      sku: 'CTB-SLG-MCAM-LTD',
-      variation_type: 'micro_batch',
-      edition_badge: 'Only 5 Crafted',
-      variation_notes: 'Laser-cut MultiCam Alpine laminated sailcloth with safety orange high-vis lining.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/the-cutbank-lumbar-sling-pack/coyote-variation.jpeg',
-          caption: 'Bench shot: Coyote Tan sailcloth assembly with blaze orange interior bind',
-        },
-        {
-          image: '/media/the-cutbank-lumbar-sling-pack/workbench-detail.jpeg',
-          caption: 'Bench shot: Magnetic net dock and Hypalon plier sheath testing',
-        },
-      ]),
-      price_override: 225.0,
-      is_limited_edition: 1,
-      total_edition_count: 5,
-      stock_quantity: 4,
-      status: 'active',
-    },
-    {
-      id: 'var-rig-ranger',
-      product_id: 'prod-minimalist-chest-rig',
-      shopify_variant_id: 'gid://shopify/ProductVariant/205',
-      variation_name: 'Ranger Green / Blaze Accent',
-      sku: 'MIN-RIG-RGR-STD',
-      variation_type: 'standard',
-      edition_badge: 'Batch of 40',
-      variation_notes: '500D Mil-Spec Cordura with dual front zip pockets and high-vis blaze tabs.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/minimalist-bank-chest-rig/prototype-variation.jpeg',
-          caption: 'Bench shot: Hand-numbered 01/01 prototype label with custom hook shear dock',
-        },
-        {
-          image: '/media/minimalist-bank-chest-rig/workbench-detail.jpeg',
-          caption: 'Bench shot: High-density EVA fly foam bench testing with bar-tacked webbing',
-        },
-      ]),
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 40,
-      stock_quantity: 18,
-      status: 'active',
-    },
-    {
-      id: 'var-roll-waxed-tan',
-      product_id: 'prod-waxed-tool-roll',
-      shopify_variant_id: 'gid://shopify/ProductVariant/206',
-      variation_name: 'Field Tan Waxed Canvas',
-      sku: 'TLR-WAX-TAN-STD',
-      variation_type: 'standard',
-      edition_badge: 'Standard Run',
-      variation_notes: '12oz Martexin waxed canvas in Field Tan with blaze orange liner.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg',
-          caption: 'Bench shot: Dark Charcoal Martexin waxed canvas opened with hi-vis blaze orange interior slots',
-        },
-        {
-          image: '/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg',
-          caption: 'Bench shot: Solid antiqued brass snaps pressed into 12oz waxed canvas',
-        },
-      ]),
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 50,
-      stock_quantity: 22,
-      status: 'active',
-    },
-    {
-      id: 'var-cap-duck-camo',
-      product_id: 'prod-5panel-guide-cap',
-      shopify_variant_id: 'gid://shopify/ProductVariant/207',
-      variation_name: 'Deadstock Duck Camo / Floatable Brim',
-      sku: 'CAP-5PNL-DCAM-LTD',
-      variation_type: 'micro_batch',
-      edition_badge: 'Only 12 Crafted',
-      variation_notes: 'Vintage duck camo canvas with buoyant closed-cell EVA brim.',
-      variation_images: JSON.stringify([
-        {
-          image: '/media/the-bankbeaters-5-panel-guide-cap/bark-brown-variation.jpeg',
-          caption: 'Bench shot: Waxed Bark Brown cotton canvas 5-panel guide cap profile',
-        },
-        {
-          image: '/media/the-bankbeaters-5-panel-guide-cap/workbench-detail.jpeg',
-          caption: 'Bench shot: Floatable EVA foam brim shaping and antiqued brass mesh eyelet',
-        },
-      ]),
-      price_override: 52.0,
-      is_limited_edition: 1,
-      total_edition_count: 12,
-      stock_quantity: 8,
-      status: 'active',
-    },
-  ];
-
-  const insertVar = db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const v of baselineVariations) {
-    insertVar.run(
-      v.id,
-      v.product_id,
-      v.shopify_variant_id,
-      v.variation_name,
-      v.sku,
-      v.variation_type,
-      v.edition_badge,
-      v.variation_notes,
-      v.variation_images,
-      v.price_override,
-      v.is_limited_edition,
-      v.total_edition_count,
-      v.stock_quantity,
-      v.status
-    );
-  }
 }
 
 // ============================================================================
@@ -550,7 +168,8 @@ export { getAssetUrl } from './assets';
 export async function getCategories(options?: { db?: DatabaseSync }): Promise<Category[]> {
   try {
     const db = options?.db || getDatabase();
-    const rows = db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all() as any[];
+    const rawRows = await db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all();
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
     return rows.map((r) => ({
       id: r.id,
       name: r.name,
@@ -574,13 +193,14 @@ export async function getProductVariations(
 
     let basePrice = options?.basePrice;
     if (basePrice === undefined) {
-      const parent = db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId) as any;
+      const parent = (await db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId)) as any;
       basePrice = parent ? Number(parent.base_price) : 0;
     }
 
-    const rows = db
+    const rawRows = await db
       .prepare(`SELECT * FROM product_variations WHERE product_id = ? ORDER BY sku ASC;`)
-      .all(productId) as any[];
+      .all(productId);
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
 
     return rows.map((r) => {
       const priceOverride = r.price_override != null ? Number(r.price_override) : null;
@@ -652,12 +272,12 @@ async function fetchProductBySlugDirect(
   try {
     const db = options?.db || getDatabase();
 
-    const productRow = db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug) as any;
+    const productRow = (await db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug)) as any;
     if (!productRow) return null;
 
     let category: Category | null = null;
     if (productRow.category_id) {
-      const catRow = db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(productRow.category_id) as any;
+      const catRow = (await db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(productRow.category_id)) as any;
       if (catRow) {
         category = {
           id: catRow.id,
@@ -773,7 +393,8 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
       params.push(options.limit);
     }
 
-    const rows = db.prepare(query).all(...params) as any[];
+    const rawRows = await db.prepare(query).all(...params);
+    const rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
 
     const products: StorefrontProduct[] = [];
     for (const r of rows) {

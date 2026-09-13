@@ -1,5 +1,199 @@
 -- BankBeaters Adventure Gear D1 Seed Script
 PRAGMA foreign_keys = ON;
+-- Schema Migration: 0001_initial.sql
+-- Migration: 0001_initial.sql
+-- ChrisShop Catalog Schema for SQLite / Cloudflare D1
+-- Conforms to docs/HIGH_LEVEL_DESIGN.md Section 3.2
+
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  parent_id TEXT,
+  description TEXT,
+  image TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  maker_field_notes TEXT,
+  artist_statement TEXT,
+  materials TEXT,
+  weight TEXT,
+  fit_profile TEXT,
+  origin TEXT,
+  base_price REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  category_id TEXT,
+  shopify_product_id TEXT UNIQUE,
+  featured_image TEXT,
+  gallery TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_variations (
+  id TEXT PRIMARY KEY,
+  product_id TEXT NOT NULL,
+  shopify_variant_id TEXT UNIQUE,
+  variation_name TEXT NOT NULL,
+  sku TEXT NOT NULL UNIQUE,
+  variation_type TEXT NOT NULL DEFAULT 'standard',
+  edition_badge TEXT,
+  variation_notes TEXT,
+  variation_images TEXT,
+  price_override REAL,
+  is_limited_edition INTEGER NOT NULL DEFAULT 1,
+  total_edition_count INTEGER,
+  stock_quantity INTEGER NOT NULL DEFAULT 1,
+  release_date TEXT,
+  status TEXT NOT NULL DEFAULT 'coming_soon',
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+CREATE INDEX IF NOT EXISTS idx_products_shopify_id ON products(shopify_product_id);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_product_variations_sku ON product_variations(sku);
+CREATE INDEX IF NOT EXISTS idx_product_variations_product_id ON product_variations(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_variations_shopify_id ON product_variations(shopify_variant_id);
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
+
+-- Schema Migration: 0002_payload_tables.sql
+-- Migration: 0002_payload_tables.sql
+-- Payload CMS v3 Core & Auth Schema for SQLite / Cloudflare D1
+-- Conforms to docs/HIGH_LEVEL_DESIGN.md Section 3.1, DEP_PAYLOAD_CMS.md, and Story 2.46
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  email TEXT NOT NULL,
+  reset_password_token TEXT,
+  reset_password_expiration TEXT,
+  salt TEXT,
+  hash TEXT,
+  login_attempts NUMERIC DEFAULT 0,
+  lock_until TEXT
+);
+
+CREATE INDEX IF NOT EXISTS users_updated_at_idx ON users (updated_at);
+CREATE INDEX IF NOT EXISTS users_created_at_idx ON users (created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (email);
+
+CREATE TABLE IF NOT EXISTS users_sessions (
+  _order INTEGER NOT NULL,
+  _parent_id INTEGER NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
+  created_at TEXT,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (_parent_id) REFERENCES users(id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS users_sessions_order_idx ON users_sessions (_order);
+CREATE INDEX IF NOT EXISTS users_sessions_parent_id_idx ON users_sessions (_parent_id);
+
+CREATE TABLE IF NOT EXISTS media (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  alt TEXT NOT NULL,
+  caption TEXT,
+  prefix TEXT DEFAULT 'uploads',
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  url TEXT,
+  thumbnail_u_r_l TEXT,
+  filename TEXT,
+  mime_type TEXT,
+  filesize NUMERIC,
+  width NUMERIC,
+  height NUMERIC,
+  focal_x NUMERIC,
+  focal_y NUMERIC
+);
+
+CREATE INDEX IF NOT EXISTS media_updated_at_idx ON media (updated_at);
+CREATE INDEX IF NOT EXISTS media_created_at_idx ON media (created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS media_filename_idx ON media (filename);
+
+CREATE TABLE IF NOT EXISTS payload_kv (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  key TEXT NOT NULL,
+  data TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS payload_kv_key_idx ON payload_kv (key);
+
+CREATE TABLE IF NOT EXISTS payload_locked_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  global_slug TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS payload_locked_documents_global_slug_idx ON payload_locked_documents (global_slug);
+CREATE INDEX IF NOT EXISTS payload_locked_documents_updated_at_idx ON payload_locked_documents (updated_at);
+CREATE INDEX IF NOT EXISTS payload_locked_documents_created_at_idx ON payload_locked_documents (created_at);
+
+CREATE TABLE IF NOT EXISTS payload_locked_documents_rels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  "order" INTEGER,
+  parent_id INTEGER NOT NULL,
+  path TEXT NOT NULL,
+  categories_id TEXT,
+  products_id TEXT,
+  product_variations_id TEXT,
+  media_id INTEGER,
+  users_id INTEGER,
+  FOREIGN KEY (parent_id) REFERENCES payload_locked_documents(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (categories_id) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (products_id) REFERENCES products(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (product_variations_id) REFERENCES product_variations(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (media_id) REFERENCES media(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (users_id) REFERENCES users(id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payload_preferences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  key TEXT,
+  value TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS payload_preferences_key_idx ON payload_preferences (key);
+CREATE INDEX IF NOT EXISTS payload_preferences_updated_at_idx ON payload_preferences (updated_at);
+CREATE INDEX IF NOT EXISTS payload_preferences_created_at_idx ON payload_preferences (created_at);
+
+CREATE TABLE IF NOT EXISTS payload_preferences_rels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  "order" INTEGER,
+  parent_id INTEGER NOT NULL,
+  path TEXT NOT NULL,
+  users_id INTEGER,
+  FOREIGN KEY (parent_id) REFERENCES payload_preferences(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (users_id) REFERENCES users(id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payload_migrations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  name TEXT,
+  batch NUMERIC,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS payload_migrations_updated_at_idx ON payload_migrations (updated_at);
+CREATE INDEX IF NOT EXISTS payload_migrations_created_at_idx ON payload_migrations (created_at);
+
 INSERT INTO categories (id, name, slug, parent_id, description, image) VALUES ('cat-accessories', 'Field Accessories', 'field-accessories', NULL, 'Waxed canvas tool rolls, Kevlar-reinforced casting gloves, and floating brim guide caps.', NULL) ON CONFLICT(id) DO UPDATE SET name=excluded.name, slug=excluded.slug, parent_id=excluded.parent_id, description=excluded.description, image=excluded.image;
 INSERT INTO categories (id, name, slug, parent_id, description, image) VALUES ('cat-apparel', 'Apparel', 'apparel', NULL, 'Technical foul-weather outerwear, guide pants, and active midlayers hand-sewn for bank anglers.', NULL) ON CONFLICT(id) DO UPDATE SET name=excluded.name, slug=excluded.slug, parent_id=excluded.parent_id, description=excluded.description, image=excluded.image;
 INSERT INTO categories (id, name, slug, parent_id, description, image) VALUES ('cat-packs', 'Packs & Carry', 'packs-carry', NULL, 'Waterproof composite lumbar slings, modular chest rigs, and submersible gear duffels.', NULL) ON CONFLICT(id) DO UPDATE SET name=excluded.name, slug=excluded.slug, parent_id=excluded.parent_id, description=excluded.description, image=excluded.image;
@@ -36,3 +230,6 @@ INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_na
 INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES ('var-chestrig-ranger', 'prod-minimalist-chest-rig', 'gid://shopify/ProductVariant/208', 'Ranger Olive — Standard Station', 'MCR-RIG-OLV-STD', 'standard', 'Standard Run', NULL, NULL, NULL, 1, 35, 12, NULL, 'active') ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;
 INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES ('var-toolroll-charcoal', 'prod-waxed-tool-roll', 'gid://shopify/ProductVariant/211', 'Dark Charcoal Waxed Canvas', 'WTR-ROL-DRK-STD', 'standard', 'Workshop Standard', NULL, '[{"image":"/media/waxed-canvas-cordura-tool-roll/charcoal-variation.jpeg","caption":"Bench shot: Dark Charcoal Martexin waxed canvas opened with hi-vis blaze orange interior slots"},{"image":"/media/waxed-canvas-cordura-tool-roll/workbench-detail.jpeg","caption":"Bench shot: Solid antiqued brass snaps pressed into 12oz waxed canvas"}]', NULL, 1, 50, 18, NULL, 'active') ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;
 INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, variation_type, edition_badge, variation_notes, variation_images, price_override, is_limited_edition, total_edition_count, stock_quantity, release_date, status) VALUES ('var-toolroll-tan', 'prod-waxed-tool-roll', 'gid://shopify/ProductVariant/210', 'Field Tan Waxed Canvas', 'WTR-ROL-TAN-STD', 'standard', 'Workshop Standard', NULL, NULL, NULL, 1, 50, 20, NULL, 'active') ON CONFLICT(id) DO UPDATE SET product_id=excluded.product_id, shopify_variant_id=excluded.shopify_variant_id, variation_name=excluded.variation_name, sku=excluded.sku, variation_type=excluded.variation_type, edition_badge=excluded.edition_badge, variation_notes=excluded.variation_notes, variation_images=excluded.variation_images, price_override=excluded.price_override, is_limited_edition=excluded.is_limited_edition, total_edition_count=excluded.total_edition_count, stock_quantity=excluded.stock_quantity, release_date=excluded.release_date, status=excluded.status;
+-- Administrative Users (Payload CMS v3)
+INSERT INTO users (email, salt, hash, login_attempts, created_at, updated_at) VALUES ('admin@chrishop.jacobmiller22.com', 'c1a06a0901e959b85c138be789f2a243292415175960098dfc38481352467d1a', '57c0ab53de16b2b6af00492252473888fe666ac2324cc46f7f76b004db16bb81159847639e140ead90c85990667c8953b94e3a83394865c42631fb46971d0e5aa59e3afc77a30e0c183a899db85816054717390983e6eb59a5a8942a7a98d362040464cbd775185a29a8d695122114fdbfca0caf7e08b54b54317f767208efcf37024ba1a0f39e869720111be1845e1a14a3564542f8ca233820bd9ad27ce0c59c1aa0beba20978401714f52b54fbcb929a6894dda50c6103aa1c97131c8865e1b076ef944eefe499b12fa2ca5e1046d6e8075bf7fc7d97ddf934ca946bf2f9235ecb7fc545b0aee39061a05cf299f945d303e0ca6f2758d0522d4583b1eabb8910c8085fd4fc20920288febf9af6e630866060d9ae949a15c6cd95ca13a21a6d05e3dd7ec2d17cbf3c22827738c062330feaae70b1ee53eeb955f735b43bd2b2405ba367f86f767fb3468f819737d8c50e3e3ebe487e3e9d8cebe473b0cb55faad4013157c96c2b079988e969bcc292776f396cc250912fe24999d619831079f731c6279b6428d9f3a86483a71b625201aa71ce1f5d0baa61432f65fd331af94286d0e2782f998e2876f5071fda20d3de84ee65c4612e2348df3b2c553a827e77442104fb79224074f4ad7bb92782f82a7c8456bb0791089874f5cb0ca83b4b7f871b3e0db2a4b19e0b67b47917490cc568e4b543c0ca5b75ef820a9e34da7b', 0, '2026-09-13 13:23:57', '2026-09-13 13:23:57') ON CONFLICT(email) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, updated_at=excluded.updated_at;
+INSERT INTO users (email, salt, hash, login_attempts, created_at, updated_at) VALUES ('chris@chrishop.jacobmiller22.com', 'f3b18d2209e848a74d227cf678e1b132181304064859987ceb27370241356e0b', '19c7518f981dbce9e12f6023399af06cb3ef07481fb36f86e8e89864864e1a83be93dfb84cdfdab1ee320f183d4af0f2fd0a3e43eedcb1e9d1eb1c8fdab2817b24e5aa15626ca3805532de87766a39f2e262cdb17150426afad133d44815de058f97faa251b809c777a8d4cae0a6500053f2eda9812fdee057c99fdd68c255cefac8eac227b8f303f44ab1a3abdcdfe6c0521ea6cdcce8c47554ee1485cb21e551dd8abdafa195e55481ea6b6a85ad404bd76ab07d08ed84a7d83b6faaf4b8d525b72fc50ebe40c02bd4717603eeb46b9cca13f1748f38aa590cb43eda9dc3cdc9764fd0bf5f1cf27225f52e215b79558d83e1b4546d919475707ecb93c3df2c8a978a4d585c1427342e828520778602ded594c8f6d302e567c872586f988930117f0c8c5e11bc00fb363b4ab5ecafd84cc22db620fd249c552726d7fb1bcf93daac23074bab1684892ab6a6ab1fe7d31962103fff7ac216681acf13e26100a57e056633fb5257610a89d7c295b76b549c10e8a6e427e7abaa118bce28bf924151b047a3c24a360a18acea35a825d0df02a52109043a7936f9c45b2311bd745779897444645634f66a2eeee1e552a8646d75bbf2df93a00da114105baaac8073f053aa98dce289e393c2d76676cb58af4a98bf56ffd4b7565386e1703d1ca304306e90ae325d8b11838959d1186d21f299e0a2101dc1ce8d8da32612f40d94b5', 0, '2026-09-13 13:23:57', '2026-09-13 13:23:57') ON CONFLICT(email) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, updated_at=excluded.updated_at;
