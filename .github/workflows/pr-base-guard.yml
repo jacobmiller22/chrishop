@@ -1,0 +1,53 @@
+name: PR Base Branch Guard
+
+on:
+  pull_request_target:
+    types: [opened, edited]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+  issues: write
+
+jobs:
+  retarget-to-staging:
+    name: Auto-Retarget PR to Staging
+    runs-on: ubuntu-latest
+    if: github.base_ref == 'main'
+    steps:
+      - name: Retarget PR to staging
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const headRef = context.payload.pull_request.head.ref;
+            const repoOwner = context.repo.owner;
+            const repoName = context.repo.repo;
+
+            console.log(`PR #${prNumber} from '${headRef}' targeted 'main'. Retargeting to 'staging'...`);
+
+            // Retarget the PR base branch to 'staging'
+            await github.rest.pulls.update({
+              owner: repoOwner,
+              repo: repoName,
+              pull_number: prNumber,
+              base: 'staging'
+            });
+
+            // Post an explanatory comment on the PR
+            const commentBody = `⚠️ **Notice: Base Branch Automatically Retargeted to \`staging\`**\n\n` +
+              `Pull requests targeting \`main\` are prohibited. ChrisShop operates on a two-stage **\`staging\` ➔ \`production\`** branch paradigm:\n\n` +
+              `- **\`staging\`**: Default branch and active integration target for all feature development, bugfixes, and ephemeral preview deployments.\n` +
+              `- **\`production\`**: Protected live edge release branch, promoted exclusively from \`staging\`.\n` +
+              `- **\`main\`**: Deprecated legacy branch (read-only / locked).\n\n` +
+              `This pull request has been automatically retargeted to **\`staging\`**. No further action is required.`;
+
+            await github.rest.issues.createComment({
+              owner: repoOwner,
+              repo: repoName,
+              issue_number: prNumber,
+              body: commentBody
+            });
+
+            console.log(`Successfully retargeted PR #${prNumber} to 'staging' and posted notification.`);
