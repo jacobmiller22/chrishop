@@ -16,6 +16,7 @@ Use this skill whenever you need to:
 - Move cards through board columns (`Backlog` ➔ `In Progress` ➔ `In Review` ➔ `Done`).
 - Map and enforce inter-story dependencies before starting work on a feature.
 - Conduct Creator (Chris) vision review touchpoints and capture feedback.
+- Execute an on-demand adversarial roadmap and backlog audit (`/project-management roadmap audit`).
 
 ---
 
@@ -142,18 +143,49 @@ When creating follow-up stories from completed tasks or adversarial audits, agen
 
 ---
 
-## 7. Adversarial Roadmap & Milestone Audit Protocol
+## 7. Adversarial Roadmap & Backlog Audit Protocol (`/project-management roadmap audit`)
 
-Technical Project Managers and autonomous agents must periodically verify that GitHub Milestones, Backlog Epics, and local architecture remain synchronized and free of architectural drift.
+Technical Project Managers and autonomous agents must periodically execute on-demand audits to ensure GitHub Milestones, Backlog Epics, and local architecture remain synchronized, shovel-ready, and free of architectural drift.
 
-### Audit Command:
-```bash
-pnpm run audit:roadmap
-```
+> [!NOTE]
+> This auditor operates purely **on-demand** with zero background daemons. It inspects live GitHub API state and local disk files in seconds.
 
-### Verification Checks Enforced:
-1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`) in milestone titles and descriptions.
+### 7.1 Invocation Triggers
+
+You can invoke the audit at any time using:
+- **Slash Command / Chat Trigger**: `/project-management roadmap audit` (or `/project-management roadmap-audit`)
+- **Direct CLI Execution**:
+  ```bash
+  # Standard on-demand roadmap & backlog audit
+  pnpm run audit:roadmap
+
+  # Comprehensive audit including file deliverables check
+  pnpm run audit:backlog
+
+  # Export markdown report to docs/
+  pnpm run audit:roadmap --markdown docs/ROADMAP_AUDIT_LATEST.md
+
+  # Strict mode (fails CI/preflight if drift, orphans, or completed issues are open)
+  pnpm run audit:roadmap --strict
+  ```
+
+### 7.2 Verification Checks Enforced
+
+1. **Milestone Architectural Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, `stripe`, `hetzner`, `directus`, `caddy`, `ansible`, `minio`) in milestone titles and descriptions.
 2. **Orphaned Issues**: Detects open issues with no assigned milestone (`milestone == null`).
-3. **Priority Health**: Flags any open issue missing an explicit `priority:*` label.
-4. **Issue Lifecycle Sync**: Flags any completed story whose PR is already merged but whose issue remains open on GitHub (stories awaiting PR merge legitimately remain open with `status:completed`).
-5. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.
+3. **Priority Governance**: Flags any open issue missing an explicit `priority:*` label (`priority:critical`, `priority:high`, `priority:medium`, `priority:low`).
+4. **Issue Lifecycle Sync**: Flags any issue with `status:completed` label whose corresponding pull request has already been merged but the issue remains open on GitHub. (Issues awaiting PR merge legitimately remain open with `status:completed`).
+5. **Codebase Deliverables Verification**: Audits closed issues against actual files on disk (`apps/`, `packages/`, `infra/`, `docs/`) to detect missing or orphaned artifacts.
+6. **Dependency & Blocker Analysis**: Evaluates issue prerequisite references (`Prerequisites: #<N>`) to flag blocked stories vs. unblocked shovel-ready items.
+7. **Milestone Completion Gate**: A milestone cannot be closed until all child issues are either completed or formally re-parented with documented rationale, and human creator review touchpoints (Stories 1.8, 2.7, 3.7) have explicit sign-off.
+
+### 7.3 Agent TPM Response Protocol
+
+When the user requests `/project-management roadmap audit`:
+1. Run `pnpm run audit:roadmap` via `run_command`.
+2. Parse the output into a clear, concise TPM Executive Status summary:
+   - **Phase & Milestone Progress Table**: Highlighting completion percentage and due dates.
+   - **Drift & Governance Status**: Confirming zero architectural drift and 100% priority labeling.
+   - **Top Shovel-Ready Candidates**: Presenting the top unblocked high-priority stories ready for immediate dispatch.
+   - **Active Blockers & Touchpoints**: Listing stories blocked by open prerequisites or awaiting Chris's creator review.
+3. Recommend concrete next actions or immediate story dispatches based on the audit findings.

@@ -1,3 +1,26 @@
+> [!CAUTION]
+> # 🛑 DEPRECATED BRANCH — DO NOT TARGET OR BRANCH FROM `main`
+>
+> **The `main` branch is deprecated, read-only, and locked.**
+> ChrisShop has transitioned to a strict two-stage **`staging` ➔ `production`** branch paradigm:
+>
+> - **`staging`**: The default branch and active integration target for all feature branches, bugfixes, pull requests, and automated Cloudflare ephemeral preview deployments (`https://staging-chrishop.jacobmiller22.com`).
+> - **`production`**: The protected live release branch (`https://chrishop.jacobmiller22.com`), promoted exclusively from `staging` via release PRs with mandatory human approval gates.
+> - **`main`**: Deprecated legacy branch. Direct pushes, merges, and PRs are prohibited.
+>
+> ⚠️ **Pull requests targeting `main` are automatically retargeted to `staging` by `.github/workflows/pr-base-guard.yml` or blocked by CI.**
+>
+> **To start feature development, branch from `origin/staging`**:
+> ```bash
+> git fetch origin staging
+> pnpm run branch <feature-name>
+> # or via worktrunk: wt switch --create feature/<name> --base origin/staging
+> ```
+>
+> See [DEPRECATED_MAIN_BRANCH.md](./DEPRECATED_MAIN_BRANCH.md) for full architectural guidelines.
+
+---
+
 # ChrisShop — Cloudflare-Native Headless Commerce Platform
 
 A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and **Discord** operational alerts.

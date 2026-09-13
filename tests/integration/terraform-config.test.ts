@@ -105,12 +105,14 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
     assert.equal(fmtResult.trim(), '', 'All Terraform HCL files must be formatted cleanly');
 
     // Check root validation
-    const validateRoot = execSync('cd infra/terraform && terraform init -backend=false && terraform validate -no-color', { cwd: rootDir, encoding: 'utf-8' });
+    execSync('cd infra/terraform && terraform init -backend=false', { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+    const validateRoot = execSync('cd infra/terraform && terraform validate -no-color', { cwd: rootDir, encoding: 'utf-8' });
     assert.ok(validateRoot.includes('Success! The configuration is valid.'), 'Root configuration must validate cleanly');
 
     // Check environments
     for (const env of ['production', 'staging', 'preview']) {
-      const validateEnv = execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false && terraform validate -no-color`, { cwd: rootDir, encoding: 'utf-8' });
+      execSync(`cd infra/terraform/environments/${env} && terraform init -backend=false`, { cwd: rootDir, encoding: 'utf-8', stdio: 'pipe' });
+      const validateEnv = execSync(`cd infra/terraform/environments/${env} && terraform validate -no-color`, { cwd: rootDir, encoding: 'utf-8' });
       assert.ok(validateEnv.includes('Success! The configuration is valid.'), `environments/${env} must validate cleanly`);
     }
   });
