@@ -76,6 +76,23 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     );
   });
 
+  it('should verify Payload importMap is populated with storage and UI components', () => {
+    const importMapPath = path.join(
+      rootDir,
+      'apps/web/src/app/(payload)/admin/importMap.js'
+    );
+    assert.ok(fs.existsSync(importMapPath), 'importMap.js must exist');
+    const content = fs.readFileSync(importMapPath, 'utf-8');
+    assert.ok(
+      content.includes('@payloadcms/storage-s3/client#S3ClientUploadHandler'),
+      'importMap must define S3ClientUploadHandler to prevent NestProviders from blanking the UI'
+    );
+    assert.ok(
+      !content.trim().endsWith('export const importMap = {};'),
+      'importMap must not be an empty stub'
+    );
+  });
+
   it('should verify Payload REST and GraphQL endpoints are configured for Next.js App Router', () => {
     const apiRoutePath = path.join(
       rootDir,
