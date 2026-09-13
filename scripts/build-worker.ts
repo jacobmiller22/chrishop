@@ -181,6 +181,52 @@ export function buildWorker(): void {
       modified = true;
     }
 
+    // Normalize node:events and events: in workerd createRequire returns an ESM module namespace, so extract EventEmitter class
+    const eventReplacementNode = 'a9.exports=((_e=require("node:events"))=>typeof _e==="function"?_e:(()=>{let b=_e&&(_e.EventEmitter||_e.default);if(!b)return _e;for(let k in _e){if(!(k in b))try{b[k]=_e[k]}catch{}}return b})())()';
+    const eventReplacementBare = 'a9.exports=((_e=require("events"))=>typeof _e==="function"?_e:(()=>{let b=_e&&(_e.EventEmitter||_e.default);if(!b)return _e;for(let k in _e){if(!(k in b))try{b[k]=_e[k]}catch{}}return b})())()';
+    const oldEventPatternNode = 'a9.exports=((_e=require("node:events"))=>(_e&&(_e.EventEmitter||_e.default))?Object.assign(_e.EventEmitter||_e.default,_e):_e)()';
+    const oldEventPatternBare = 'a9.exports=((_e=require("events"))=>(_e&&(_e.EventEmitter||_e.default))?Object.assign(_e.EventEmitter||_e.default,_e):_e)()';
+
+    if (content.includes(oldEventPatternNode)) {
+      content = content.replaceAll(oldEventPatternNode, eventReplacementNode);
+      modified = true;
+    }
+    if (content.includes('a9.exports=require("node:events")')) {
+      content = content.replaceAll('a9.exports=require("node:events")', eventReplacementNode);
+      modified = true;
+    }
+    if (content.includes(oldEventPatternBare)) {
+      content = content.replaceAll(oldEventPatternBare, eventReplacementBare);
+      modified = true;
+    }
+    if (content.includes('a9.exports=require("events")')) {
+      content = content.replaceAll('a9.exports=require("events")', eventReplacementBare);
+      modified = true;
+    }
+
+    // Normalize node:assert and assert
+    const assertReplacementNode = 'a9.exports=((_a=require("node:assert"))=>typeof _a==="function"?_a:(()=>{let b=_a&&(_a.default||_a.assert);if(!b)return _a;for(let k in _a){if(!(k in b))try{b[k]=_a[k]}catch{}}return b})())()';
+    const assertReplacementBare = 'a9.exports=((_a=require("assert"))=>typeof _a==="function"?_a:(()=>{let b=_a&&(_a.default||_a.assert);if(!b)return _a;for(let k in _a){if(!(k in b))try{b[k]=_a[k]}catch{}}return b})())()';
+    const oldAssertPatternNode = 'a9.exports=((_a=require("node:assert"))=>(typeof _a==="object"&&_a&&_a.default)?Object.assign(_a.default,_a):_a)()';
+    const oldAssertPatternBare = 'a9.exports=((_a=require("assert"))=>(typeof _a==="object"&&_a&&_a.default)?Object.assign(_a.default,_a):_a)()';
+
+    if (content.includes(oldAssertPatternNode)) {
+      content = content.replaceAll(oldAssertPatternNode, assertReplacementNode);
+      modified = true;
+    }
+    if (content.includes('a9.exports=require("node:assert")')) {
+      content = content.replaceAll('a9.exports=require("node:assert")', assertReplacementNode);
+      modified = true;
+    }
+    if (content.includes(oldAssertPatternBare)) {
+      content = content.replaceAll(oldAssertPatternBare, assertReplacementBare);
+      modified = true;
+    }
+    if (content.includes('a9.exports=require("assert")')) {
+      content = content.replaceAll('a9.exports=require("assert")', assertReplacementBare);
+      modified = true;
+    }
+
     if (modified) {
       fs.writeFileSync(filePath, content, "utf-8");
       console.log(`  ✔ Sanitized edge-incompatible Node builtins in ${path.relative(rootDir, filePath)}`);

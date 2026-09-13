@@ -472,7 +472,30 @@ const __unsupportedBuiltins = {
 const require = (mod) => {
   if (__unsupportedBuiltins[mod]) return __unsupportedBuiltins[mod];
   try {
-    return __rawRequire(mod);
+    const res = __rawRequire(mod);
+    if ((mod === "events" || mod === "node:events") && typeof res === "object" && res && (res.EventEmitter || res.default)) {
+      const b = res.EventEmitter || res.default;
+      if (typeof b === "function") {
+        for (const k in res) {
+          if (!(k in b)) {
+            try { b[k] = res[k]; } catch {}
+          }
+        }
+        return b;
+      }
+    }
+    if ((mod === "assert" || mod === "node:assert") && typeof res === "object" && res && (res.default || res.assert)) {
+      const b = res.default || res.assert;
+      if (typeof b === "function") {
+        for (const k in res) {
+          if (!(k in b)) {
+            try { b[k] = res[k]; } catch {}
+          }
+        }
+        return b;
+      }
+    }
+    return res;
   } catch (e) {
     const stripped = String(mod || "").replace(/^node:/, "");
     if (__unsupportedBuiltins[stripped]) return __unsupportedBuiltins[stripped];
