@@ -255,10 +255,18 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('pull_request:'), 'Must trigger on pull_request');
     assert.ok(content.includes('types: [closed]'), 'Must trigger on closed');
 
-    // Deletion steps
+    // Toolchain setup assertions (prevents missing pnpm executable errors)
+    assert.ok(content.includes('pnpm/action-setup@v4'), 'Teardown workflow must setup pnpm so wrangler-action can locate pnpm');
+    assert.ok(content.includes('actions/setup-node@v4'), 'Teardown workflow must setup Node.js');
+    assert.ok(content.includes('pnpm install --frozen-lockfile'), 'Teardown workflow must install dependencies');
+
+    // Deletion steps & error resilience
     assert.ok(content.includes('wrangler-action@v3'), 'Must use wrangler-action for teardown');
     assert.ok(content.includes('delete --name chrishop-preview-pr-'), 'Must delete preview worker script');
+    assert.ok(content.includes('id: teardown_worker'), 'Worker teardown step must have id for outcome inspection');
     assert.ok(content.includes('terraform destroy -auto-approve'), 'Must destroy Terraform preview state');
+    assert.ok(content.includes('id: destroy_tf'), 'Terraform destroy step must have id for outcome inspection');
+    assert.ok(content.includes('continue-on-error: true'), 'Steps must configure continue-on-error to prevent cascading aborts');
 
     // Must NOT be restricted to unmerged PRs only
     assert.ok(

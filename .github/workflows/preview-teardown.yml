@@ -19,7 +19,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Teardown Isolated PR Worker Stack
+        id: teardown_worker
+        continue-on-error: true
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: cloudflare/wrangler-action@v3
         with:
@@ -28,12 +42,16 @@ jobs:
           command: delete --name chrishop-preview-pr-${{ github.event.pull_request.number }} --force
 
       - name: Setup Terraform
+        id: setup_tf
+        continue-on-error: true
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.16.1"
 
       - name: Destroy Ephemeral Terraform Preview Stack
+        id: destroy_tf
+        continue-on-error: true
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
@@ -54,8 +72,14 @@ jobs:
             const previewUrl = `https://pr-${prNumber}-chrishop.jacobmiller22.com`;
             const stagingUrl = 'https://staging-chrishop.jacobmiller22.com';
 
+            const workerOutcome = '${{ steps.teardown_worker.outcome }}';
+            const tfOutcome = '${{ steps.destroy_tf.outcome }}';
+            const hasErrors = workerOutcome === 'failure' || tfOutcome === 'failure';
+
             let body = '';
-            if (merged) {
+            if (hasErrors) {
+              body = `⚠️ **Ephemeral PR Preview Decommission Warning**\n\n- **PR Status**: ${merged ? 'Merged into `staging`' : 'Closed without merging'}\n- **Preview Environment**: \`${previewUrl}\` teardown encountered non-fatal errors or partial cleanup.\n- **Worker Teardown**: \`${workerOutcome}\`\n- **Terraform Teardown**: \`${tfOutcome}\`\n- **Active Staging Environment**: [${stagingUrl}](${stagingUrl})\n\n*Any orphaned resources will be swept by the weekly garbage collection sweep.*`;
+            } else if (merged) {
               body = `🧹 **Ephemeral PR Preview Decommissioned**\n\n- **PR Status**: Merged into \`staging\`\n- **Preview Environment**: \`${previewUrl}\` has been destroyed.\n- **Active Staging Environment**: [${stagingUrl}](${stagingUrl})\n\n*All isolated Cloudflare Worker, routing, and Terraform preview resources have been purged.*`;
             } else {
               body = `🧹 **Ephemeral PR Preview Decommissioned**\n\n- **PR Status**: Closed without merging\n- **Preview Environment**: \`${previewUrl}\` has been destroyed.\n\n*All isolated Cloudflare Worker, routing, and Terraform preview resources have been purged.*`;
@@ -92,8 +116,13 @@ jobs:
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
           MERGED=${{ github.event.pull_request.merged }}
-          if [ "$MERGED" = "true" ]; then
-            echo "PR #${PR_NUM} was merged into staging. Ephemeral preview worker chrishop-preview-pr-${PR_NUM} and Terraform resources successfully torn down."
+          WORKER_OUTCOME="${{ steps.teardown_worker.outcome }}"
+          TF_OUTCOME="${{ steps.destroy_tf.outcome }}"
+          echo "Teardown Summary for PR #${PR_NUM} (merged=${MERGED}):"
+          echo "  - Worker Teardown: ${WORKER_OUTCOME}"
+          echo "  - Terraform Teardown: ${TF_OUTCOME}"
+          if [ "$WORKER_OUTCOME" = "failure" ] || [ "$TF_OUTCOME" = "failure" ]; then
+            echo "⚠️ Non-fatal teardown warning recorded. Orphaned resources will be caught by preview-cleanup sweep."
           else
-            echo "PR #${PR_NUM} was closed without merge. Ephemeral preview stack successfully torn down."
+            echo "✅ Ephemeral preview stack successfully torn down."
           fi
