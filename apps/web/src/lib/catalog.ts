@@ -66,10 +66,32 @@ export interface StorefrontVariation {
   stock_quantity: number;
 }
 
+export interface StorefrontProductLine {
+  id: string;
+  title: string;
+  slug: string;
+  story?: string;
+  default_price?: number;
+  hero_image?: string;
+}
+
+export interface CatalogTreeNode {
+  id: string;
+  parent_id?: string | null;
+  title: string;
+  slug: string;
+  price?: number | null;
+  base_price?: number;
+  node_role?: 'collection' | 'model' | 'item';
+  depth: number;
+}
+
 export interface StorefrontProduct {
   id: string;
   title: string;
   slug: string;
+  parent_id?: string | null;
+  node_role?: 'collection' | 'model' | 'item';
   description?: string;
   maker_field_notes?: string;
   artist_statement?: string;
@@ -78,6 +100,11 @@ export interface StorefrontProduct {
   weight?: string;
   fit_profile?: string;
   origin?: string;
+  sku?: string;
+  price?: number | null;
+  effective_price?: number;
+  product_line?: StorefrontProductLine | null;
+  options?: any[];
   base_price: number;
   effective_min_price?: number;
   status: ProductStatus;
@@ -187,6 +214,57 @@ export function getDatabase(): D1DatabaseLike {
   return stubDb;
 }
 
+
+// ============================================================================
+// Paradigm 4: Recursive Node Tree CTE Resolvers
+// ============================================================================
+
+export async function getNodeAncestors(
+  nodeId: string,
+  options?: { db?: DatabaseSync }
+): Promise<CatalogTreeNode[]> {
+  const db = options?.db || getDatabase();
+  try {
+    const raw = await db.prepare(`
+      WITH RECURSIVE ancestor_tree(id, parent_id, title, slug, price, base_price, node_role, depth) AS (
+        SELECT id, parent_id, title, slug, price, base_price, node_role, 0
+        FROM products WHERE id = ?
+        UNION ALL
+        SELECT p.id, p.parent_id, p.title, p.slug, p.price, p.base_price, p.node_role, at.depth + 1
+        FROM products p
+        JOIN ancestor_tree at ON p.id = at.parent_id
+      )
+      SELECT * FROM ancestor_tree ORDER BY depth ASC;
+    `).all(nodeId);
+    return (Array.isArray(raw) ? raw : ((raw as any)?.results || [])) as CatalogTreeNode[];
+  } catch {
+    return [];
+  }
+}
+
+export async function getNodeDescendants(
+  nodeId: string,
+  options?: { db?: DatabaseSync }
+): Promise<CatalogTreeNode[]> {
+  const db = options?.db || getDatabase();
+  try {
+    const raw = await db.prepare(`
+      WITH RECURSIVE descendant_tree(id, parent_id, title, slug, price, base_price, node_role, depth) AS (
+        SELECT id, parent_id, title, slug, price, base_price, node_role, 0
+        FROM products WHERE id = ?
+        UNION ALL
+        SELECT p.id, p.parent_id, p.title, p.slug, p.price, p.base_price, p.node_role, dt.depth + 1
+        FROM products p
+        JOIN descendant_tree dt ON p.parent_id = dt.id
+      )
+      SELECT * FROM descendant_tree WHERE depth > 0 ORDER BY depth ASC;
+    `).all(nodeId);
+    return (Array.isArray(raw) ? raw : ((raw as any)?.results || [])) as CatalogTreeNode[];
+  } catch {
+    return [];
+  }
+}
+
 export function resetDatabase(): void {
   singletonDb = null;
 }
@@ -207,6 +285,24 @@ function resolveMediaUrl(m?: { url?: string; filename?: string } | null): string
 // ============================================================================
 // Catalog Queries
 // ============================================================================
+
+export async function getProductLines(options?: { db?: DatabaseSync }): Promise<StorefrontProductLine[]> {
+  try {
+    const db = options?.db || getDatabase();
+    const raw = await db.prepare("SELECT * FROM product_lines ORDER BY title ASC;").all();
+    const rows = (Array.isArray(raw) ? raw : (raw as any)?.results || []) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      slug: r.slug,
+      story: r.story ?? undefined,
+      default_price: r.default_price != null ? Number(r.default_price) : undefined,
+      hero_image: r.hero_image ?? undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export async function getCategories(options?: { db?: DatabaseSync }): Promise<Category[]> {
   try {
@@ -366,7 +462,7 @@ export async function getProductVariations(
 
     return variations;
   } catch (error) {
-    console.error(`Failed to get variations for product [${productId}]:`, error);
+    if (!String(error).includes("no such table")) console.error(`Failed to get variations for product [${productId}]:`, error);
     return [];
   }
 }
@@ -421,27 +517,89 @@ async function fetchProductBySlugDirect(
           };
         }
       } catch {
-        const catRow = (await db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(categoryId)) as any;
-        if (catRow) {
+        try {
+          const catRow = (await db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(categoryId)) as any;
+          if (catRow) {
+            category = {
+              id: catRow.id,
+              name: catRow.name,
+              slug: catRow.slug,
+              parent_id: catRow.parent_id ?? null,
+              description: catRow.description ?? undefined,
+              image: catRow.image ?? undefined,
+            };
+          }
+        } catch {
           category = {
-            id: catRow.id,
-            name: catRow.name,
-            slug: catRow.slug,
-            parent_id: catRow.parent_id ?? null,
-            description: catRow.description ?? undefined,
-            image: catRow.image ?? undefined,
+            id: String(categoryId),
+            name: String(categoryId).toUpperCase(),
+            slug: String(categoryId),
           };
         }
       }
     }
 
+    if (!category && (productRow.category || productRow.category_id)) {
+      const c = productRow.category || productRow.category_id;
+      category = {
+        id: String(c),
+        name: String(c).toUpperCase(),
+        slug: String(c),
+      };
+    }
+
+    let productLine: StorefrontProductLine | null = null;
+    const lineId = productRow.product_line_id || productRow.product_line_id_id;
+    if (lineId) {
+      try {
+        const lineRow = (await db.prepare("SELECT * FROM product_lines WHERE id = ?;").get(lineId)) as any;
+        if (lineRow) {
+          productLine = {
+            id: lineRow.id,
+            title: lineRow.title,
+            slug: lineRow.slug,
+            story: lineRow.story ?? undefined,
+            default_price: lineRow.default_price != null ? Number(lineRow.default_price) : undefined,
+            hero_image: lineRow.hero_image ?? undefined,
+          };
+        }
+      } catch {}
+    }
+
+    // Paradigm 4: Recursive CTE Ancestor Price & Line Resolution
+    let effectiveBase = productRow.price != null ? Number(productRow.price) : (productRow.base_price != null ? Number(productRow.base_price) : 0);
+    try {
+      const ancestors = await getNodeAncestors(productRow.id, { db });
+      if (ancestors.length > 1) {
+        // Ancestor 0 is self. Check higher ancestors if price is null
+        for (const anc of ancestors) {
+          const ancPrice = anc.price != null ? Number(anc.price) : (anc.base_price != null ? Number(anc.base_price) : null);
+          if (ancPrice != null && effectiveBase === 0) {
+            effectiveBase = ancPrice;
+          }
+          if (!productLine && anc.node_role === 'collection') {
+            productLine = {
+              id: anc.id,
+              title: anc.title,
+              slug: anc.slug,
+              default_price: anc.base_price != null ? Number(anc.base_price) : undefined,
+            };
+          }
+        }
+      }
+    } catch {}
+
+    if (effectiveBase === 0 && productLine?.default_price) {
+      effectiveBase = productLine.default_price;
+    }
+
     const variations = await getProductVariations(productRow.id, {
       db,
-      basePrice: Number(productRow.base_price),
+      basePrice: effectiveBase,
     });
 
     const prices =
-      variations.length > 0 ? variations.map((v) => v.effective_price) : [Number(productRow.base_price)];
+      variations.length > 0 ? variations.map((v) => v.effective_price) : [effectiveBase];
     const effectiveMinPrice = Math.min(...prices);
 
     let gallery: string[] = [];
@@ -512,7 +670,14 @@ async function fetchProductBySlugDirect(
       weight: productRow.weight ?? undefined,
       fit_profile: productRow.fit_profile ?? undefined,
       origin: productRow.origin ?? undefined,
-      base_price: Number(productRow.base_price),
+      sku: productRow.sku ?? undefined,
+      price: productRow.price != null ? Number(productRow.price) : null,
+      base_price: effectiveBase,
+      effective_price: effectiveBase,
+      parent_id: productRow.parent_id ?? null,
+      node_role: productRow.node_role ?? 'model',
+      product_line: productLine,
+      options: productRow.options ? (typeof productRow.options === "string" ? JSON.parse(productRow.options) : productRow.options) : undefined,
       effective_min_price: effectiveMinPrice,
       status: (productRow.status as ProductStatus) || 'draft',
       category,
@@ -595,45 +760,86 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
       const rawRows = await db.prepare(query).all(...params);
       rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
     } catch {
-      // Fallback query for legacy / simple schemas without media table or category_id_id
-      let fallbackQuery = `
-        SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image, c.parent_id AS cat_parent_id
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
-        WHERE 1=1
-      `;
+      // Fallback query for schemas without media table or without categories table
+      let hasCat = false;
+      try {
+        await db.prepare('SELECT 1 FROM categories LIMIT 1;').all();
+        hasCat = true;
+      } catch {}
+
+      let fallbackQuery = hasCat
+        ? `SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image, c.parent_id AS cat_parent_id
+           FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE 1=1`
+        : `SELECT p.* FROM products p WHERE 1=1`;
       const fallbackParams: any[] = [];
 
       if (options?.category) {
-        fallbackQuery += ` AND p.category_id IN (
-          WITH RECURSIVE cat_tree(id) AS (
-            SELECT id FROM categories WHERE slug = ? OR id = ?
-            UNION ALL
-            SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
-          )
-          SELECT id FROM cat_tree
-        )`;
-        fallbackParams.push(options.category, options.category);
+        if (hasCat) {
+          fallbackQuery += ` AND p.category_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          )`;
+          fallbackParams.push(options.category, options.category);
+        } else {
+          let catCol = 'category';
+          try {
+            const cols = ((await db.prepare('PRAGMA table_info(products);').all()) as any[]).map((c: any) => c.name);
+            if (cols.includes('category')) catCol = 'category';
+            else if (cols.includes('category_id')) catCol = 'category_id';
+          } catch {}
+          fallbackQuery += ` AND p.${catCol} = ?`;
+          fallbackParams.push(options.category);
+        }
       }
 
       const placeholders = statuses.map(() => '?').join(',');
       fallbackQuery += ` AND p.status IN (${placeholders})`;
       fallbackParams.push(...statuses);
 
-      fallbackQuery += ` ORDER BY p.created_at ASC, p.id ASC`;
+      let orderClause = ` ORDER BY p.created_at ASC, p.id ASC`;
+      try {
+        db.prepare(`SELECT created_at FROM products LIMIT 1`).all();
+      } catch {
+        orderClause = ` ORDER BY p.id ASC`;
+      }
 
+      let finalQuery = fallbackQuery + orderClause;
       if (options?.limit) {
-        fallbackQuery += ` LIMIT ?`;
+        finalQuery += ` LIMIT ?`;
         fallbackParams.push(options.limit);
       }
 
-      const rawRows = await db.prepare(fallbackQuery).all(...fallbackParams);
+      const rawRows = await db.prepare(finalQuery).all(...fallbackParams);
       rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
     }
 
     const products: StorefrontProduct[] = [];
     for (const r of rows) {
-      const variations = await getProductVariations(r.id, { db, basePrice: Number(r.base_price) });
+      let productLine: StorefrontProductLine | null = null;
+      const lineId = r.product_line_id || r.product_line_id_id;
+      if (lineId) {
+        try {
+          const lineRow = (await db.prepare("SELECT * FROM product_lines WHERE id = ?;").get(lineId)) as any;
+          if (lineRow) {
+            productLine = {
+              id: lineRow.id,
+              title: lineRow.title,
+              slug: lineRow.slug,
+              story: lineRow.story ?? undefined,
+              default_price: lineRow.default_price != null ? Number(lineRow.default_price) : undefined,
+            };
+          }
+        } catch {}
+      }
+
+      const rawPrice = r.price != null ? Number(r.price) : (r.base_price != null ? Number(r.base_price) : null);
+      const effectiveBase = rawPrice ?? (productLine?.default_price ?? 0);
+
+      const variations = await getProductVariations(r.id, { db, basePrice: effectiveBase });
       const prices =
         variations.length > 0 ? variations.map((v) => v.effective_price) : [Number(r.base_price)];
       const effectiveMinPrice = Math.min(...prices);
@@ -704,7 +910,14 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
         weight: r.weight ?? undefined,
         fit_profile: r.fit_profile ?? undefined,
         origin: r.origin ?? undefined,
-        base_price: Number(r.base_price),
+        sku: r.sku ?? undefined,
+        price: r.price != null ? Number(r.price) : null,
+        base_price: effectiveBase,
+        effective_price: effectiveBase,
+        parent_id: r.parent_id ?? null,
+        node_role: r.node_role ?? 'model',
+        product_line: productLine,
+        options: r.options ? (typeof r.options === "string" ? JSON.parse(r.options) : r.options) : undefined,
         effective_min_price: effectiveMinPrice,
         status: (r.status as ProductStatus) || 'draft',
         category: catId
