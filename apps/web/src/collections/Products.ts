@@ -1,17 +1,19 @@
 import type { CollectionConfig } from 'payload';
 
 /**
- * Products Collection Schema
+ * Products Collection Schema (Paradigm 2: Pure Product-First with Typed Tags)
  *
- * Authoritative editorial source of truth for artwork titles, artist statements,
- * provenance, and media gallery. Synchronized to Shopify Admin API on publish.
- * Conforms to HLD Section 3.2 and Story 2.18.
+ * "Everything is a Tag" Model.
+ * Eliminates all relational groupings entirely.
+ * Categorization, product lines, material badges, and batch provenance are modeled
+ * as structured typed tags (e.g. line:bushwhack, cat:apparel, style:anorak, mat:dyneema, batch:micro-001).
+ * Zero relational foreign keys; eliminates database join latency.
  */
 export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'slug', 'base_price', 'status', 'updatedAt'],
+    defaultColumns: ['title', 'sku', 'base_price', 'tags', 'status', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -49,7 +51,7 @@ export const Products: CollectionConfig = {
       unique: true,
       index: true,
       admin: {
-        description: 'Linked Shopify Product GID (e.g. gid://shopify/Product/1234567890)',
+        description: 'Linked Shopify Product GID',
       },
     },
     {
@@ -58,8 +60,29 @@ export const Products: CollectionConfig = {
       required: true,
       min: 0,
       admin: {
-        description: 'Base price in USD. Synchronized to default Shopify variant.',
+        description: 'Flat price in USD. No relational inheritance required.',
       },
+    },
+    {
+      name: 'sku',
+      type: 'text',
+      admin: {
+        description: 'Unique Stock Keeping Unit (SKU)',
+      },
+    },
+    {
+      name: 'tags',
+      type: 'array',
+      admin: {
+        description: 'Faceted typed tags for dynamic edge grouping (e.g. line:chest-rig, cat:packs, mat:cordura, type:micro-batch)',
+      },
+      fields: [
+        {
+          name: 'tag',
+          type: 'text',
+          required: true,
+        },
+      ],
     },
     {
       name: 'status',
@@ -73,7 +96,7 @@ export const Products: CollectionConfig = {
         { label: 'Archived', value: 'archived' },
       ],
       admin: {
-        description: 'Lifecycle state of the artwork',
+        description: 'Lifecycle state of the product',
       },
     },
     {
@@ -82,7 +105,7 @@ export const Products: CollectionConfig = {
       relationTo: 'categories',
       hasMany: false,
       admin: {
-        description: 'Primary product category taxonomy reference',
+        description: 'Legacy relationship field preserved for baseline schema compatibility',
       },
     },
     {
@@ -112,7 +135,7 @@ export const Products: CollectionConfig = {
       name: 'maker_field_notes',
       type: 'textarea',
       admin: {
-        description: 'Chris’s bench and field notes on design, construction, and bank-testing conditions',
+        description: "Chris's bench and field notes on design, construction, and testing conditions",
       },
     },
     {
@@ -126,21 +149,21 @@ export const Products: CollectionConfig = {
       name: 'materials',
       type: 'text',
       admin: {
-        description: 'Technical fabric specs and hardware (e.g. 3-Layer DWR Ripstop, 500D Cordura®, YKK AquaGuard®)',
+        description: 'Technical fabric specs and hardware',
       },
     },
     {
       name: 'weight',
       type: 'text',
       admin: {
-        description: 'Total garment/pack weight (e.g. 21.4 oz / 606g)',
+        description: 'Total garment/pack weight',
       },
     },
     {
       name: 'fit_profile',
       type: 'text',
       admin: {
-        description: 'Fit characteristics (e.g. Relaxed Athletic with articulated elbows)',
+        description: 'Fit characteristics',
       },
     },
     {

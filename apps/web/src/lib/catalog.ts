@@ -70,6 +70,8 @@ export interface StorefrontProduct {
   id: string;
   title: string;
   slug: string;
+  sku?: string;
+  tags?: string[];
   description?: string;
   maker_field_notes?: string;
   artist_statement?: string;
@@ -78,7 +80,9 @@ export interface StorefrontProduct {
   weight?: string;
   fit_profile?: string;
   origin?: string;
+  price?: number;
   base_price: number;
+  effective_price?: number;
   effective_min_price?: number;
   status: ProductStatus;
   category?: Category | null;
@@ -91,10 +95,37 @@ export interface StorefrontProduct {
 
 export interface GetProductsOptions {
   category?: string;
+  tag?: string;
+  tags?: string[];
   status?: (ProductStatus | 'active')[];
   limit?: number;
   db?: DatabaseSync;
   bypassSingleFlight?: boolean;
+}
+
+export function parseTags(rawTags: any): string[] {
+  if (!rawTags) return [];
+  if (Array.isArray(rawTags)) {
+    return rawTags
+      .map((t) => (typeof t === 'string' ? t : t?.tag || ''))
+      .filter(Boolean);
+  }
+  if (typeof rawTags === 'string') {
+    try {
+      const parsed = JSON.parse(rawTags);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((t) => (typeof t === 'string' ? t : t?.tag || ''))
+          .filter(Boolean);
+      }
+    } catch {
+      return rawTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
 }
 
 // ============================================================================
@@ -512,7 +543,11 @@ async function fetchProductBySlugDirect(
       weight: productRow.weight ?? undefined,
       fit_profile: productRow.fit_profile ?? undefined,
       origin: productRow.origin ?? undefined,
+      sku: productRow.sku ?? undefined,
+      tags: parseTags(productRow.tags),
+      price: Number(productRow.base_price),
       base_price: Number(productRow.base_price),
+      effective_price: Number(productRow.base_price),
       effective_min_price: effectiveMinPrice,
       status: (productRow.status as ProductStatus) || 'draft',
       category,
@@ -544,6 +579,13 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
   try {
     const db = options?.db || getDatabase();
 
+    let hasTags = false;
+    try {
+      const rawCols = await db.prepare('PRAGMA table_info(products);').all();
+      const cols = (Array.isArray(rawCols) ? rawCols : ((rawCols as any)?.results || [])).map((c: any) => c.name);
+      if (cols.includes('tags')) hasTags = true;
+    } catch {}
+
     const requestedStatuses =
       options?.status && options.status.length > 0 ? options.status : ['published', 'active'];
     const normalizedStatuses = new Set<string>();
@@ -570,15 +612,38 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
       `;
 
       if (options?.category) {
-        query += ` AND p.category_id_id IN (
-          WITH RECURSIVE cat_tree(id) AS (
-            SELECT id FROM categories WHERE slug = ? OR id = ?
-            UNION ALL
-            SELECT c2.id FROM categories c2 JOIN cat_tree ct ON c2.parent_id = ct.id
-          )
-          SELECT id FROM cat_tree
-        )`;
-        params.push(options.category, options.category);
+        if (hasTags) {
+          query += ` AND (p.category_id_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c2.id FROM categories c2 JOIN cat_tree ct ON c2.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          ) OR p.tags LIKE '%' || ? || '%')`;
+          params.push(options.category, options.category, `"cat:${options.category}"`);
+        } else {
+          query += ` AND p.category_id_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c2.id FROM categories c2 JOIN cat_tree ct ON c2.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          )`;
+          params.push(options.category, options.category);
+        }
+      }
+
+      if (hasTags && options?.tag) {
+        query += ` AND p.tags LIKE '%' || ? || '%'`;
+        params.push(options.tag);
+      }
+      if (hasTags && options?.tags && options.tags.length > 0) {
+        for (const t of options.tags) {
+          query += ` AND p.tags LIKE '%' || ? || '%'`;
+          params.push(t);
+        }
       }
 
       const placeholders = statuses.map(() => '?').join(',');
@@ -605,15 +670,38 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
       const fallbackParams: any[] = [];
 
       if (options?.category) {
-        fallbackQuery += ` AND p.category_id IN (
-          WITH RECURSIVE cat_tree(id) AS (
-            SELECT id FROM categories WHERE slug = ? OR id = ?
-            UNION ALL
-            SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
-          )
-          SELECT id FROM cat_tree
-        )`;
-        fallbackParams.push(options.category, options.category);
+        if (hasTags) {
+          fallbackQuery += ` AND (p.category_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          ) OR p.tags LIKE '%' || ? || '%')`;
+          fallbackParams.push(options.category, options.category, `"cat:${options.category}"`);
+        } else {
+          fallbackQuery += ` AND p.category_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          )`;
+          fallbackParams.push(options.category, options.category);
+        }
+      }
+
+      if (hasTags && options?.tag) {
+        fallbackQuery += ` AND p.tags LIKE '%' || ? || '%'`;
+        fallbackParams.push(options.tag);
+      }
+      if (hasTags && options?.tags && options.tags.length > 0) {
+        for (const t of options.tags) {
+          fallbackQuery += ` AND p.tags LIKE '%' || ? || '%'`;
+          fallbackParams.push(t);
+        }
       }
 
       const placeholders = statuses.map(() => '?').join(',');
@@ -704,7 +792,11 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
         weight: r.weight ?? undefined,
         fit_profile: r.fit_profile ?? undefined,
         origin: r.origin ?? undefined,
+        sku: r.sku ?? undefined,
+        tags: parseTags(r.tags),
+        price: Number(r.base_price),
         base_price: Number(r.base_price),
+        effective_price: Number(r.base_price),
         effective_min_price: effectiveMinPrice,
         status: (r.status as ProductStatus) || 'draft',
         category: catId
@@ -761,3 +853,17 @@ export async function fetchProducts(options?: {
 
 export const fetchProductBySlug = getProductBySlug;
 export const fetchCategories = getCategories;
+
+export async function getProductsByTag(
+  tag: string,
+  options?: Omit<GetProductsOptions, 'tag'>
+): Promise<StorefrontProduct[]> {
+  return getProducts({ ...options, tag });
+}
+
+export async function getProductsByLine(
+  line: string,
+  options?: Omit<GetProductsOptions, 'tag'>
+): Promise<StorefrontProduct[]> {
+  return getProducts({ ...options, tag: `line:${line}` });
+}
