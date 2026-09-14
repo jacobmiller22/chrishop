@@ -5,6 +5,7 @@ import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 import { s3Storage } from '@payloadcms/storage-s3';
 import { Categories } from './src/collections/Categories';
+import { ProductLines } from './src/collections/ProductLines';
 import { Products } from './src/collections/Products';
 import { ProductVariations } from './src/collections/ProductVariations';
 import { Media } from './src/collections/Media';
@@ -140,7 +141,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Categories, Products, ProductVariations, Media, Users],
+  collections: [ProductLines, Categories, Products, ProductVariations, Media, Users],
   editor: lexicalEditor(),
   db: sqliteD1Adapter({
     binding: getD1Binding(),

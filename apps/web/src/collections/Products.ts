@@ -1,17 +1,18 @@
 import type { CollectionConfig } from 'payload';
 
 /**
- * Products Collection Schema
+ * Products Collection Schema (Paradigm 3: Strict 3-Tier Hierarchy)
  *
- * Authoritative editorial source of truth for artwork titles, artist statements,
- * provenance, and media gallery. Synchronized to Shopify Admin API on publish.
- * Conforms to HLD Section 3.2 and Story 2.18.
+ * Tier 2: Model / Silhouette (e.g. "Minimalist Chest Rig", "Bushwhack Storm Anorak").
+ * In strict 3-tier architecture, every product MUST belong to a parent ProductLine.
+ * Base price is optional; if null, it inherits from product_lines.default_price.
+ * Child SKUs are modeled in ProductVariations (Tier 3).
  */
 export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'slug', 'base_price', 'status', 'updatedAt'],
+    defaultColumns: ['title', 'slug', 'product_line_id', 'base_price', 'status', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -26,11 +27,21 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'product_line_id',
+      type: 'relationship',
+      relationTo: 'product_lines' as any,
+      required: true,
+      hasMany: false,
+      admin: {
+        description: 'Tier 1 parent line / series container (MANDATORY in Strict 3-Tier)',
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,
       admin: {
-        description: 'Product or artwork title',
+        description: 'Silhouette or model title',
       },
     },
     {
@@ -49,7 +60,7 @@ export const Products: CollectionConfig = {
       unique: true,
       index: true,
       admin: {
-        description: 'Linked Shopify Product GID (e.g. gid://shopify/Product/1234567890)',
+        description: 'Linked Shopify Product GID',
       },
     },
     {
@@ -58,7 +69,15 @@ export const Products: CollectionConfig = {
       required: true,
       min: 0,
       admin: {
-        description: 'Base price in USD. Synchronized to default Shopify variant.',
+        description: 'Tier 2 base price in USD.',
+      },
+    },
+    {
+      name: 'price',
+      type: 'number',
+      min: 0,
+      admin: {
+        description: 'Optional price override. If omitted, falls back to base_price or line default_price.',
       },
     },
     {
@@ -73,7 +92,7 @@ export const Products: CollectionConfig = {
         { label: 'Archived', value: 'archived' },
       ],
       admin: {
-        description: 'Lifecycle state of the artwork',
+        description: 'Lifecycle state of the product model',
       },
     },
     {
@@ -86,18 +105,68 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'description',
+      type: 'richText',
+      admin: {
+        description: 'Silhouette narrative, design intent, and technical specifications',
+      },
+    },
+    {
+      name: 'maker_field_notes',
+      type: 'textarea',
+      admin: {
+        description: "Chris's bench and field notes on design, construction, and testing conditions",
+      },
+    },
+    {
+      name: 'artist_statement',
+      type: 'textarea',
+      admin: {
+        description: 'Artist statement field (mapped to maker_field_notes)',
+      },
+    },
+    {
+      name: 'materials',
+      type: 'text',
+      admin: {
+        description: 'Technical fabric specs and hardware',
+      },
+    },
+    {
+      name: 'weight',
+      type: 'text',
+      admin: {
+        description: 'Total garment/pack weight',
+      },
+    },
+    {
+      name: 'fit_profile',
+      type: 'text',
+      admin: {
+        description: 'Fit characteristics',
+      },
+    },
+    {
+      name: 'origin',
+      type: 'text',
+      defaultValue: "Hand-crafted in Chris's workshop",
+      admin: {
+        description: 'Provenance and workshop crafting location',
+      },
+    },
+    {
       name: 'featured_image',
       type: 'upload',
       relationTo: 'media',
       admin: {
-        description: 'Primary hero image for catalog grids and detail pages',
+        description: 'Primary hero image for catalog grids and social preview cards',
       },
     },
     {
       name: 'gallery',
       type: 'array',
       admin: {
-        description: 'Supporting high-resolution artwork photographs and angle shots',
+        description: 'High-resolution craft and field-testing photo gallery',
       },
       fields: [
         {
@@ -107,56 +176,6 @@ export const Products: CollectionConfig = {
           required: true,
         },
       ],
-    },
-    {
-      name: 'maker_field_notes',
-      type: 'textarea',
-      admin: {
-        description: 'Chris’s bench and field notes on design, construction, and bank-testing conditions',
-      },
-    },
-    {
-      name: 'artist_statement',
-      type: 'textarea',
-      admin: {
-        description: 'Legacy artist statement field (mapped to maker_field_notes)',
-      },
-    },
-    {
-      name: 'materials',
-      type: 'text',
-      admin: {
-        description: 'Technical fabric specs and hardware (e.g. 3-Layer DWR Ripstop, 500D Cordura®, YKK AquaGuard®)',
-      },
-    },
-    {
-      name: 'weight',
-      type: 'text',
-      admin: {
-        description: 'Total garment/pack weight (e.g. 21.4 oz / 606g)',
-      },
-    },
-    {
-      name: 'fit_profile',
-      type: 'text',
-      admin: {
-        description: 'Fit characteristics (e.g. Relaxed Athletic with articulated elbows)',
-      },
-    },
-    {
-      name: 'origin',
-      type: 'text',
-      defaultValue: "Hand-cut & sewn in small batches in Chris's workshop",
-      admin: {
-        description: 'Workshop production provenance',
-      },
-    },
-    {
-      name: 'description',
-      type: 'richText',
-      admin: {
-        description: 'Full rich text editorial description rendered via Lexical editor',
-      },
     },
   ],
 };
