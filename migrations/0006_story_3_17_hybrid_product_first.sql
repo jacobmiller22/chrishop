@@ -11,16 +11,36 @@ CREATE TABLE IF NOT EXISTS product_lines (
   story TEXT,
   default_price NUMERIC,
   hero_image TEXT,
+  hero_image_id INTEGER,
   updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
-  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  FOREIGN KEY (hero_image_id) REFERENCES media(id) ON UPDATE NO ACTION ON DELETE SET NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS product_lines_slug_idx ON product_lines (slug);
+CREATE INDEX IF NOT EXISTS product_lines_hero_image_idx ON product_lines (hero_image_id);
+
+-- Product Lines lookbook gallery (Payload array)
+CREATE TABLE IF NOT EXISTS product_lines_lookbook_gallery (
+  _order INTEGER NOT NULL,
+  _parent_id TEXT NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
+  image_id INTEGER NOT NULL,
+  caption TEXT,
+  FOREIGN KEY (_parent_id) REFERENCES product_lines(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+  FOREIGN KEY (image_id) REFERENCES media(id) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS product_lines_lookbook_gallery_order_idx ON product_lines_lookbook_gallery (_order);
+CREATE INDEX IF NOT EXISTS product_lines_lookbook_gallery_parent_id_idx ON product_lines_lookbook_gallery (_parent_id);
+CREATE INDEX IF NOT EXISTS product_lines_lookbook_gallery_image_idx ON product_lines_lookbook_gallery (image_id);
 
 -- 2. Products table columns for Paradigm 1
+ALTER TABLE products ADD COLUMN product_line_id TEXT REFERENCES product_lines(id) ON UPDATE NO ACTION ON DELETE SET NULL;
 ALTER TABLE products ADD COLUMN product_line_id_id TEXT REFERENCES product_lines(id) ON UPDATE NO ACTION ON DELETE SET NULL;
 ALTER TABLE products ADD COLUMN price NUMERIC;
 ALTER TABLE products ADD COLUMN sku TEXT;
 ALTER TABLE products ADD COLUMN category TEXT DEFAULT 'packs';
+
+CREATE INDEX IF NOT EXISTS products_product_line_id_idx ON products (product_line_id_id);
 
 -- 3. Products gallery caption support
 ALTER TABLE products_gallery ADD COLUMN caption TEXT;
@@ -40,3 +60,5 @@ CREATE INDEX IF NOT EXISTS products_options_parent_id_idx ON products_options (_
 
 -- 5. Payload locked documents relationship alignment
 ALTER TABLE payload_locked_documents_rels ADD COLUMN product_lines_id TEXT;
+CREATE INDEX IF NOT EXISTS payload_locked_documents_rels_product_lines_id_idx ON payload_locked_documents_rels (product_lines_id);
+
