@@ -136,6 +136,7 @@ gh run watch <run-id>
     ```bash
     gh run review <run-id> --approve --env production
     ```
+  - Upon approval, the job reconciles Terraform infrastructure, automatically applies pending D1 migrations to `chrishop-prod-db` (`pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote || true`), and deploys the Cloudflare Worker bundle (`deploy --env production`).
 - **Stage 5: `verify-production`**:
   - Automatically probes `https://chrishop.jacobmiller22.com/api/health` up to 12 times until HTTP 200 is confirmed.
 
