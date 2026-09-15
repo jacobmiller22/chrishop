@@ -334,7 +334,7 @@ describe('Story 2.23: Cloudflare R2 Media Adapter & Edge Image Pipeline', () => 
       const slugs = config.collections.map((c: any) => c.slug);
       assert.ok(slugs.includes('categories'), 'categories collection registered');
       assert.ok(slugs.includes('products'), 'products collection registered');
-      assert.ok(slugs.includes('product_variations'), 'product_variations collection registered');
+      assert.ok(!slugs.includes('product_variations'), 'product_variations collection purged in Candidate 4');
       assert.ok(slugs.includes('media'), 'media collection registered');
       assert.ok(slugs.includes('users'), 'users collection registered');
     });

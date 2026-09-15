@@ -28,7 +28,7 @@ describe('Payload CMS v3 Admin Panel & Edge Route Integration', () => {
     const collectionSlugs = config.collections.map((c: any) => c.slug);
     assert.ok(collectionSlugs.includes('categories'), 'categories collection must exist');
     assert.ok(collectionSlugs.includes('products'), 'products collection must exist');
-    assert.ok(collectionSlugs.includes('product_variations'), 'product_variations collection must exist');
+    assert.ok(!collectionSlugs.includes('product_variations'), 'product_variations collection purged in Candidate 4');
     assert.ok(collectionSlugs.includes('media'), 'media collection must exist');
     assert.ok(collectionSlugs.includes('users'), 'users collection must exist');
   });

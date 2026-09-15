@@ -255,7 +255,7 @@ describe('Story 2.18: Payload CMS v3 Collections & Schema Specification', () => 
       const slugs = config.collections.map((c) => c.slug);
       assert.ok(slugs.includes('categories'), 'categories collection registered');
       assert.ok(slugs.includes('products'), 'products collection registered');
-      assert.ok(slugs.includes('product_variations'), 'product_variations collection registered');
+      assert.ok(!slugs.includes('product_variations'), 'product_variations collection purged in Candidate 4');
       assert.ok(slugs.includes('media'), 'media collection registered');
       assert.ok(slugs.includes('users'), 'users collection registered');
 

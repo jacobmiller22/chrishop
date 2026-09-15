@@ -42,6 +42,7 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
       title TEXT NOT NULL,
       slug TEXT UNIQUE NOT NULL,
       parent_id TEXT,
+      parent_id_id TEXT,
       node_role TEXT NOT NULL DEFAULT 'model',
       category_id TEXT,
       category_id_id TEXT,
@@ -61,15 +62,6 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (parent_id) REFERENCES products(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS product_variations (
-      id TEXT PRIMARY KEY,
-      product_id TEXT,
-      sku TEXT UNIQUE,
-      variation_name TEXT,
-      price_override REAL,
-      status TEXT DEFAULT 'active'
     );
   `);
 
@@ -214,17 +206,49 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
     },
   ];
 
+  const createLexicalDescription = (text: string) =>
+    JSON.stringify({
+      root: {
+        type: 'root',
+        format: '',
+        indent: 0,
+        version: 1,
+        direction: 'ltr',
+        children: [
+          {
+            type: 'paragraph',
+            format: '',
+            indent: 0,
+            version: 1,
+            direction: 'ltr',
+            children: [
+              {
+                mode: 'normal',
+                text,
+                type: 'text',
+                style: '',
+                detail: 0,
+                format: 0,
+                version: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
   const insertNode = db.prepare(`
     INSERT INTO products (
-      id, sku, title, slug, parent_id, node_role, category_id, category_id_id,
-      base_price, price, status, maker_field_notes, artist_statement, materials, weight, fit_profile
+      id, sku, title, slug, parent_id, parent_id_id, node_role, category_id, category_id_id,
+      base_price, price, status, maker_field_notes, artist_statement, materials, weight, fit_profile, description
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       sku=excluded.sku,
       title=excluded.title,
       slug=excluded.slug,
       parent_id=excluded.parent_id,
+      parent_id_id=excluded.parent_id_id,
       node_role=excluded.node_role,
       category_id=excluded.category_id,
       category_id_id=excluded.category_id_id,
@@ -234,15 +258,18 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
       artist_statement=excluded.artist_statement,
       materials=excluded.materials,
       weight=excluded.weight,
-      fit_profile=excluded.fit_profile;
+      fit_profile=excluded.fit_profile,
+      description=excluded.description;
   `);
 
   for (const n of nodes) {
+    const desc = (n as any).description || createLexicalDescription(n.maker_field_notes || n.title);
     insertNode.run(
       n.id,
       n.sku,
       n.title,
       n.slug,
+      n.parent_id,
       n.parent_id,
       n.node_role,
       n.category_id,
@@ -253,7 +280,8 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
       n.maker_field_notes,
       n.materials,
       n.weight,
-      n.fit_profile
+      n.fit_profile,
+      desc
     );
     console.log(`  Node [${n.node_role}]: ${n.title} (Parent: ${n.parent_id ?? 'NULL (Root)'}) -> Price: ${n.price ? '$' + n.price : 'Inherits Ancestor'}`);
   }
