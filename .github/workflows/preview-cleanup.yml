@@ -1,0 +1,53 @@
+name: Ephemeral Preview Garbage Collection
+
+on:
+  schedule:
+    # Run every Sunday at 02:00 UTC to sweep any orphaned preview stacks
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (log actions without deleting)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  cleanup:
+    name: Sweep Orphaned Ephemeral Previews
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Execute Preview Cleanup
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm run preview:cleanup --dry-run
+          else
+            pnpm run preview:cleanup --force
+          fi

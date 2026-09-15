@@ -102,32 +102,30 @@ Compile a structured Grooming & Refinement Report containing:
 
 ---
 
-## 3. Autonomous Scheduled Daemon (`launchd`)
+## 3. On-Demand Adversarial Auditor Execution
 
-ChrisShop provides an automated host-level background daemon using macOS `launchd` to execute this refinement protocol every 12 hours (at 02:00 and 14:00 EDT/EST).
+The legacy macOS `launchd` background daemon has been decommissioned. Backlog refinement and roadmap auditing now run purely on-demand via the consolidated TypeScript CLI or through the `project-management` skill.
 
-### Management Commands
+### Commands
 
 ```bash
-# Install and register the LaunchAgent with macOS launchd
-./infra/launchd/install.sh install
+# Execute standard on-demand roadmap & backlog audit
+pnpm run audit:roadmap
 
-# Check daemon registration and status
-./infra/launchd/install.sh status
+# Execute comprehensive audit with file-level deliverables check
+pnpm run audit:backlog
 
-# Trigger an immediate refinement execution
-./infra/launchd/install.sh run-now
+# Export markdown report to docs/
+pnpm run audit:roadmap --markdown docs/ROADMAP_AUDIT_LATEST.md
 
-# View latest logs
-./infra/launchd/install.sh logs
-
-# Unload and remove daemon
-./infra/launchd/install.sh uninstall
+# Run via project-management skill
+/project-management roadmap audit
 ```
 
-### Components
+### Key Audit Capabilities
 
-- `infra/launchd/com.chrishop.backlog-refinement.plist`: LaunchAgent definition configured with `StartCalendarInterval` for 02:00 and 14:00 daily.
-- `infra/launchd/refinement-runner.sh`: Executable bash runner that loads environment, runs health checks, and invokes the Python auditor.
-- `infra/launchd/refinement_audit.py`: Zero-dependency Python auditor cross-referencing issues, code on disk, and automated AI critique routed through the Antigravity CLI (`agy`) with zero API key configuration.
-- `infra/launchd/install.sh`: Turnkey management script for operator installation and monitoring.
+- **Milestone Architecture Drift**: Flags legacy stack keywords (`docker`, `postgres`, `redis`, etc.).
+- **Deliverables on Disk**: Cross-references closed issues with files on disk to verify true completion.
+- **Dependency Graph**: Detects blocked issues with open prerequisites vs. unblocked shovel-ready candidates.
+- **Priority Compliance**: Guarantees 100% of open issues carry explicit `priority:*` tags.
+

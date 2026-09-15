@@ -77,4 +77,4 @@ In the event of a Shopify platform disruption:
 2. Verify storefront product catalog and detail pages load cleanly (`https://chrishop.jacobmiller22.com/products`).
 3. Verify Payload CMS Admin UI access (`https://chrishop.jacobmiller22.com/admin`).
 4. Verify Shopify Storefront API cart creation mutation.
-5. Trigger test operational alert to Discord (`#dev-alerts`) to confirm telemetry.
+5. Trigger test operational alert via Ops Webhook (`OPS_ALERT_WEBHOOK_URL`) to confirm telemetry.

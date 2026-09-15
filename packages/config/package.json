@@ -15,6 +15,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
+    "./flags": "./src/flags.ts",
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./tsconfig.react.json": "./tsconfig.react.json",
     "./tsconfig.nextjs.json": "./tsconfig.nextjs.json",

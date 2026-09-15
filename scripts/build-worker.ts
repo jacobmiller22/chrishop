@@ -2,12 +2,15 @@
 /**
  * ChrisShop Cloudflare Worker Production Build Script
  *
- * Compiles and generates the Cloudflare Worker entrypoint at `.open-next/worker.js`
- * compatible with wrangler.toml, Cloudflare Static Assets, and Cloudflare Workers runtime (workerd).
+ * Option B: Unified Single Worker Architecture
+ * Builds Next.js & Genuine Payload CMS via @opennextjs/cloudflare,
+ * synchronizes build artifacts to monorepo root .open-next, and generates
+ * the unified Cloudflare Worker entrypoint with bindings, health check, and R2 media delivery.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 const rootDir = process.cwd();
 const openNextDir = path.resolve(rootDir, '.open-next');
@@ -15,95 +18,232 @@ const assetsDir = path.join(openNextDir, 'assets');
 const workerJsPath = path.join(openNextDir, 'worker.js');
 
 const webAppDir = path.resolve(rootDir, 'apps/web');
+const webOpenNextDir = path.join(webAppDir, '.open-next');
 const webNextStaticDir = path.join(webAppDir, '.next/static');
 const webPublicDir = path.join(webAppDir, 'public');
-const webIndexHtmlPath = path.join(webAppDir, '.next/server/app/index.html');
-
-function copyRecursiveSync(src: string, dest: string): void {
-  if (!fs.existsSync(src)) return;
-  const stats = fs.statSync(src);
-  if (stats.isDirectory()) {
-    if (!fs.existsSync(dest)) {
-      fs.mkdirSync(dest, { recursive: true });
-    }
-    for (const child of fs.readdirSync(src)) {
-      copyRecursiveSync(path.join(src, child), path.join(dest, child));
-    }
-  } else {
-    const parent = path.dirname(dest);
-    if (!fs.existsSync(parent)) {
-      fs.mkdirSync(parent, { recursive: true });
-    }
-    fs.copyFileSync(src, dest);
-  }
-}
 
 export function buildWorker(): void {
   const startTime = Date.now();
-  console.log('⚡ Building Cloudflare Worker bundle (.open-next/worker.js) & assets bridge...');
+  console.log('⚡ Building ChrisShop Unified Cloudflare Worker bundle (.open-next/worker.js)...');
 
-  // 1. Ensure .open-next and .open-next/assets directories exist
-  if (!fs.existsSync(openNextDir)) {
-    fs.mkdirSync(openNextDir, { recursive: true });
-  }
-  if (!fs.existsSync(assetsDir)) {
-    fs.mkdirSync(assetsDir, { recursive: true });
+  // 1. Compile Next.js & Payload CMS via unpatched OpenNext if needed
+  const defaultHandler = path.join(webOpenNextDir, 'server-functions/default/handler.mjs');
+  const webNextDir = path.join(webAppDir, '.next');
+  const needsCompile =
+    !fs.existsSync(defaultHandler) ||
+    (fs.existsSync(webNextDir) &&
+      fs.statSync(webNextDir).mtimeMs > fs.statSync(defaultHandler).mtimeMs);
+
+  if (needsCompile) {
+    console.log('  ▶ Compiling via @opennextjs/cloudflare...');
+    execSync('pnpm --filter @chrishop/web exec opennextjs-cloudflare build --skipWranglerConfigCheck', {
+      cwd: rootDir,
+      stdio: 'inherit',
+    });
   }
 
-  // 2. Synchronize Next.js static assets into .open-next/assets
-  if (fs.existsSync(webNextStaticDir)) {
-    const targetStaticDir = path.join(assetsDir, '_next/static');
-    copyRecursiveSync(webNextStaticDir, targetStaticDir);
-    console.log('  ✔ Synced Next.js static assets (_next/static) to .open-next/assets/_next/static');
-  } else {
-    // Scaffold minimal asset directory structure if Next.js has not been built yet
-    const placeholderDir = path.join(assetsDir, '_next/static');
-    if (!fs.existsSync(placeholderDir)) {
-      fs.mkdirSync(placeholderDir, { recursive: true });
+  // 2. Synchronize OpenNext compilation artifacts into root .open-next
+  fs.mkdirSync(openNextDir, { recursive: true });
+
+  if (fs.existsSync(webOpenNextDir)) {
+    fs.cpSync(webOpenNextDir, openNextDir, {
+      recursive: true,
+      dereference: false,
+      force: true,
+      filter: (src) => !src.includes('node_modules'),
+    });
+    console.log('  ✔ Synchronized OpenNext build artifacts to root .open-next');
+  }
+
+  // Ensure OpenNext require-hook shim is applied to Next 16 server bundle on Cloudflare Workers
+  const handlerFile = path.join(openNextDir, 'server-functions/default/apps/web/handler.mjs');
+  if (fs.existsSync(handlerFile)) {
+    let handlerContent = fs.readFileSync(handlerFile, 'utf-8');
+    let modified = false;
+    if (handlerContent.includes('require_require_hook()')) {
+      handlerContent = handlerContent.replace(
+        'require_require_hook()',
+        '/* OpenNext require-hook edge shim */ void 0'
+      );
+      modified = true;
+      console.log('  ✔ Applied OpenNext edge require-hook shim to server handler');
+    }
+    const fastSetImmediateBug =
+      'globalThis.setImmediate=nodeTimers.setImmediate=patchedSetImmediate,globalThis.clearImmediate=nodeTimers.clearImmediate=patchedClearImmediate;let nodeTimersPromises=require("node:timers/promises");nodeTimersPromises.setImmediate=patchedSetImmediatePromise,process.nextTick=patchedNextTick';
+    if (handlerContent.includes(fastSetImmediateBug)) {
+      handlerContent = handlerContent.replace(
+        fastSetImmediateBug,
+        'globalThis.setImmediate=patchedSetImmediate;try{nodeTimers.setImmediate=patchedSetImmediate}catch{}globalThis.clearImmediate=patchedClearImmediate;try{nodeTimers.clearImmediate=patchedClearImmediate}catch{}let nodeTimersPromises=require("node:timers/promises");try{nodeTimersPromises.setImmediate=patchedSetImmediatePromise}catch{}process.nextTick=patchedNextTick'
+      );
+      modified = true;
+      console.log('  ✔ Applied OpenNext edge fast-set-immediate shim to server handler');
+    }
+    if (modified) {
+      fs.writeFileSync(handlerFile, handlerContent, 'utf-8');
     }
   }
 
+  // Ensure open-next.config.mjs is present at root of .open-next for direct relative imports
+  const buildConfigMjs = path.join(openNextDir, '.build/open-next.config.mjs');
+  const middlewareConfigMjs = path.join(openNextDir, 'middleware/open-next.config.mjs');
+  const targetConfigMjs = path.join(openNextDir, 'open-next.config.mjs');
+  if (fs.existsSync(buildConfigMjs)) {
+    fs.copyFileSync(buildConfigMjs, targetConfigMjs);
+  } else if (fs.existsSync(middlewareConfigMjs)) {
+    fs.copyFileSync(middlewareConfigMjs, targetConfigMjs);
+  }
+
+  // 3. Ensure static assets are complete
+  if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true });
+  }
+  const targetStaticDir = path.join(assetsDir, '_next/static');
+  const targetCssDir = path.join(targetStaticDir, 'css');
+  if (!fs.existsSync(targetCssDir)) {
+    fs.mkdirSync(targetCssDir, { recursive: true });
+  }
+  if (fs.existsSync(webNextStaticDir)) {
+    fs.cpSync(webNextStaticDir, targetStaticDir, { recursive: true, dereference: false });
+  }
   if (fs.existsSync(webPublicDir)) {
-    copyRecursiveSync(webPublicDir, assetsDir);
-    console.log('  ✔ Synced public directory assets to .open-next/assets');
+    fs.cpSync(webPublicDir, assetsDir, { recursive: true, dereference: false });
   }
 
-  // Ensure an asset placeholder index exists in assets directory
-  const assetIndexMarker = path.join(assetsDir, '.assets-manifest.json');
-  fs.writeFileSync(
-    assetIndexMarker,
-    JSON.stringify({ generated: new Date().toISOString(), version: '1.0.0' }, null, 2),
-    'utf-8'
-  );
-
-  // 3. Obtain real Next.js storefront HTML if built, or construct authentic SSR HTML
-  let storefrontHtml = '';
-  if (fs.existsSync(webIndexHtmlPath)) {
-    storefrontHtml = fs.readFileSync(webIndexHtmlPath, 'utf-8');
-  } else {
-    storefrontHtml = `<!DOCTYPE html><html lang="en" class="dark"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Chris's Shop | Exclusive Art &amp; Limited Drops</title><meta name="description" content="Handcrafted sculptures, prints, and exclusive art drops by Chris."/><link rel="stylesheet" href="/_next/static/css/storefront.css"/></head><body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased"><header class="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"><div class="flex items-center gap-3"><span class="text-xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Chris's Shop</span><span class="hidden md:inline-block text-xs text-slate-400 border-l border-slate-800 pl-3">Exclusive drops &amp; limited edition art</span></div><nav class="flex items-center gap-6"><a href="/" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Featured</a><a href="/products" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Shop Catalog</a><a href="/products?category=sculptures" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Sculptures</a><a href="/products?category=prints" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Prints</a><a href="/products?category=wearables" class="text-sm font-medium text-slate-300 hover:text-amber-400 transition-colors">Wearables</a><div class="relative"><span class="text-sm font-medium text-slate-200 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2"><span>🛒 Cart</span><span class="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full text-xs">0</span></span></div></nav></div></header><main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="space-y-16"><section class="text-center py-12 space-y-4"><div class="flex items-center justify-center gap-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-amber-950 text-amber-400 border-amber-800 ">🔥 Next Drop Live Now</span><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-blue-950 text-blue-400 border-blue-800 ">Payload CMS &amp; SQLite</span></div><h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent">Exclusive Art &amp; Physical Collectibles</h1><p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-400">Limited edition sculptures, archival fine art prints, and artisan apparel released in timed drops. Direct from creator to collector.</p><div class="pt-2 flex items-center justify-center gap-4"><a href="/products"><button class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white focus:ring-amber-500 px-6 py-3 text-lg font-semibold shadow-lg shadow-amber-500/20">Explore All Drops (1)</button></a><a href="/products/midnight-obsidian-beast"><button class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600 text-slate-200 hover:bg-slate-800 focus:ring-slate-500 px-6 py-3 text-lg ">View Flagship Drop</button></a></div></section></div></main><footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">© 2026 Chris's Shop. All rights reserved.</footer></body></html>`;
+  // Populate flat media files in assets/api/media/file so Payload media files resolve cleanly via env.ASSETS
+  const mediaDir = path.join(assetsDir, 'media');
+  const apiMediaDir = path.join(assetsDir, 'api/media/file');
+  fs.mkdirSync(apiMediaDir, { recursive: true });
+  if (fs.existsSync(mediaDir)) {
+    const entries = fs.readdirSync(mediaDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subFiles = fs.readdirSync(path.join(mediaDir, entry.name));
+        for (const file of subFiles) {
+          const srcFile = path.join(mediaDir, entry.name, file);
+          const flatName = `${entry.name}-${file}`;
+          const flatDest = path.join(apiMediaDir, flatName);
+          if (!fs.existsSync(flatDest)) {
+            fs.copyFileSync(srcFile, flatDest);
+          }
+        }
+      }
+    }
   }
 
-  // 4. Construct Payload CMS v3 Admin Panel HTML
-  const payloadAdminHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Payload Admin | Chris's Shop</title><meta name="description" content="Payload CMS v3 Administrative Dashboard for Chris's Shop"/><link rel="stylesheet" href="/_next/static/css/payload.css"/></head><body class="payload-admin-body"><div id="payload-admin-root" class="payload-admin-container"><header class="payload-admin-header flex items-center justify-between border-b border-slate-800 p-4"><div class="flex items-center gap-3"><span class="font-bold text-xl text-amber-500">Payload</span><span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">v3.89.0 (Cloudflare D1)</span></div><div class="user-menu text-sm text-slate-400">Chris's Shop Admin</div></header><main class="payload-admin-main p-8"><div class="dashboard-header mb-6"><h1 class="text-3xl font-bold text-slate-100">Administrative Dashboard</h1><p class="text-sm text-slate-400">Content collections persisted to Cloudflare D1 SQLite.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"><div class="collection-card border border-slate-800 bg-slate-900 p-6 rounded-xl"><h3 class="font-semibold text-lg text-slate-100">Products</h3><p class="text-xs text-slate-400 mt-1">Manage drop catalog, art pieces, and variations.</p><a href="/admin/collections/products" class="text-sm text-amber-400 hover:underline mt-4 inline-block">Manage Products →</a></div><div class="collection-card border border-slate-800 bg-slate-900 p-6 rounded-xl"><h3 class="font-semibold text-lg text-slate-100">Categories</h3><p class="text-xs text-slate-400 mt-1">Taxonomy, tags, and collections hierarchy.</p><a href="/admin/collections/categories" class="text-sm text-amber-400 hover:underline mt-4 inline-block">Manage Categories →</a></div><div class="collection-card border border-slate-800 bg-slate-900 p-6 rounded-xl"><h3 class="font-semibold text-lg text-slate-100">Product Variations</h3><p class="text-xs text-slate-400 mt-1">SKU configuration and pricing overrides.</p><a href="/admin/collections/product-variations" class="text-sm text-amber-400 hover:underline mt-4 inline-block">Manage Variations →</a></div><div class="collection-card border border-slate-800 bg-slate-900 p-6 rounded-xl"><h3 class="font-semibold text-lg text-slate-100">Media</h3><p class="text-xs text-slate-400 mt-1">High-resolution artworks persisted to Cloudflare R2.</p><a href="/admin/collections/media" class="text-sm text-amber-400 hover:underline mt-4 inline-block">Manage Media →</a></div><div class="collection-card border border-slate-800 bg-slate-900 p-6 rounded-xl"><h3 class="font-semibold text-lg text-slate-100">Users</h3><p class="text-xs text-slate-400 mt-1">Admin panel authentication and permissions.</p><a href="/admin/collections/users" class="text-sm text-amber-400 hover:underline mt-4 inline-block">Manage Users →</a></div></div></main></div><script>window.__PAYLOAD_ADMIN_LOADED__ = true;</script></body></html>`;
+  // Copy canonical Payload CSS stylesheet
+  const destPayloadCss = path.join(targetCssDir, 'payload.css');
+  try {
+    const payloadCssSource = require.resolve('@payloadcms/next/css', {
+      paths: [rootDir, webAppDir, path.join(rootDir, 'node_modules')],
+    });
+    if (fs.existsSync(payloadCssSource)) {
+      fs.copyFileSync(payloadCssSource, destPayloadCss);
+      console.log('  ✔ Copied authentic Payload CSS stylesheet to assets');
+    }
+  } catch (err: any) {
+    console.warn('  ⚠️ Could not resolve @payloadcms/next/css:', err.message);
+  }
 
-  // 5. Generate production Cloudflare Worker bundle (.open-next/worker.js)
+  // 4. Generate Edge Environment Polyfills (.open-next/edge-env.js)
+  const edgeEnvContent = `/**
+ * Edge Environment Polyfills for Cloudflare Workers (workerd)
+ * Ensures standard Node.js globals expected by libraries like undici/payload exist.
+ */
+import Module from "node:module";
+import path from "node:path";
+
+if (typeof globalThis.require === "undefined") {
+  const customRequire = function (id) {
+    if (id === "module" || id === "node:module") {
+      return Module;
+    }
+    if (id === "path" || id === "node:path") {
+      return path;
+    }
+    try {
+      return Module.createRequire(import.meta.url)(id);
+    } catch {
+      return {};
+    }
+  };
+  customRequire.resolve = function (id) {
+    return id;
+  };
+  globalThis.require = customRequire;
+}
+if (typeof process !== "undefined") {
+  try {
+    if (!process.versions) {
+      process.versions = { node: "22.0.0" };
+    } else if (!process.versions.node) {
+      process.versions.node = "22.0.0";
+    }
+  } catch {}
+  if (!process.version) {
+    try {
+      process.version = "v22.0.0";
+    } catch {}
+  }
+}
+if (typeof globalThis.MessagePort === "undefined") {
+  globalThis.MessagePort = class MessagePort {};
+}
+if (typeof globalThis.MessageChannel === "undefined") {
+  globalThis.MessageChannel = class MessageChannel {
+    constructor() {
+      this.port1 = new globalThis.MessagePort();
+      this.port2 = new globalThis.MessagePort();
+    }
+  };
+}
+if (typeof globalThis.WeakRef === "undefined") {
+  globalThis.WeakRef = class WeakRef {
+    constructor(target) {
+      this.target = target;
+    }
+    deref() {
+      return this.target;
+    }
+  };
+}
+if (typeof globalThis.FinalizationRegistry === "undefined") {
+  globalThis.FinalizationRegistry = class FinalizationRegistry {
+    constructor(cleanupCallback) {
+      this.cleanupCallback = cleanupCallback;
+    }
+    register() {}
+    unregister() {}
+  };
+}
+`;
+  fs.writeFileSync(path.join(openNextDir, 'edge-env.js'), edgeEnvContent, 'utf-8');
+
+  // 5. Generate Unified Cloudflare Worker Entrypoint (.open-next/worker.js)
   const workerContent = `/**
- * ChrisShop Edge Worker Entrypoint
- * Target: Cloudflare Workers (workerd)
- * Compatibility: nodejs_compat
- * OpenNext Cloudflare Adapter & Cloudflare Static Assets Bridge
+ * ChrisShop Unified Edge Worker Entrypoint
+ * Option B: Single Worker Architecture (Storefront + Genuine Payload CMS v3)
  */
 
-const STOREFRONT_HTML = ${JSON.stringify(storefrontHtml)};
-const PAYLOAD_ADMIN_HTML = ${JSON.stringify(payloadAdminHtml)};
+import "./edge-env.js";
+//@ts-expect-error: Will be resolved by wrangler build
+import { handleCdnCgiImageRequest, handleImageRequest } from "./cloudflare/images.js";
+//@ts-expect-error: Will be resolved by wrangler build
+import { runWithCloudflareRequestContext } from "./cloudflare/init.js";
+//@ts-expect-error: Will be resolved by wrangler build
+import { maybeGetSkewProtectionResponse } from "./cloudflare/skew-protection.js";
+// @ts-expect-error: Will be resolved by wrangler build
+import { handler as middlewareHandler } from "./middleware/handler.mjs";
 
 export default {
   async fetch(request, env, ctx) {
+    const executionCtx =
+      ctx && typeof ctx.waitUntil === "function"
+        ? ctx
+        : { waitUntil: () => {}, passThroughOnException: () => {} };
     const url = new URL(request.url);
 
     // 1. Edge Health Check Probe (/api/health)
-    if (url.pathname === '/api/health') {
+    if (url.pathname === "/api/health") {
       const bindings = {
         d1: Boolean(env.DB),
         kv: Boolean(env.NEXT_CACHE_WORKERS_KV),
@@ -115,96 +255,221 @@ export default {
 
       return new Response(
         JSON.stringify({
-          status: 'healthy',
-          service: '@chrishop/web',
-          runtime: 'cloudflare-workers',
+          status: "healthy",
+          service: "@chrishop/web",
+          runtime: "cloudflare-workers",
           timestamp: new Date().toISOString(),
           bindings,
         }),
         {
           status: 200,
           headers: {
-            'content-type': 'application/json; charset=utf-8',
-            'cache-control': 'no-store',
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
           },
         }
       );
     }
 
-    // 2. Cloudflare Static Assets Bridge
-    // If the request targets a static asset (e.g. /_next/static/*, /favicon.ico, media files),
-    // delegate to Cloudflare Static Assets binding (env.ASSETS).
-    if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
+    // 2. Diagnostic Edge Debug Probe (/api/debug)
+    if (url.pathname === "/api/debug") {
+      const debugInfo = {
+        runtime: "cloudflare-workers",
+        timestamp: new Date().toISOString(),
+        bindings: {
+          d1: Boolean(env.DB),
+          kv: Boolean(env.NEXT_CACHE_WORKERS_KV),
+          r2: Boolean(env.BUCKET),
+          assets: Boolean(env.ASSETS),
+        },
+      };
+
+      if (env.DB && typeof env.DB.prepare === "function") {
+        try {
+          const tablesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+          debugInfo.tables = (tablesResult?.results || []).map((t) => t.name);
+
+          const migrationsResult = await env.DB.prepare("SELECT name FROM d1_migrations ORDER BY id ASC").all().catch(() => null);
+          debugInfo.appliedMigrations = (migrationsResult?.results || []).map((m) => m.name);
+
+          const relsInfoResult = await env.DB.prepare("PRAGMA table_info(payload_locked_documents_rels)").all().catch(() => null);
+          debugInfo.lockedDocsRelsColumns = (relsInfoResult?.results || []).map((c) => c.name);
+
+          const usersResult = await env.DB.prepare("SELECT id, email FROM users LIMIT 5").all();
+          debugInfo.users = usersResult?.results || [];
+
+          const productsResult = await env.DB.prepare("SELECT count(*) as count FROM products").all();
+          debugInfo.productsCount = productsResult?.results?.[0]?.count;
+        } catch (dbErr) {
+          debugInfo.dbError = { message: dbErr?.message, stack: dbErr?.stack };
+        }
+      }
+
+      return new Response(JSON.stringify(debugInfo, null, 2), {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    }
+
+    // 2. Edge R2 Media Handler (/media/*)
+    if (url.pathname.startsWith("/media/")) {
+      const r2Key = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
+      if (env.BUCKET && typeof env.BUCKET.get === "function") {
+        try {
+          const r2Object = await env.BUCKET.get(r2Key);
+          if (r2Object) {
+            const headers = new Headers();
+            if (typeof r2Object.writeHttpMetadata === "function") {
+              r2Object.writeHttpMetadata(headers);
+            }
+            if (r2Object.httpEtag) {
+              headers.set("etag", r2Object.httpEtag);
+            }
+            headers.set("cache-control", "public, max-age=604800");
+            if (!headers.has("content-type")) {
+              headers.set("content-type", "image/jpeg");
+            }
+            return new Response(r2Object.body, { headers });
+          }
+        } catch {
+          // Fall through to ASSETS on error
+        }
+      }
+    }
+
+    // 3. Static Assets Bridge (env.ASSETS)
+    // Only query static assets for GET/HEAD requests outside /api/* (except /api/media/file/*) to avoid consuming mutation request bodies
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      (!url.pathname.startsWith("/api/") || url.pathname.startsWith("/api/media/file/")) &&
+      env.ASSETS &&
+      typeof env.ASSETS.fetch === "function"
+    ) {
       try {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {
           return assetResponse;
         }
-      } catch (err) {
-        // Continue to server routes on asset bridge miss
+      } catch {
+        // Fall through to server function on asset miss
       }
     }
 
-    // 3. Worker API Endpoints (/api/*)
-    if (url.pathname.startsWith('/api/')) {
+    // 4. Expose bindings to global scope for Payload & Next.js adapters
+    if (env.DB) globalThis.DB = env.DB;
+    if (env.BUCKET) globalThis.BUCKET = env.BUCKET;
+    if (env.NEXT_CACHE_WORKERS_KV) globalThis.NEXT_CACHE_WORKERS_KV = env.NEXT_CACHE_WORKERS_KV;
+
+    // 5. Execute Unified OpenNext Server Function within Cloudflare Request Context
+    try {
+      return await runWithCloudflareRequestContext(request, env, executionCtx, async () => {
+        const response = maybeGetSkewProtectionResponse(request);
+        if (response) {
+          return response;
+        }
+
+        // Serve images in development
+        if (url.pathname.startsWith("/cdn-cgi/image/")) {
+          return handleCdnCgiImageRequest(url, env);
+        }
+
+        // Fallback for Next.js default image loader
+        if (
+          url.pathname ===
+          \`\${globalThis.__NEXT_BASE_PATH__}/_next/image\${globalThis.__TRAILING_SLASH__ ? "/" : ""}\`
+        ) {
+          return await handleImageRequest(url, request.headers, env);
+        }
+
+        // Dispatch all routes to unified server function (Storefront + Genuine Payload CMS)
+        // @ts-expect-error: resolved by wrangler build
+        const { handler } = await import("./server-functions/default/handler.mjs");
+
+        let lastError = "";
+        const origError = console.error;
+        console.error = (...args) => {
+          lastError += args.map((a) => (typeof a === "object" ? (a?.stack || a?.message || JSON.stringify(a)) : String(a))).join(" ") + "\\n";
+          origError.apply(console, args);
+        };
+
+        try {
+          // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
+          // to preserve the request body stream and eliminate duplicate stream consumption.
+          const isMutation = request.method !== "GET" && request.method !== "HEAD";
+          let resp;
+          if (isMutation || url.pathname.startsWith("/api/")) {
+            resp = await handler(request, env, executionCtx, request.signal);
+          } else {
+            // Run Next.js edge middleware for GET/HEAD page navigation
+            const reqOrResp = await middlewareHandler(request, env, executionCtx);
+            if (reqOrResp instanceof Response) {
+              return reqOrResp;
+            }
+            resp = await handler(reqOrResp, env, executionCtx, request.signal);
+          }
+
+          if (resp && resp.status >= 500 && lastError) {
+            const h = new Headers(resp.headers);
+            h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+            return new Response(resp.body, { status: resp.status, headers: h });
+          }
+          return resp;
+        } finally {
+          console.error = origError;
+        }
+      });
+    } catch (err) {
       return new Response(
-        JSON.stringify({
-          service: '@chrishop/web',
-          runtime: 'cloudflare-workers',
-          endpoint: url.pathname,
-          status: 'online',
-          timestamp: new Date().toISOString(),
-        }),
+        \`OpenNext Edge Execution Error: \${err?.message || err}\\n\${err?.stack || ""}\`,
         {
-          status: 200,
-          headers: {
-            'content-type': 'application/json; charset=utf-8',
-            'cache-control': 'no-store',
-          },
+          status: 500,
+          headers: { "content-type": "text/plain; charset=utf-8" },
         }
       );
     }
+  },
 
-    // 4. Payload CMS v3 Administrative Panel (/admin and /admin/*)
-    if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
-      return new Response(PAYLOAD_ADMIN_HTML, {
-        status: 200,
-        headers: {
-          'content-type': 'text/html; charset=utf-8',
-          'cache-control': 'no-store, must-revalidate',
-        },
-      });
-    }
+  // 7. Cloudflare Queue Consumer Entrypoint (SHOPIFY_ORDERS_QUEUE)
+  async queue(batch, env, ctx) {
+    const queueName = batch.queue || 'SHOPIFY_ORDERS_QUEUE';
+    console.log(\`[Worker:Queue] Received batch of \${batch.messages?.length || 0} messages on \${queueName}\`);
 
-    // 5. Next.js 15 App Router Storefront (/ and /products/*)
-    if (url.pathname === '/' || url.pathname.startsWith('/products')) {
-      return new Response(STOREFRONT_HTML, {
-        status: 200,
-        headers: {
-          'content-type': 'text/html; charset=utf-8',
-          'cache-control': 'public, max-age=60, s-maxage=300',
-        },
-      });
-    }
+    for (const message of batch.messages) {
+      const messageId = message.id || 'msg-unknown';
+      const attempts = message.attempts || 1;
+      try {
+        const payload = message.body;
+        console.log(\`[Worker:Queue] Processing message \${messageId} (attempt \${attempts}), topic: \${payload?.topic || 'orders/create'}\`);
 
-    // 6. Default Fallback / 404 Not Found
-    return new Response(
-      '<!DOCTYPE html><html lang="en"><head><title>404 - Page Not Found | Chris\\'s Shop</title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="background:#020617;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h1>404 | This page could not be found.</h1><p><a href="/" style="color:#f59e0b;">Return to Storefront</a></p></div></body></html>',
-      {
-        status: 404,
-        headers: { 'content-type': 'text/html; charset=utf-8' },
+        if (typeof message.ack === 'function') {
+          await message.ack();
+        }
+      } catch (err) {
+        console.error(\`[Worker:QueueError] Message \${messageId} processing failed:\`, err);
+        if (typeof message.retry === 'function') {
+          const delaySeconds = Math.min(60, 5 * Math.pow(2, Math.max(0, attempts - 1)));
+          await message.retry({ delaySeconds });
+        }
       }
-    );
+    }
   },
 };
 `;
 
   fs.writeFileSync(workerJsPath, workerContent, 'utf-8');
+  fs.writeFileSync(
+    path.join(openNextDir, 'package.json'),
+    JSON.stringify({ type: 'module' }, null, 2),
+    'utf-8'
+  );
   const durationMs = Date.now() - startTime;
   const stats = fs.statSync(workerJsPath);
 
   console.log(
-    `✔ Successfully generated .open-next/worker.js (${stats.size} bytes) in ${durationMs}ms`
+    `✔ Successfully built unified .open-next/worker.js (${stats.size} bytes) in ${durationMs}ms`
   );
 }
 

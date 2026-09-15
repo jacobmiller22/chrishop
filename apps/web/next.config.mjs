@@ -4,7 +4,7 @@ import { withPayload } from '@payloadcms/next/withPayload';
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@chrishop/ui', '@chrishop/types', '@chrishop/notifications'],
-  serverExternalPackages: ['@libsql/client', 'drizzle-orm', 'node:sqlite'],
+  serverExternalPackages: ['@libsql/client', 'drizzle-orm'],
   images: {
     remotePatterns: [
       {
@@ -33,6 +33,44 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/products',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+        ],
+      },
+      {
+        source: '/products/:slug*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'public, s-maxage=10, stale-while-revalidate=50',
+          },
+        ],
+      },
+    ];
   },
 };
 

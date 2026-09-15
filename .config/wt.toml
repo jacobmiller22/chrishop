@@ -1,0 +1,14 @@
+# ChrisShop Worktrunk Project Configuration
+# Enforces staging-first branching and worktree conventions across the team and autonomous agents.
+
+[forge]
+platform = "github"
+
+[step.copy-ignored]
+exclude = [".turbo/", ".wrangler/", "node_modules/"]
+
+[aliases]
+# Branch helper: fetches origin/staging and creates an isolated worktree based on origin/staging
+branch = "sh -c 'git fetch origin staging && wt switch --create \"$1\" --base origin/staging' --"
+# Switch to active integration branch
+staging = "wt switch staging"

@@ -35,7 +35,7 @@ Use this skill whenever:
 ```mermaid
 flowchart TD
     A[Start Story] --> B[1. Update Issue Status to in-progress & Post Start Comment]
-    B --> C[2. Provision Worktree: wt switch --create feature/story-X-Y]
+    B --> C[2. Provision Worktree: git fetch origin staging && wt switch --create feature/story-X-Y --base origin/staging]
     C --> D[3. Implementor: Develop Core Architecture & Modules]
     D --> E[Post Progress Comment: Architectural Milestone Reached]
     E --> F[4. Implementor: Local Verification: pnpm run verify:local]
@@ -46,16 +46,19 @@ flowchart TD
     J --> F
     I -- Yes with Deferred Scope --> K[Implementor: gh issue create for Follow-Ups]
     K --> L[Post Progress Comment: Deferred Stories Linked]
-    L --> M[6. Implementor: Push Branch & gh pr create]
+    L --> M[6. Implementor: Push Branch & gh pr create --base staging]
     I -- Yes: Approved Clean --> M
     M --> N[Post Progress Comment: PR Opened with Bidirectional Link]
     N --> O[7. Judge: Verify CI: gh pr checks]
     O -- CI Failing --> P[Implementor: Resolve Failures & Push Fixes]
     P --> O
     O -- CI Passing --> Q[8. Post High-Detail Completion Comment on Issue]
-    Q --> R[9. Finalize Issue Status: status:completed & gh issue close]
-    R --> S[10. Worktree Teardown: wt switch main & wt remove --reap]
-    S --> T[11. Final Summary Handoff to User]
+    Q --> R[9. Update Issue Status: Apply status:completed (Keep Issue Open)]
+    R --> S[10. Worktree Teardown: wt switch staging & wt remove --reap]
+    S --> T[11. Final Summary Handoff to User with PR & Live Preview Links]
+    T --> U{PR Merged?}
+    U -- Yes --> V[Close GitHub Issue: gh issue close --reason completed]
+    U -- Awaiting Merge / Review --> W[Keep Issue Open until PR is merged]
 ```
 
 ---
@@ -65,26 +68,31 @@ flowchart TD
 Before modifying any source code for a story:
 
 1. **Verify Tooling**: Confirm Git 2.43+ and `wt` (worktrunk) are available in `PATH` (`export PATH="/opt/homebrew/bin:$PATH"`).
-2. **Transition Issue Status to `In Progress`**:
+2. **Inspect Model & Thinking Level Recommendation**:
+   - Check the issue header for the recommended model configuration (e.g. `> **Recommended Model**: Gemini 3.8 Flash (<Level> Thinking)`).
+   - Calibrate the Implementor's and SME Judge's reasoning depth and token expenditure to match the assigned thinking budget (see Section 4.3).
+3. **Transition Issue Status to `In Progress`**:
    - Apply the `status:in-progress` label to the GitHub Issue:
      ```bash
      gh issue edit <IssueNumber> --add-label "status:in-progress"
      ```
    - If a GitHub Project v2 board is active, ensure the issue card moves from `Backlog` to `In Progress`.
-3. **Post Start-of-Work Comment**: Post an explicit initialization comment on the GitHub Issue:
+4. **Post Start-of-Work Comment**: Post an explicit initialization comment on the GitHub Issue:
    ```bash
    gh issue comment <IssueNumber> --body "🚀 **Status**: In Progress
 
    - **Worktree**: \`feature/story-<X>-<Y>-<shortname>\`
+   - **Model & Thinking Tier**: Gemini 3.8 Flash (<Level> Thinking)
    - **Implementor**: AI Agent
    - **Technical Strategy**: <Brief breakdown of architectural approach, components to create/modify, and design decisions>
    - **Target Acceptance Criteria**: <Specific checklist items and intent objectives being addressed>"
    ```
-4. **Provision Isolated Worktree**: Create and switch to a dedicated isolated worktree and branch for the story using `wt`:
+5. **Provision Isolated Worktree**: Fetch the latest integration state and create/switch to a dedicated isolated worktree and branch for the story based on `origin/staging` using `wt`:
    ```bash
-   wt switch --create feature/story-<X>-<Y>-<short-description>
+   git fetch origin staging
+   wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging
    ```
-5. **Verify Clean Workspace**: Confirm clean worktree state before beginning code modifications (`git status`).
+6. **Verify Clean Workspace**: Confirm clean worktree state before beginning code modifications (`git status`).
 
 ---
 
@@ -165,6 +173,10 @@ gh issue comment <IssueNumber> --body "🔀 **Pull Request Opened**
 - **PR Link**: https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>
 - **Branch**: \`feature/story-<X>-<Y>-<shortname>\`
 - **Issue Association**: \`Fixes #<IssueNumber>\`
+- **Ephemeral Preview Environment**:
+  - *Storefront*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+  - *Payload Admin*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+  - *Edge Health Probe*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
 - **CI Status**: Triggered and monitoring..."
 ```
 
@@ -177,6 +189,10 @@ If CI fails or succeeds:
 gh issue comment <IssueNumber> --body "🟢 **CI Verification Passed**
 
 - All automated checks on PR https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER> passed successfully.
+- **Verified Live Preview Environment**:
+  - *Storefront*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+  - *Payload CMS Admin*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+  - *Edge Health Probe*: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
 - Ready for completion documentation and story finalization."
 
 # On CI Failure / Resolution:
@@ -244,6 +260,22 @@ The SME Judge is an architectural authority who ensures stories do not merely ch
    - Post the comprehensive completion comment (see Section 7).
    - Finalize issue status and close the issue.
 
+### 4.3 Model & Thinking Budget Alignment (Calibrated Reasoning Depth)
+
+Every story specifies a recommended model tier and thinking budget in its GitHub issue header (`> [!NOTE] > **Recommended Model**: Gemini 3.8 Flash (<Level> Thinking)`). The Implementor and SME Judge must adapt their execution depth accordingly:
+
+1. **Low Thinking (Low Complexity / Narrow Scope / Routine Docs)**:
+   - **Implementor**: Focus on rapid, direct implementation of the acceptance criteria checklist. Avoid speculative over-engineering, unrequested abstractions, or excessive internal debate.
+   - **SME Judge**: Verify acceptance criteria conformance, basic sanity checks, and type/test passing. Approve promptly without demanding unnecessary architectural refactoring.
+
+2. **Medium Thinking (Standard Features / UI State / Typical API Integrations)**:
+   - **Implementor**: Ensure clean component modularity, proper error boundaries, and integration tests using ephemeral D1/KV fixtures.
+   - **SME Judge**: Evaluate architectural intent, check error resilience and user feedback states, and guide non-blocking ideas into follow-up issues.
+
+3. **High Thinking (Complex Pipelines / Security / Concurrency / Reversible Migrations / Critical Bugs)**:
+   - **Implementor**: Apply exhaustive analytical rigor. Deeply analyze edge-case failure modes, race conditions, raw cryptographic byte streams, idempotency locks, and backward-compatible schema evolutions.
+   - **SME Judge**: Enforce stringent adversarial critique. Challenge architectural assumptions, demand concrete integration proof under failure simulations, and ensure zero regressions.
+
 ---
 
 ## 5. Bidirectional PR-to-Issue Linking Protocol
@@ -277,7 +309,7 @@ To guarantee end-to-end traceability, Pull Requests and GitHub Issues **MUST** b
 
    ## Issue Reference
    Fixes #42" \
-     --base main
+     --base staging
    ```
 
 ### 5.2 Issue Requirements (Linking Issue to PR)
@@ -302,11 +334,11 @@ Before removing a worktree, confirm that:
 
 ### 6.2 Step-by-Step Worktree Teardown
 
-1. **Switch Context Back to the Main Monorepo Root**:
+1. **Switch Context Back to the Staging Integration Branch**:
    Never attempt to delete a worktree while your active shell or command execution context is inside it.
 
    ```bash
-   wt switch main
+   wt switch staging
    ```
 
 2. **Reap Processes and Remove Worktree via `wt remove`**:
@@ -352,6 +384,14 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
 ### 📦 Summary of Accomplishments & Deliverables
 <Provide an exhaustive breakdown of what was implemented, how it satisfies the architectural intent, and any key design choices made during development.>
 
+### 🌐 Live Environments & Verification Links
+- **Ephemeral Storefront Preview**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com
+- **Ephemeral Payload Admin**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin
+- **Edge API Health Probe**: https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/api/health
+- **Pull Request**: https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER> (\`Fixes #<IssueNumber>\`)
+- **Commit SHA**: \`<CommitSHA>\`
+- **CI Status**: \`PASSING\` (All checks verified via \`gh pr checks <PR_NUMBER>\`)
+
 ### 📁 Detailed Breakdown of Changes
 - **New Files**:
   - \`packages/shared-ui/src/components/FilterDrawer.tsx\`: Responsive filter drawer with accessible keyboard navigation.
@@ -383,7 +423,7 @@ gh issue comment <IssueNumber> --body "✅ **Story Execution Completed**
   - To test locally: checkout \`feature/story-<X>-<Y>-<shortname>\`, run \`pnpm install\`, then \`pnpm dev\`."
 ```
 
-### 7.2 Finalizing Story Status & Issue Closure
+### 7.2 Finalizing Story Status & PR-Gated Issue Closure
 
 Once the comprehensive comment has been posted:
 
@@ -394,26 +434,85 @@ Once the comprehensive comment has been posted:
    gh issue edit <IssueNumber> --remove-label "status:in-progress" --add-label "status:completed"
    ```
 
-2. **Close the GitHub Issue**:
+2. **CRITICAL GATE: DO NOT Close the GitHub Issue Until the PR is Merged**:
+   > [!IMPORTANT]
+   > **Never close a GitHub issue while its associated pull request is still open or pending review.**
+   > The issue must remain **OPEN** with label `status:completed` as long as the PR is open.
 
+   Check PR merge status:
    ```bash
-   gh issue close <IssueNumber> --reason "completed"
+   gh pr view <PR_NUMBER> --json state,merged -q '{state: .state, merged: .merged}'
    ```
 
+   - **If PR is NOT yet merged** (`merged: false`):
+     **DO NOT close the issue.** Leave the issue open. The issue card on the Project board transitions to `In Review` (handled by `board-sync.yml` or manual update). The issue will be closed once the pull request has been merged.
+   - **If PR IS already merged** (`merged: true`):
+     Close the issue if not already closed automatically by GitHub via `Fixes #<IssueNumber>`:
+     ```bash
+     gh issue close <IssueNumber> --reason "completed"
+     ```
+
 3. **Update GitHub Project v2 Board**:
-   If a GitHub Project v2 board is in use, verify that the card status is transitioned to `Done` (either through GitHub Action `board-sync.yml` automation via the linked PR or manually via `gh project item-edit`).
+   If a GitHub Project v2 board is in use:
+   - While the PR is open, the card stays in or moves to `In Review`.
+   - Once the PR is merged, the card transitions to `Done` (either through GitHub Action `board-sync.yml` automation via the linked PR or manually via `gh project item-edit`).
 
 ---
 
-## 8. Mandatory Checklist for Story Loop Execution
+## 8. Final User Handoff Report Protocol (Mandatory Links)
+
+When concluding a story and reporting back to the user in chat, the agent **MUST ALWAYS** include a dedicated, prominent **Live Environment & Verification Links** section at the very top of the final response.
+
+Never omit the Ephemeral Preview URLs or force the user to hunt for them in GitHub PR comments:
+
+```markdown
+# ✅ Story <X>.<Y> Completed: <Story Title>
+
+### 🚦 Merge & Human Review Status
+> [!IMPORTANT]
+> **Status**: <🟡 HUMAN INPUT REQUIRED BEFORE MERGE | 🟢 MERGED / NO INPUT NEEDED | 🔴 BLOCKED / PENDING | ❌ ACTION REQUIRED / FAILING>
+> *(Run `gh pr merge <PR_NUMBER> --squash` after human review if required)*
+
+### 🌐 Live Environment & Verification Links
+- **Staging Storefront**: [https://staging-chrishop.jacobmiller22.com](https://staging-chrishop.jacobmiller22.com)
+- **Staging Payload CMS Admin**: [https://staging-chrishop.jacobmiller22.com/admin](https://staging-chrishop.jacobmiller22.com/admin)
+- **Staging Edge API Health Probe**: [https://staging-chrishop.jacobmiller22.com/api/health](https://staging-chrishop.jacobmiller22.com/api/health)
+- **Ephemeral Storefront Preview**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com) *(Active during PR review; decommissioned upon merge)*
+- **Ephemeral Payload CMS Admin**: [https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin](https://pr-<PR_NUMBER>-chrishop.jacobmiller22.com/admin) *(Active during PR review; decommissioned upon merge)*
+- **Pull Request**: [#<PR_NUMBER>](https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>) (`Fixes #<IssueNumber>`)
+- **GitHub Issue**: [#<IssueNumber>](https://github.com/jacobmiller22/chrishop/issues/<IssueNumber>) (`status:completed` · Open awaiting PR merge / Closed if PR merged)
+- **Walkthrough Artifact**: [walkthrough.md](file://<PathToWalkthrough>)
+
+### 📦 Summary of Accomplishments
+<Key deliverables and architectural advancements>
+
+### 📁 Modified & Created Files
+<Concise bullet list of touched files with brief descriptions>
+
+### 🧪 Verification & Validation Results
+- **Turnkey Verification**: `pnpm run verify:local` (7/7 checks passed)
+- **Typecheck & Lint**: `pnpm run check` (0 errors)
+- **Automated Tests**: `pnpm run test:all` (<X> unit + <Y> integration tests passing)
+- **Production Build**: `pnpm run build` (passed)
+- **CI Status**: All remote GitHub Actions checks passed
+
+### 🔮 Unblocked Next Stories
+1. **Story A.B (#N)**: Title
+2. **Story C.D (#M)**: Title
+```
+
+---
+
+## 9. Mandatory Checklist for Story Loop Execution
 
 Every agent executing a user story must systematically complete and verify every item on this checklist:
 
 - [ ] **Story Initialization**:
+  - [ ] Inspected issue header for recommended model tier and thinking budget (Low / Medium / High).
   - [ ] Applied `status:in-progress` label to GitHub issue.
   - [ ] Moved Project v2 board card to `In Progress`.
-  - [ ] Posted start-of-work comment on GitHub issue detailing technical plan and target criteria.
-  - [ ] Created and switched to isolated worktree: `wt switch --create feature/story-<X>-<Y>-<shortname>`.
+  - [ ] Posted start-of-work comment on GitHub issue detailing technical plan, assigned model tier, and target criteria.
+  - [ ] Created and switched to isolated worktree: `git fetch origin staging && wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging`.
 - [ ] **Periodic Progress Updates**:
   - [ ] Posted Milestone 2 comment upon reaching core component/scaffolding milestone.
   - [ ] Ran `pnpm run verify:local` (engine check, check, test:unit, test:integration, build, secrets hygiene) and posted Milestone 3 comment with verification outputs.
@@ -422,19 +521,21 @@ Every agent executing a user story must systematically complete and verify every
   - [ ] Created GitHub issues for any deferred scope and posted Milestone 5 comment with issue links.
 - [ ] **Pull Request & Bidirectional Linking**:
   - [ ] Pushed branch to remote repository.
-  - [ ] Created PR with `Fixes #<IssueNumber>` in the PR body and issue reference in the title.
-  - [ ] Posted Milestone 6 comment on the issue with full PR link: `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`.
+  - [ ] Created PR with `Fixes #<IssueNumber>` in the PR body and issue reference in the title, targeting staging (`--base staging`).
+  - [ ] Posted Milestone 6 comment on the issue with full PR link and ephemeral preview links: `https://github.com/jacobmiller22/chrishop/pull/<PR_NUMBER>`.
   - [ ] Verified that GitHub displays the PR in the issue's "Development" section.
 - [ ] **CI Verification**:
   - [ ] Verified that CI checks passed on PR using `gh pr checks <PR_NUMBER>`.
-  - [ ] Posted Milestone 7 comment confirming CI pass.
+  - [ ] Posted Milestone 7 comment confirming CI pass and verified live preview links.
 - [ ] **High-Detail Completion Update & Status Finalization**:
-  - [ ] Posted high-detail completion comment on GitHub issue (deliverables, file list, verification results, PR link, follow-up issues).
+  - [ ] Included live ephemeral preview links (Storefront, Admin, API health probe) in Milestone 6/7 comments, GitHub issue completion comment, and final user handoff report in chat.
+  - [ ] Posted high-detail completion comment on GitHub issue (deliverables, file list, verification results, PR link, preview links, follow-up issues).
   - [ ] Updated issue label to `status:completed` (removed `status:in-progress`).
-  - [ ] Closed GitHub issue via `gh issue close <IssueNumber> --reason "completed"`.
-  - [ ] Verified Project v2 card transitioned to `Done`.
+  - [ ] **Issue Closure Gate**: Verified PR merge status before closing. If PR is open/pending merge, kept issue **OPEN** with `status:completed`. Only closed via `gh issue close <IssueNumber> --reason "completed"` if the PR has already been merged.
+  - [ ] Verified Project v2 card reflects correct status (`In Review` if PR is open; `Done` once PR is merged).
+  - [ ] Delivered final user handoff report with live preview and PR links in chat.
 - [ ] **Worktree Teardown & Cleanup**:
-  - [ ] Switched back to main monorepo worktree: `wt switch main`.
+  - [ ] Switched back to staging integration worktree: `wt switch staging`.
   - [ ] Reaped running processes and removed worktree: `wt remove --reap feature/story-<X>-<Y>-<shortname>`.
   - [ ] Pruned git worktree metadata: `git worktree prune`.
   - [ ] Verified clean state via `wt list`.

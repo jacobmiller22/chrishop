@@ -9,6 +9,7 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
   const wranglerPath = path.join(rootDir, 'wrangler.toml');
   const deployWorkflowPath = path.join(rootDir, '.github/workflows/deploy.yml');
   const previewWorkflowPath = path.join(rootDir, '.github/workflows/preview-deploy.yml');
+  const ciWorkflowPath = path.join(rootDir, '.github/workflows/ci.yml');
 
   it('should verify wrangler.toml exists at monorepo root', () => {
     assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist at root');
@@ -138,17 +139,99 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     }
   });
 
-  it('should verify deploy workflow triggers and targets staging vs production', () => {
+  it('should verify deploy workflow triggers and declares 5-stage staged promotion pipeline', () => {
     assert.ok(fs.existsSync(deployWorkflowPath), 'deploy.yml must exist');
     const content = fs.readFileSync(deployWorkflowPath, 'utf-8');
 
     // Trigger branches
-    assert.match(content, /branches:\s*\n\s*-\s*main\s*\n\s*-\s*staging/, 'Deploy workflow must trigger on main and staging');
+    assert.ok(content.includes('staging'), 'Deploy workflow must trigger on staging');
+    assert.ok(content.includes('production'), 'Deploy workflow must trigger on production');
 
-    // Environment determination
-    assert.ok(content.includes('target=production'), 'Must target production on main branch');
-    assert.ok(content.includes('target=staging'), 'Must target staging on staging branch');
-    assert.ok(content.includes('deploy --env ${{ steps.env.outputs.target }}'), 'Must deploy with determined env');
+    // 5 orchestrated jobs
+    assert.ok(content.includes('build-and-validate:'), 'Must declare build-and-validate job');
+    assert.ok(content.includes('deploy-staging:'), 'Must declare deploy-staging job');
+    assert.ok(content.includes('test-staging:'), 'Must declare test-staging job');
+    assert.ok(content.includes('deploy-production:'), 'Must declare deploy-production job');
+    assert.ok(content.includes('verify-production:'), 'Must declare verify-production job');
+
+    // Dependency orchestration
+    assert.ok(content.includes('needs: [build-and-validate]'), 'deploy-staging must depend on build-and-validate');
+    assert.ok(content.includes('needs: [deploy-staging]'), 'test-staging must depend on deploy-staging');
+    assert.ok(
+      content.includes('needs: [build-and-validate, deploy-staging, test-staging]'),
+      'deploy-production must depend on build-and-validate, deploy-staging, and test-staging'
+    );
+    assert.ok(content.includes('needs: [deploy-production]'), 'verify-production must depend on deploy-production');
+  });
+
+  it('should verify staging edge health probe and production human approval gate in deploy workflow', () => {
+    const content = fs.readFileSync(deployWorkflowPath, 'utf-8');
+
+    // Staging health probe
+    assert.ok(
+      content.includes('staging-chrishop.jacobmiller22.com') || content.includes('staging.chrishop.jacobmiller22.com'),
+      'test-staging job must probe staging edge health URL'
+    );
+    assert.ok(content.includes('/api/health'), 'test-staging job must probe /api/health');
+
+    // Production environment human gate and D1 migrations
+    assert.ok(content.includes('environment: production'), 'deploy-production must declare environment: production');
+    assert.ok(
+      content.includes('wrangler d1 migrations apply chrishop-prod-db --remote'),
+      'deploy-production must apply D1 migrations to chrishop-prod-db'
+    );
+    assert.ok(content.includes('deploy --env production'), 'deploy-production must deploy with --env production');
+
+    // Production post-deployment verification
+    assert.ok(
+      content.includes('chrishop.jacobmiller22.com') && content.includes('/api/health'),
+      'verify-production job must probe production health at chrishop.jacobmiller22.com/api/health'
+    );
+  });
+
+  it('should verify CI workflow enforces promotion rules for PRs targeting production', () => {
+    assert.ok(fs.existsSync(ciWorkflowPath), 'ci.yml must exist');
+    const content = fs.readFileSync(ciWorkflowPath, 'utf-8');
+
+    // Trigger branches
+    assert.ok(content.includes('production'), 'CI must trigger on production branch');
+    assert.ok(content.includes('staging'), 'CI must trigger on staging branch');
+
+    // Enforce promotion rules job
+    assert.ok(content.includes('enforce-promotion-rules:'), 'CI must declare enforce-promotion-rules job');
+    assert.ok(content.includes('base_ref }}" = "main"'), 'Must check and block PRs targeting legacy main');
+    assert.ok(
+      content.includes("Pull requests targeting legacy 'main' are strictly prohibited"),
+      'Must output explanatory error message when PR targets main'
+    );
+    assert.ok(content.includes('base_ref }}" = "production"'), 'Must check if base branch is production');
+    assert.ok(content.includes('head_ref }}" != "staging"'), 'Must reject if head branch is not staging');
+    assert.ok(
+      content.includes('Only the \'staging\' branch is permitted to merge into \'production\''),
+      'Must output explanatory error message when non-staging branch targets production'
+    );
+    assert.ok(
+      content.includes("Feature pull requests must target 'staging'"),
+      'Must enforce that feature PRs target staging'
+    );
+  });
+
+  it('should verify CI workflow runs worker bundle budgeting gate and dry-run deployment validation', () => {
+    assert.ok(fs.existsSync(ciWorkflowPath), 'ci.yml must exist');
+    const content = fs.readFileSync(ciWorkflowPath, 'utf-8');
+
+    assert.ok(
+      content.includes('run: pnpm run check:bundle'),
+      'CI workflow must execute bundle size check gate'
+    );
+    assert.ok(
+      content.includes('run: pnpm wrangler deploy --dry-run --env preview'),
+      'CI workflow must validate Cloudflare Worker deployment via dry-run'
+    );
+    assert.ok(
+      content.includes("if: github.event_name == 'pull_request'"),
+      'Dry-run deployment check must run on pull requests'
+    );
   });
 
   it('should verify ephemeral PR preview deploy workflow triggers and notifications', () => {
@@ -165,6 +248,52 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     // Preview URL comment
     assert.ok(content.includes('Ephemeral PR Preview'), 'Must comment preview status on PR');
     assert.ok(content.includes('pr-${PR_NUM}-chrishop.jacobmiller22.com'), 'Must construct preview URL');
+  });
+
+  it('should verify ephemeral PR preview teardown workflow destroys stack on all closed PRs', () => {
+    const teardownWorkflowPath = path.join(rootDir, '.github/workflows/preview-teardown.yml');
+    assert.ok(fs.existsSync(teardownWorkflowPath), 'preview-teardown.yml must exist');
+    const content = fs.readFileSync(teardownWorkflowPath, 'utf-8');
+
+    // Trigger on closed PRs
+    assert.ok(content.includes('pull_request:'), 'Must trigger on pull_request');
+    assert.ok(content.includes('types: [closed]'), 'Must trigger on closed');
+
+    // Toolchain setup assertions (prevents missing pnpm executable errors)
+    assert.ok(content.includes('pnpm/action-setup@v4'), 'Teardown workflow must setup pnpm so wrangler-action can locate pnpm');
+    assert.ok(content.includes('actions/setup-node@v4'), 'Teardown workflow must setup Node.js');
+    assert.ok(content.includes('pnpm install --frozen-lockfile'), 'Teardown workflow must install dependencies');
+
+    // Deletion steps & error resilience
+    assert.ok(content.includes('wrangler-action@v3'), 'Must use wrangler-action for teardown');
+    assert.ok(content.includes('delete --name chrishop-preview-pr-'), 'Must delete preview worker script');
+    assert.ok(content.includes('id: teardown_worker'), 'Worker teardown step must have id for outcome inspection');
+    assert.ok(content.includes('terraform destroy -auto-approve'), 'Must destroy Terraform preview state');
+    assert.ok(content.includes('id: destroy_tf'), 'Terraform destroy step must have id for outcome inspection');
+    assert.ok(content.includes('continue-on-error: true'), 'Steps must configure continue-on-error to prevent cascading aborts');
+
+    // Must NOT be restricted to unmerged PRs only
+    assert.ok(
+      !content.includes('github.event.pull_request.merged == false'),
+      'Teardown must execute for both merged and unmerged PRs (no merged == false gate)'
+    );
+
+    // PR comment update
+    assert.ok(content.includes('Comment Teardown Status on PR'), 'Must post teardown status to PR');
+  });
+
+  it('should verify preview cleanup workflow and script configuration', () => {
+    const cleanupWorkflowPath = path.join(rootDir, '.github/workflows/preview-cleanup.yml');
+    assert.ok(fs.existsSync(cleanupWorkflowPath), 'preview-cleanup.yml must exist');
+    const workflowContent = fs.readFileSync(cleanupWorkflowPath, 'utf-8');
+
+    assert.ok(workflowContent.includes('schedule:'), 'Must configure scheduled cron');
+    assert.ok(workflowContent.includes('workflow_dispatch:'), 'Must configure workflow_dispatch');
+    assert.ok(workflowContent.includes('preview:cleanup'), 'Must invoke preview:cleanup script');
+
+    const pkgJsonPath = path.join(rootDir, 'package.json');
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    assert.ok(pkgJson.scripts['preview:cleanup'], 'package.json must declare preview:cleanup script');
   });
 
   it('should verify wrangler CLI supports local emulation dev command', () => {

@@ -7,8 +7,17 @@ import {
   Media,
   Users,
 } from '../src/collections/index';
-import payloadConfig, { getD1Binding, d1Adapter } from '../payload.config';
 import type { Field } from 'payload';
+
+const loadPayloadConfig = async () => {
+  try {
+    const nextEnv = require('@next/env');
+    if (nextEnv && !nextEnv.default) {
+      nextEnv.default = nextEnv;
+    }
+  } catch {}
+  return import('../payload.config');
+};
 
 describe('Story 2.18: Payload CMS v3 Collections & Schema Specification', () => {
   describe('Categories Collection', () => {
@@ -226,17 +235,20 @@ describe('Story 2.18: Payload CMS v3 Collections & Schema Specification', () => 
   });
 
   describe('Payload Configuration & D1 Adapter Binding', () => {
-    it('should export d1Adapter alias matching DEP_PAYLOAD_CMS.md', () => {
+    it('should export d1Adapter alias matching DEP_PAYLOAD_CMS.md', async () => {
+      const { d1Adapter } = await loadPayloadConfig();
       assert.equal(typeof d1Adapter, 'function');
     });
 
-    it('should resolve D1 binding gracefully across environments', () => {
+    it('should resolve D1 binding gracefully across environments', async () => {
+      const { getD1Binding } = await loadPayloadConfig();
       const binding = getD1Binding();
       assert.ok(typeof binding === 'object' || typeof binding === 'string');
     });
 
     it('should successfully build sanitized Payload config with D1 adapter and registered collections', async () => {
-      const config = await payloadConfig;
+      const mod = await loadPayloadConfig();
+      const config = await mod.default;
       assert.ok(config, 'Config should build successfully');
 
       // Verify registered collection slugs

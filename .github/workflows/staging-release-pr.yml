@@ -1,0 +1,102 @@
+name: Automated Staging Release PR & Changelog
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: staging-release-pr
+  cancel-in-progress: true
+
+jobs:
+  compose-and-sync-release-pr:
+    name: Compose Release Notes & Sync Release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full git history required to compute production..staging delta
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compose Rolling Release Manifest
+        id: release-manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/release
+          pnpm run release:notes --base origin/production --head origin/staging --output /tmp/release/notes.md --repo ${{ github.repository }}
+          pnpm run release:notes --base origin/production --head origin/staging --json --output /tmp/release/delta.json --repo ${{ github.repository }}
+
+          COMMIT_COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('/tmp/release/delta.json', 'utf-8')).commitCount)")
+          echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
+          echo "Found ${COMMIT_COUNT} commits in delta between origin/production and origin/staging."
+
+      - name: Create or Update Staging-to-Production Release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMIT_COUNT: ${{ steps.release-manifest.outputs.commit_count }}
+        run: |
+          PR_TITLE="chore(release): Promote staging to production [Pending Review]"
+          REVIEWER="jacobmiller22"
+          LABELS="type:release,status:needs-review"
+
+          echo "Querying GitHub API for active open Release PR (head: staging, base: production) in ${REPO}..."
+          EXISTING_PR_JSON=$(gh pr list --repo "${REPO}" --base production --head staging --state open --json number,url)
+          EXISTING_PR_NUM=$(echo "${EXISTING_PR_JSON}" | jq -r '.[0].number // empty')
+
+          if [ -n "${EXISTING_PR_NUM}" ]; then
+            echo "Active Release PR #${EXISTING_PR_NUM} found."
+            echo "Refreshing Release PR #${EXISTING_PR_NUM} description with latest composed release manifest..."
+            gh pr edit "${EXISTING_PR_NUM}" \
+              --repo "${REPO}" \
+              --title "${PR_TITLE}" \
+              --body-file /tmp/release/notes.md \
+              --add-label "${LABELS}"
+
+            # Assign designated reviewer if permitted
+            gh pr edit "${EXISTING_PR_NUM}" --repo "${REPO}" --add-reviewer "${REVIEWER}" 2>/dev/null || true
+
+            echo "✅ Successfully updated Release PR #${EXISTING_PR_NUM}."
+          else
+            if [ "${COMMIT_COUNT}" -eq "0" ]; then
+              echo "ℹ️ No commits between production and staging. Skipping Release PR creation."
+              exit 0
+            fi
+
+            echo "No active Release PR found. Creating new Release PR (staging ➔ production)..."
+            NEW_PR_URL=$(gh pr create \
+              --repo "${REPO}" \
+              --base production \
+              --head staging \
+              --title "${PR_TITLE}" \
+              --body-file /tmp/release/notes.md \
+              --label "${LABELS}")
+
+            echo "Created Release PR: ${NEW_PR_URL}"
+
+            # Extract newly created PR number and assign reviewer
+            NEW_PR_NUM=$(basename "${NEW_PR_URL}")
+            gh pr edit "${NEW_PR_NUM}" --repo "${REPO}" --add-reviewer "${REVIEWER}" 2>/dev/null || true
+
+            echo "✅ Successfully opened and labeled Release PR #${NEW_PR_NUM}."
+          fi

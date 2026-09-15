@@ -99,23 +99,54 @@ wrangler r2 bucket cors set chrishop-media --file infra/r2/cors-media.json
 
 ---
 
-## 5. Lifecycle Policies & Retention Rules
+## 5. Lifecycle Policies & Storage Class Transitions (Prod, Staging, Preview)
 
-Automated retention lifecycle rules are enforced on `chrishop-backups` to satisfy the **RPO < 24 hrs; RTO < 15 mins** requirement without unbounded storage consumption:
+Cloudflare R2 lifecycle rules automate storage tier transitions (Standard to Infrequent Access) and object expiration to optimize costs while preventing storage accumulation from test and preview environments.
 
-| Prefix / Path | Retention Window     | Action        | Description                        |
-| ------------- | -------------------- | ------------- | ---------------------------------- |
-| `daily/`      | 7 Days               | Delete Object | Daily rotating database snapshot   |
-| `weekly/`     | 28 Days (4 Weeks)    | Delete Object | Weekly milestone database snapshot |
-| `monthly/`    | 365 Days (12 Months) | Delete Object | Long-term compliance archive       |
+### 5.1 Multi-Tier Retention & Storage Class Matrix
 
-Managed via R2 bucket lifecycle configuration:
+| Environment / Bucket | Target Prefix | Action / Transition | Threshold (Days / Seconds) | Business Objective |
+| :--- | :--- | :--- | :--- | :--- |
+| **Production** (`chrishop-media-prod`) | *(Root catalog & drops)* | Permanent Retention | No Expiration | Permanent availability of active drops, collection media, and artwork imagery. |
+| **Production** (`chrishop-media-prod`) | `archive/` | Transition to Infrequent Access (IA) | 90 Days (`7776000s`) | 50%+ storage cost savings on archived artwork photography. |
+| **Production** (`chrishop-media-prod`) | `drops/past/` | Transition to Infrequent Access (IA) | 180 Days (`15552000s`) | Slashing unit storage costs for historical limited-edition drop media. |
+| **Production** (`chrishop-media-prod`) | *(All prefixes)* | Abort Multipart Uploads | 7 Days (`604800s`) | Cleans up orphaned multipart upload parts. |
+| **Staging** (`chrishop-media-staging`) | *(All prefixes)* | Transition to Infrequent Access (IA) | 30 Days (`2592000s`) | Shifts test drop media to cold storage during ongoing validation. |
+| **Staging** (`chrishop-media-staging`) | *(All prefixes)* | Delete Object (Expiration) | 90 Days (`7776000s`) | Prevents staging storage bloat after testing cycles conclude. |
+| **Staging** (`chrishop-media-staging`) | *(All prefixes)* | Abort Multipart Uploads | 3 Days (`259200s`) | Rapid cleanup of abandoned upload chunks in staging. |
+| **Preview** (`chrishop-media-preview`) | *(All prefixes)* | Delete Object (Expiration) | 7 Days (`604800s`) | Aggressive automated cleanup guaranteeing zero zombie storage footprint. |
+| **Preview** (`chrishop-media-preview`) | *(All prefixes)* | Abort Multipart Uploads | 1 Day (`86400s`) | Daily purge of incomplete multipart sessions from ephemeral PR builds. |
+| **Backups** (`chrishop-backups`) | `daily/` | Delete Object | 7 Days (`604800s`) | Daily rotating database snapshot (RPO < 24h). |
+| **Backups** (`chrishop-backups`) | `weekly/` | Delete Object | 28 Days (4 Weeks) | Weekly milestone database snapshot. |
+| **Backups** (`chrishop-backups`) | `monthly/` | Delete Object | 365 Days (12 Months) | Long-term compliance archive. |
+
+### 5.2 Applying Lifecycle Policies
+
+Apply configurations via the idempotent monorepo provisioning tool:
 
 ```bash
-wrangler r2 bucket lifecycle add chrishop-backups \
-  --name "expire-daily-backups" \
-  --prefix "daily/" \
-  --expire-days 7
+# Dry run verification across all environments
+infra/scripts/deps/r2_apply_lifecycle.sh --dry-run
+
+# Provision production lifecycle policy
+infra/scripts/deps/r2_apply_lifecycle.sh --env prod
+
+# Provision staging lifecycle policy
+infra/scripts/deps/r2_apply_lifecycle.sh --env staging
+
+# Provision preview lifecycle policy
+infra/scripts/deps/r2_apply_lifecycle.sh --env preview
+
+# Provision all environments idempotently
+infra/scripts/deps/r2_apply_lifecycle.sh --env all
+```
+
+Alternatively, apply directly using the Wrangler CLI:
+
+```bash
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-prod --file infra/r2/lifecycle-prod.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-staging --file infra/r2/lifecycle-staging.json -y
+pnpm exec wrangler r2 bucket lifecycle set chrishop-media-preview --file infra/r2/lifecycle-preview.json -y
 ```
 
 ---
@@ -128,7 +159,12 @@ wrangler r2 bucket lifecycle add chrishop-backups \
 | `infra/scripts/backup.sh`                 | `[EXISTS]` | Phase 1         | Automated backup script uploading encrypted dumps to R2        |
 | `infra/scripts/restore.sh`                | `[EXISTS]` | Phase 1         | Disaster recovery script downloading and decrypting R2 backups |
 | `infra/scripts/deps/r2_create_buckets.sh` | `[EXISTS]` | Story 2.2       | Automation script provisioning R2 buckets and applying CORS    |
-| `infra/r2/cors-media.json`                | `[EXISTS]` | Story 2.2       | CORS configuration rules for media bucket                      |
+| `infra/scripts/deps/r2_apply_lifecycle.sh`| `[EXISTS]` | Story 2.36      | Automation script applying R2 lifecycle policies idempotently  |
+| `infra/r2/cors-media.json`                | `[EXISTS]` | Story 2.2 / 2.36| CORS configuration rules for media bucket (dual Cloudflare/S3) |
+| `infra/r2/lifecycle-prod.json`            | `[EXISTS]` | Story 2.36      | Production R2 lifecycle policy (IA transitions, multipart)     |
+| `infra/r2/lifecycle-staging.json`         | `[EXISTS]` | Story 2.36      | Staging R2 lifecycle policy (IA @ 30d, expiration @ 90d)       |
+| `infra/r2/lifecycle-preview.json`         | `[EXISTS]` | Story 2.36      | Preview R2 lifecycle policy (expiration @ 7d, zero orphan)     |
+| `tests/integration/r2-lifecycle.test.ts`  | `[EXISTS]` | Story 2.36      | Automated integration test suite for R2 lifecycle policies     |
 
 ---
 
@@ -138,13 +174,11 @@ wrangler r2 bucket lifecycle add chrishop-backups \
 # List buckets via AWS CLI using R2 endpoint
 aws --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" s3 ls
 
-# Test file upload to media bucket
-aws --endpoint-url "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-  s3 cp test.jpg s3://chrishop-media/test.jpg
+# Inspect active lifecycle configuration via Wrangler
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-prod
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-staging
+pnpm exec wrangler r2 bucket lifecycle list chrishop-media-preview
 
-# Verify public CDN URL resolution
-curl -I https://media.chrishop.jacobmiller22.com/test.jpg
-
-# Verify backup upload pipeline
-infra/scripts/backup.sh
+# Run automated integration tests
+pnpm exec tsx --test tests/integration/r2-lifecycle.test.ts
 ```

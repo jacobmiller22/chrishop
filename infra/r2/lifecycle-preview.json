@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "id": "expire-preview-ephemeral-objects",
+      "enabled": true,
+      "conditions": {},
+      "deleteObjectsTransition": {
+        "condition": {
+          "maxAge": 604800,
+          "type": "Age"
+        }
+      }
+    },
+    {
+      "id": "abort-incomplete-multipart-uploads",
+      "enabled": true,
+      "conditions": {},
+      "abortMultipartUploadsTransition": {
+        "condition": {
+          "maxAge": 86400,
+          "type": "Age"
+        }
+      }
+    }
+  ]
+}

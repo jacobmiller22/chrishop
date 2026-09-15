@@ -17,10 +17,10 @@ export const Button: React.FC<ButtonProps> = ({
     'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantStyles = {
-    primary: 'bg-amber-600 hover:bg-amber-500 text-white focus:ring-amber-500',
-    secondary: 'bg-slate-800 hover:bg-slate-700 text-white focus:ring-slate-500',
-    outline: 'border border-slate-600 text-slate-200 hover:bg-slate-800 focus:ring-slate-500',
-    ghost: 'text-slate-300 hover:bg-slate-800 focus:ring-slate-500',
+    primary: 'bg-[#E55B24] hover:bg-[#d44d18] text-white focus:ring-[#E55B24]',
+    secondary: 'bg-[#2C362B] hover:bg-[#3F4F3D] text-stone-100 focus:ring-stone-600',
+    outline: 'border border-stone-700 text-stone-200 hover:bg-stone-800/80 hover:border-stone-500 focus:ring-stone-500',
+    ghost: 'text-stone-300 hover:bg-stone-800/60 focus:ring-stone-500',
   };
 
   const sizeStyles = {

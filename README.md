@@ -1,6 +1,29 @@
+> [!CAUTION]
+> # 🛑 DEPRECATED BRANCH — DO NOT TARGET OR BRANCH FROM `main`
+>
+> **The `main` branch is deprecated, read-only, and locked.**
+> ChrisShop has transitioned to a strict two-stage **`staging` ➔ `production`** branch paradigm:
+>
+> - **`staging`**: The default branch and active integration target for all feature branches, bugfixes, pull requests, and automated Cloudflare ephemeral preview deployments (`https://staging-chrishop.jacobmiller22.com`).
+> - **`production`**: The protected live release branch (`https://chrishop.jacobmiller22.com`), promoted exclusively from `staging` via release PRs with mandatory human approval gates.
+> - **`main`**: Deprecated legacy branch. Direct pushes, merges, and PRs are prohibited.
+>
+> ⚠️ **Pull requests targeting `main` are automatically retargeted to `staging` by `.github/workflows/pr-base-guard.yml` or blocked by CI.**
+>
+> **To start feature development, branch from `origin/staging`**:
+> ```bash
+> git fetch origin staging
+> pnpm run branch <feature-name>
+> # or via worktrunk: wt switch --create feature/<name> --base origin/staging
+> ```
+>
+> See [PROJECT_SETUP.md](./PROJECT_SETUP.md) for full branching guidelines.
+
+---
+
 # ChrisShop — Cloudflare-Native Headless Commerce Platform
 
-A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and **Discord** operational alerts.
+A high-performance, resilient monorepo architecture for Chris's limited-edition art and physical goods drop platform. Built on **Cloudflare Workers**, **Next.js 15 App Router**, **Payload CMS v3**, **Shopify Headless** (Storefront API & Checkout), **Cloudflare D1** (SQLite at the edge), **Cloudflare R2** object storage, **Workers KV**, **Resend** transactional email, and generic operational **Webhooks**.
 
 ---
 
@@ -31,7 +54,7 @@ graph TD
 
     subgraph Notifications & Ops ["Operational Alerting"]
         Workers -->|"Order Receipts & Tracking Updates"| Resend["Resend Transactional Email"]
-        Workers -->|"Drop Sales & Inventory Alerts"| Discord["Discord Webhook Engine"]
+        Workers -->|"Drop Sales & Inventory Alerts"| OpsWebhooks["Generic Ops Webhooks"]
     end
 ```
 
@@ -48,8 +71,7 @@ graph TD
 | **Edge Caching** | Cloudflare Workers KV | Ultra-fast key-value store for Next.js incremental static revalidation (ISR) |
 | **Object Storage** | Cloudflare R2 | High-speed S3-compatible media storage with zero egress bandwidth fees |
 | **Commerce & Checkout** | Shopify Headless | Battle-tested inventory reservation, PCI SAQ-A compliance, multi-currency checkout |
-| **Styling & UI** | Tailwind CSS v4 + Radix UI Primitives (`@chrishop/ui`) | WCAG 2.1 AA accessible, unstyled primitives with high aesthetic finish |
-| **Notifications** | Resend & Discord (`@chrishop/notifications`) | Pluggable providers for customer email delivery and real-time operational ops |
+| **Notifications** | Resend & Webhooks (`@chrishop/notifications`) | Pluggable providers for customer email delivery and real-time operational ops |
 
 ---
 
@@ -61,7 +83,7 @@ chrishop/
 │   └── web/                    # Next.js 15 App Router storefront & embedded Payload CMS v3 (/admin)
 ├── packages/
 │   ├── config/                 # Shared tsconfig, ESLint, Prettier, and environment variable schemas
-│   ├── notifications/          # Pluggable Notification Engine (Discord Webhooks, Resend Email)
+│   ├── notifications/          # Pluggable Notification Engine (Resend Email, Generic Webhooks)
 │   ├── types/                  # Canonical TypeScript domain interfaces (Product, Variation, Order, etc.)
 │   └── ui/                     # Accessible component library (Tailwind CSS v4 + Radix UI)
 ├── migrations/
@@ -71,7 +93,7 @@ chrishop/
 │   └── verify-local.ts         # Pre-PR local verification pipeline
 ├── docs/
 │   ├── HIGH_LEVEL_DESIGN.md    # Master architectural specification
-│   ├── PROJECT_SETUP.md        # GitHub milestones, labels, and board workflows
+│   ├── GITHUB_PROJECT_INITIALIZATION.md # GitHub milestones, labels, and board workflows
 │   └── deps/                   # External dependency specifications (DEP_*.md)
 ├── wrangler.toml               # Cloudflare Workers environment bindings (D1, KV, R2, routes)
 ├── pnpm-workspace.yaml
@@ -147,8 +169,9 @@ pnpm run verify:local
 
 - [High Level Design](docs/HIGH_LEVEL_DESIGN.md) — Architectural invariants and system decisions
 - [Local Development Guide](LOCAL_DEVELOPMENT.md) — Local environment setup and workflows
-- [Project Setup & Issue Management](docs/PROJECT_SETUP.md) — Delivery phases and story specifications
-- [External Dependencies](docs/deps/README.md) — Technical specifications for Cloudflare, Shopify, Resend, Discord
+- [Project Setup & Issue Management](docs/GITHUB_PROJECT_INITIALIZATION.md) — Delivery phases and story specifications
+- [External Dependencies](docs/deps/README.md) — Technical specifications for Cloudflare, Shopify, Resend
+
 
 ---
 

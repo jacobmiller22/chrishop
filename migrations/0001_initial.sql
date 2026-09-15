@@ -8,9 +8,11 @@ CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
+  parent_id TEXT,
   description TEXT,
   image TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS products (
@@ -18,7 +20,12 @@ CREATE TABLE IF NOT EXISTS products (
   title TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   description TEXT,
+  maker_field_notes TEXT,
   artist_statement TEXT,
+  materials TEXT,
+  weight TEXT,
+  fit_profile TEXT,
+  origin TEXT,
   base_price REAL NOT NULL,
   status TEXT NOT NULL DEFAULT 'draft',
   category_id TEXT,
@@ -35,9 +42,14 @@ CREATE TABLE IF NOT EXISTS product_variations (
   shopify_variant_id TEXT UNIQUE,
   variation_name TEXT NOT NULL,
   sku TEXT NOT NULL UNIQUE,
+  variation_type TEXT NOT NULL DEFAULT 'standard',
+  edition_badge TEXT,
+  variation_notes TEXT,
+  variation_images TEXT,
   price_override REAL,
   is_limited_edition INTEGER NOT NULL DEFAULT 1,
   total_edition_count INTEGER,
+  stock_quantity INTEGER NOT NULL DEFAULT 1,
   release_date TEXT,
   status TEXT NOT NULL DEFAULT 'coming_soon',
   created_at TEXT DEFAULT (datetime('now')),
@@ -51,3 +63,4 @@ CREATE INDEX IF NOT EXISTS idx_product_variations_sku ON product_variations(sku)
 CREATE INDEX IF NOT EXISTS idx_product_variations_product_id ON product_variations(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_variations_shopify_id ON product_variations(shopify_variant_id);
 CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);

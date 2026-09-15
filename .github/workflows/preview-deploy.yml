@@ -36,11 +36,16 @@ jobs:
       - name: Typecheck & Lint
         run: pnpm run check
 
-      - name: Run Unit & Local In-Memory Integration Tests
-        run: pnpm run test:all
+      - name: Run Unit Tests
+        run: pnpm run test:unit
 
       - name: Build Application
         run: pnpm run build
+
+      - name: Run Local In-Memory Integration Tests
+        run: pnpm run test:integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute Preview Variables
         id: vars
@@ -64,6 +69,52 @@ jobs:
             '
           fi
 
+      - name: Setup Terraform
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.1"
+
+      - name: Provision Ephemeral Preview Infrastructure via Terraform
+        id: provision_tf
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          STATE_FILE="infra/terraform/environments/preview/terraform.tfstate"
+          STATE_KEY="environments/preview-pr-${PR_NUM}/terraform.tfstate"
+
+          # Restore existing remote state from R2 if updating an active PR preview
+          pnpm exec wrangler r2 object get "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" 2>/dev/null || true
+
+          cd infra/terraform/environments/preview
+          terraform init
+          terraform apply -auto-approve \
+            -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+            -var="pr_number=${PR_NUM}"
+
+          # Export outputs to bridge script
+          terraform output -json > /tmp/tf-preview-output.json
+          cd ../../..
+
+          # Persist updated state back to R2 state bucket
+          pnpm exec wrangler r2 object put "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" || true
+
+          # Inject ephemeral D1 and KV IDs into wrangler.toml
+          pnpm exec tsx scripts/generate-wrangler-config.ts --env preview --from-tf-output /tmp/tf-preview-output.json
+
+      - name: Initialize, Migrate & Seed Preview D1 Database
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          PR_DB_NAME="chrishop-preview-pr-${PR_NUM}-db"
+          echo "Applying D1 migrations to ${PR_DB_NAME}..."
+          pnpm exec wrangler d1 migrations apply "${PR_DB_NAME}" --remote --env preview || true
+          echo "Exporting BankBeaters seed SQL..."
+          pnpm exec tsx scripts/seed-db.ts --export-sql scripts/seed.sql
+          echo "Executing BankBeaters seed script against ${PR_DB_NAME}..."
+          pnpm exec wrangler d1 execute "${PR_DB_NAME}" --remote --file=scripts/seed.sql || true
+
       - name: Deploy Ephemeral Preview to Cloudflare Workers
         id: deploy
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
@@ -72,6 +123,7 @@ jobs:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env preview
+
 
       - name: Verify Edge Health Probe
         id: verify_edge
@@ -111,7 +163,7 @@ jobs:
 
             let body = '';
             if (deployOutcome === 'success' && verifyOutcome === 'success') {
-              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is closed.*`;
+              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is merged or closed.*`;
             } else if (deployOutcome === 'skipped') {
               body = `⚠️ **Ephemeral PR Preview Skipped**\n\n- **Reason**: Cloudflare credentials (\`CLOUDFLARE_API_TOKEN\`, \`CLOUDFLARE_ACCOUNT_ID\`) are not configured in repository secrets.\n- **Local Verification**: Passed (typecheck, lint, unit tests, in-memory integration tests, build)\n- **Preview Environment**: Skipped deployment to edge\n\n*Configure Cloudflare repository secrets to enable automated preview environments on pull requests.*`;
             } else {

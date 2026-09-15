@@ -1,9 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * ChrisShop Local SQLite / Cloudflare D1 Database Seeder
- *
- * Seeds local development database with sample catalog categories, products,
- * and variations per docs/HIGH_LEVEL_DESIGN.md Section 3.2.
+ * ChrisShop Database Seeder — Paradigm 1: Hybrid Product-First
+ * Seeds native schema: product_lines (optional) + products (with category select and price inheritance)
  */
 
 import { DatabaseSync } from 'node:sqlite';
@@ -12,399 +10,244 @@ import path from 'node:path';
 
 const DB_PATH = process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '.wrangler/state/v3/d1/local.sqlite');
 
-export interface SeedResult {
-  categoriesCount: number;
-  productsCount: number;
-  variationsCount: number;
-}
-
-export function seedDatabase(dbInstance?: DatabaseSync): SeedResult {
+export function seedDatabase(dbInstance?: DatabaseSync) {
   let db = dbInstance;
   if (!db) {
     fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
     db = new DatabaseSync(DB_PATH);
   }
 
-  db.exec('PRAGMA foreign_keys = ON;');
+  db.exec('PRAGMA foreign_keys = OFF;');
 
-  // Apply schema migration
-  const migrationPath = path.resolve(process.cwd(), 'migrations/0001_initial.sql');
-  if (fs.existsSync(migrationPath)) {
-    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-    db.exec(migrationSql);
-  }
+  // Create tables for Paradigm 1
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS product_lines (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      story TEXT,
+      default_price REAL,
+      hero_image TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
 
-  console.log('🌱 [Seed] Seeding Categories...');
-  const categories = [
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      sku TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      product_line_id TEXT,
+      category TEXT NOT NULL DEFAULT 'packs',
+      price REAL,
+      options TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      featured_image TEXT,
+      gallery TEXT,
+      maker_field_notes TEXT,
+      materials TEXT,
+      weight TEXT,
+      fit_profile TEXT,
+      origin TEXT DEFAULT "Hand-crafted in Chris's workshop",
+      shopify_product_id TEXT,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_line_id) REFERENCES product_lines(id)
+    );
+  `);
+
+  console.log('🌱 [Seed Paradigm 1] Seeding Product Lines...');
+  const lines = [
     {
-      id: 'cat-sculptures',
-      name: 'Sculptures',
-      slug: 'sculptures',
-      description: 'Handcrafted limited edition art sculptures, figurines, and tangible artifacts.',
-      image: null,
+      id: 'line-alpine-chest-rig',
+      title: 'Alpine Chest Rig System',
+      slug: 'alpine-chest-rig-system',
+      story: 'Modular alpine chest workstation designed for cutthroat bank anglers. Low profile 4-point harness rides high above deep wading lines.',
+      default_price: 165.0,
+      hero_image: '/media/chest-rig/hero.jpeg',
     },
     {
-      id: 'cat-prints',
-      name: 'Prints',
-      slug: 'prints',
-      description: 'Museum-grade archival pigment prints and fine art reproductions on cotton rag.',
-      image: null,
-    },
-    {
-      id: 'cat-wearables',
-      name: 'Wearables',
-      slug: 'wearables',
-      description: 'Exclusive apparel, embroidered heavyweight streetwear, and artisan jewelry.',
-      image: null,
-    },
-    {
-      id: 'cat-digital',
-      name: 'Digital Editions',
-      slug: 'digital-editions',
-      description: 'Generative digital collectibles, 3D assets, and interactive media.',
-      image: null,
+      id: 'line-bushwhack-series',
+      title: 'Bushwhack Series',
+      slug: 'bushwhack-series',
+      story: 'Patagonia-grade foul-weather shells and storm gear built to push through dense alder thickets.',
+      default_price: 285.0,
+      hero_image: '/media/bushwhack/hero.jpeg',
     },
   ];
 
-  const insertCat = db.prepare(`
-    INSERT INTO categories (id, name, slug, description, image)
-    VALUES (?, ?, ?, ?, ?)
+  const insertLine = db.prepare(`
+    INSERT INTO product_lines (id, title, slug, story, default_price, hero_image)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
-      name=excluded.name,
+      title=excluded.title,
       slug=excluded.slug,
-      description=excluded.description,
-      image=excluded.image;
+      story=excluded.story,
+      default_price=excluded.default_price,
+      hero_image=excluded.hero_image;
   `);
 
-  for (const c of categories) {
-    insertCat.run(c.id, c.name, c.slug, c.description, c.image);
-    console.log(`  Processed category: ${c.name}`);
+  for (const l of lines) {
+    insertLine.run(l.id, l.title, l.slug, l.story, l.default_price, l.hero_image);
+    console.log(`  Line: ${l.title} (Default Price: $${l.default_price})`);
   }
 
-  console.log('🎨 [Seed] Seeding Products...');
+  console.log('🎒 [Seed Paradigm 1] Seeding Products (Scenarios A, B, C)...');
   const products = [
+    // Scenario A: Chest Rig System
     {
-      id: 'prod-obsidian-beast',
-      title: 'Midnight Obsidian Beast',
-      slug: 'midnight-obsidian-beast',
-      description: 'Hand-cast obsidian resin sculpture finished with 24k gold leaf accents. Limited collector run.',
-      artist_statement: 'Exploration of physical weight and light absorption using volcanic glass resin.',
-      base_price: 350.0,
-      status: 'published',
-      category_id: 'cat-sculptures',
-      shopify_product_id: 'gid://shopify/Product/101',
-      featured_image: 'beast-featured.webp',
-      gallery: JSON.stringify(['beast-1.webp', 'beast-2.webp']),
+      id: 'prod-rig-minimalist',
+      sku: 'RIG-MIN-01',
+      title: 'Ultralight Minimalist Rig',
+      slug: 'ultralight-minimalist-rig',
+      product_line_id: 'line-alpine-chest-rig',
+      category: 'packs',
+      price: null, // Inherits line default ($165)
+      options: JSON.stringify([
+        { name: 'Colorway', value: 'Olive Drab', sku_suffix: 'OLV' },
+        { name: 'Colorway', value: 'Black Multicam', sku_suffix: 'MCB' },
+      ]),
+      status: 'active',
+      featured_image: '/media/chest-rig/minimalist.jpeg',
+      gallery: JSON.stringify(['/media/chest-rig/min-1.jpeg', '/media/chest-rig/min-2.jpeg']),
+      maker_field_notes: 'Ultralight minimalist chest station with fold-down knot tying table.',
+      materials: '500D Mil-Spec Cordura, Duraflex Buckles',
+      weight: '9.6 oz (272g)',
+      fit_profile: 'Low profile 4-point harness',
     },
     {
-      id: 'prod-solar-eclipse',
-      title: 'Solar Eclipse Figurine',
-      slug: 'solar-eclipse-figurine',
-      description: 'Polymer resin celestial figurine capturing the luminous corona during a total solar eclipse.',
-      artist_statement: 'An intimate study of the fleeting corona horizon.',
-      base_price: 275.0,
-      status: 'published',
-      category_id: 'cat-sculptures',
-      shopify_product_id: 'gid://shopify/Product/102',
-      featured_image: 'eclipse-featured.webp',
-      gallery: JSON.stringify(['eclipse-1.webp']),
+      id: 'prod-rig-recon',
+      sku: 'RIG-RCN-01',
+      title: 'Heavy-Haul Recon Rig',
+      slug: 'heavy-haul-recon-rig',
+      product_line_id: 'line-alpine-chest-rig',
+      category: 'packs',
+      price: 235.0, // Overrides line default ($165 -> $235)
+      options: JSON.stringify([
+        { name: 'Colorway', value: 'Coyote Tan', sku_suffix: 'CYT' },
+        { name: 'Colorway', value: 'Ranger Olive', sku_suffix: 'RNG' },
+      ]),
+      status: 'active',
+      featured_image: '/media/chest-rig/recon.jpeg',
+      gallery: JSON.stringify(['/media/chest-rig/rcn-1.jpeg']),
+      maker_field_notes: 'Expedition-scale chest station with dual side pods and hydration carrier integration.',
+      materials: '1000D Cordura, Laser-cut Hypalon docking tabs',
+      weight: '16.4 oz (465g)',
+      fit_profile: 'Reinforced load-bearing harness',
+    },
+
+    // Scenario B: Bushwhack Anorak
+    {
+      id: 'prod-anorak-standard',
+      sku: 'BWK-ANR-STD',
+      title: 'Bushwhack Storm Anorak - Standard Run',
+      slug: 'bushwhack-storm-anorak-standard',
+      product_line_id: 'line-bushwhack-series',
+      category: 'apparel',
+      price: null, // Inherits line default ($285)
+      options: JSON.stringify([
+        { name: 'Colorway', value: 'Field Olive', sku_suffix: 'OLV' },
+        { name: 'Colorway', value: 'Dark Charcoal', sku_suffix: 'CHR' },
+      ]),
+      status: 'active',
+      featured_image: '/media/bushwhack/standard.jpeg',
+      gallery: JSON.stringify(['/media/bushwhack/std-1.jpeg']),
+      maker_field_notes: '3-layer waterproof storm shell with 500D forearm abrasion protection.',
+      materials: '3-Layer DWR Toray Ripstop (20k/20k), 500D Cordura forearms',
+      weight: '21.4 oz (606g)',
+      fit_profile: 'Relaxed athletic layering',
     },
     {
-      id: 'prod-neon-tokyo',
-      title: 'Neon Tokyo Dreams Archival Print',
-      slug: 'neon-tokyo-dreams-print',
-      description: '12-color archival giclée print on 310gsm German etching paper. Hand-signed and numbered by Chris.',
-      artist_statement: 'Synthesizing cyberpunk metropolis atmosphere with traditional Japanese woodblock textures.',
-      base_price: 120.0,
-      status: 'published',
-      category_id: 'cat-prints',
-      shopify_product_id: 'gid://shopify/Product/103',
-      featured_image: 'neon-tokyo-featured.webp',
-      gallery: JSON.stringify([]),
+      id: 'prod-anorak-dyneema',
+      sku: 'BWK-ANR-DYN',
+      title: 'Bushwhack Storm Anorak - Dyneema Edition',
+      slug: 'bushwhack-storm-anorak-dyneema',
+      product_line_id: 'line-bushwhack-series',
+      category: 'apparel',
+      price: 325.0, // Overrides line default ($285 -> $325)
+      options: JSON.stringify([
+        { name: 'Fabric', value: 'Raw White Dyneema Composite', sku_suffix: 'DYN' },
+      ]),
+      status: 'active',
+      featured_image: '/media/bushwhack/dyneema.jpeg',
+      gallery: JSON.stringify(['/media/bushwhack/dyn-1.jpeg']),
+      maker_field_notes: 'Specialty fabric run utilizing ultra-high molecular weight Dyneema composite.',
+      materials: 'Dyneema Composite Fabric + YKK AquaGuard',
+      weight: '14.1 oz (400g)',
+      fit_profile: 'Athletic storm shell',
     },
+
+    // Scenario C: Solo-Maker 1-of-1 Workbench Prototype
     {
-      id: 'prod-astral-horizon',
-      title: 'Astral Horizon Holographic Print',
-      slug: 'astral-horizon-holographic-print',
-      description: 'Custom screen-printed holographic foil artwork with shifting iridescent chromatic tones.',
-      artist_statement: 'Reflective prism ink on black heavy cardstock.',
-      base_price: 95.0,
-      status: 'published',
-      category_id: 'cat-prints',
-      shopify_product_id: 'gid://shopify/Product/104',
-      featured_image: 'astral-featured.webp',
-      gallery: JSON.stringify([]),
-    },
-    {
-      id: 'prod-cyberpunk-hoodie',
-      title: 'Cyberpunk Heavyweight Hoodie',
-      slug: 'cyberpunk-heavyweight-hoodie',
-      description: '500gsm heavyweight french terry cotton hoodie featuring custom high-density chenille embroidery.',
-      artist_statement: 'Wearable tactile artifact designed for cold weather urban exploration.',
-      base_price: 140.0,
-      status: 'published',
-      category_id: 'cat-wearables',
-      shopify_product_id: 'gid://shopify/Product/105',
-      featured_image: 'hoodie-featured.webp',
-      gallery: JSON.stringify([]),
-    },
-    {
-      id: 'prod-glitch-ring',
-      title: 'Glitch Artifact Ring',
-      slug: 'glitch-artifact-ring',
-      description: 'Solid .925 sterling silver cast ring inspired by parametric digital distortion patterns.',
-      artist_statement: 'Lost-wax cast sterling silver embodying algorithmic topology.',
-      base_price: 210.0,
-      status: 'published',
-      category_id: 'cat-wearables',
-      shopify_product_id: 'gid://shopify/Product/106',
-      featured_image: 'ring-featured.webp',
-      gallery: JSON.stringify([]),
+      id: 'prod-leadville-tool-wrap',
+      sku: 'LDV-WR-01',
+      title: 'Leadville Prototype Tool Wrap',
+      slug: 'leadville-prototype-tool-wrap',
+      product_line_id: null, // STANDALONE! Zero dummy container required!
+      category: 'accessories',
+      price: 110.0,
+      options: JSON.stringify([
+        { name: 'Edition', value: '1-of-1 Scrap Remnant', sku_suffix: '01' },
+      ]),
+      status: 'active',
+      featured_image: '/media/workbench/leadville.jpeg',
+      gallery: JSON.stringify(['/media/workbench/leadville-detail.jpeg']),
+      maker_field_notes: 'Bench prototype sewn from scrap remnant waxed canvas and salvaged mil-spec webbing during North Umpqua river trials. 1-of-1 signed archive.',
+      materials: '12oz Martexin Waxed Canvas, Salvaged Mil-Spec Webbing',
+      weight: '5.2 oz (147g)',
+      fit_profile: 'Tri-fold compact wallet wrap',
     },
   ];
 
   const insertProd = db.prepare(`
-    INSERT INTO products (id, title, slug, description, artist_statement, base_price, status, category_id, shopify_product_id, featured_image, gallery)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (
+      id, sku, title, slug, product_line_id, category, price, options,
+      status, featured_image, gallery, maker_field_notes, materials, weight, fit_profile
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      sku=excluded.sku,
       title=excluded.title,
       slug=excluded.slug,
-      description=excluded.description,
-      artist_statement=excluded.artist_statement,
-      base_price=excluded.base_price,
+      product_line_id=excluded.product_line_id,
+      category=excluded.category,
+      price=excluded.price,
+      options=excluded.options,
       status=excluded.status,
-      category_id=excluded.category_id,
-      shopify_product_id=excluded.shopify_product_id,
       featured_image=excluded.featured_image,
-      gallery=excluded.gallery;
+      gallery=excluded.gallery,
+      maker_field_notes=excluded.maker_field_notes,
+      materials=excluded.materials,
+      weight=excluded.weight,
+      fit_profile=excluded.fit_profile;
   `);
 
   for (const p of products) {
     insertProd.run(
       p.id,
+      p.sku,
       p.title,
       p.slug,
-      p.description,
-      p.artist_statement,
-      p.base_price,
+      p.product_line_id,
+      p.category,
+      p.price,
+      p.options,
       p.status,
-      p.category_id,
-      p.shopify_product_id,
       p.featured_image,
-      p.gallery
+      p.gallery,
+      p.maker_field_notes,
+      p.materials,
+      p.weight,
+      p.fit_profile
     );
-    console.log(`  Processed product: ${p.title}`);
+    console.log(`  Product: ${p.title} (${p.category}) -> Override: ${p.price ? '$' + p.price : 'None (Inherited)'}`);
   }
 
-  console.log('🏷️ [Seed] Seeding Product Variations...');
-  const variations = [
-    {
-      id: 'var-beast-std',
-      product_id: 'prod-obsidian-beast',
-      shopify_variant_id: 'gid://shopify/ProductVariant/201',
-      variation_name: 'Standard Obsidian Edition',
-      sku: 'BEAST-OBS-STD',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 50,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-beast-gld',
-      product_id: 'prod-obsidian-beast',
-      shopify_variant_id: 'gid://shopify/ProductVariant/202',
-      variation_name: '24K Gold Leaf Inlay Edition',
-      sku: 'BEAST-GLD-LTD',
-      price_override: 495.0,
-      is_limited_edition: 1,
-      total_edition_count: 10,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-solar-mte',
-      product_id: 'prod-solar-eclipse',
-      shopify_variant_id: 'gid://shopify/ProductVariant/203',
-      variation_name: 'Matte Eclipse Edition',
-      sku: 'SOLAR-MTE-001',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 30,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-solar-crm',
-      product_id: 'prod-solar-eclipse',
-      shopify_variant_id: 'gid://shopify/ProductVariant/204',
-      variation_name: 'Crimson Corona Edition',
-      sku: 'SOLAR-CRM-002',
-      price_override: 310.0,
-      is_limited_edition: 1,
-      total_edition_count: 15,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-ntd-a2',
-      product_id: 'prod-neon-tokyo',
-      shopify_variant_id: 'gid://shopify/ProductVariant/205',
-      variation_name: 'A2 Archival Sheet (16x24)',
-      sku: 'NTD-PRT-A2',
-      price_override: null,
-      is_limited_edition: 0,
-      total_edition_count: null,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-ntd-a1',
-      product_id: 'prod-neon-tokyo',
-      shopify_variant_id: 'gid://shopify/ProductVariant/206',
-      variation_name: "A1 Custom Framed Collector's Edition (24x36)",
-      sku: 'NTD-PRT-A1-FRM',
-      price_override: 260.0,
-      is_limited_edition: 1,
-      total_edition_count: 25,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-ast-a3',
-      product_id: 'prod-astral-horizon',
-      shopify_variant_id: 'gid://shopify/ProductVariant/207',
-      variation_name: 'A3 Holographic Foil (12x18)',
-      sku: 'AST-HOLO-A3',
-      price_override: null,
-      is_limited_edition: 0,
-      total_edition_count: null,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-ast-a2',
-      product_id: 'prod-astral-horizon',
-      shopify_variant_id: 'gid://shopify/ProductVariant/208',
-      variation_name: 'A2 Limited Metallic Master (16x24)',
-      sku: 'AST-HOLO-A2-LTD',
-      price_override: 165.0,
-      is_limited_edition: 1,
-      total_edition_count: 25,
-      release_date: '2026-10-15T18:00:00.000Z',
-      status: 'coming_soon',
-    },
-    {
-      id: 'var-cp-m',
-      product_id: 'prod-cyberpunk-hoodie',
-      shopify_variant_id: 'gid://shopify/ProductVariant/209',
-      variation_name: 'Size Medium',
-      sku: 'CP-HD-BLK-M',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 100,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-cp-l',
-      product_id: 'prod-cyberpunk-hoodie',
-      shopify_variant_id: 'gid://shopify/ProductVariant/210',
-      variation_name: 'Size Large',
-      sku: 'CP-HD-BLK-L',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 100,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-cp-xl',
-      product_id: 'prod-cyberpunk-hoodie',
-      shopify_variant_id: 'gid://shopify/ProductVariant/211',
-      variation_name: 'Size XL (Sold Out Edition)',
-      sku: 'CP-HD-BLK-XL',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 50,
-      release_date: null,
-      status: 'sold_out',
-    },
-    {
-      id: 'var-glitch-9',
-      product_id: 'prod-glitch-ring',
-      shopify_variant_id: 'gid://shopify/ProductVariant/212',
-      variation_name: 'Size 9 / US',
-      sku: 'GLITCH-RNG-09',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 25,
-      release_date: null,
-      status: 'active',
-    },
-    {
-      id: 'var-glitch-10',
-      product_id: 'prod-glitch-ring',
-      shopify_variant_id: 'gid://shopify/ProductVariant/213',
-      variation_name: 'Size 10 / US',
-      sku: 'GLITCH-RNG-10',
-      price_override: null,
-      is_limited_edition: 1,
-      total_edition_count: 25,
-      release_date: null,
-      status: 'active',
-    },
-  ];
-
-  const insertVar = db.prepare(`
-    INSERT INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, release_date, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      product_id=excluded.product_id,
-      shopify_variant_id=excluded.shopify_variant_id,
-      variation_name=excluded.variation_name,
-      sku=excluded.sku,
-      price_override=excluded.price_override,
-      is_limited_edition=excluded.is_limited_edition,
-      total_edition_count=excluded.total_edition_count,
-      release_date=excluded.release_date,
-      status=excluded.status;
-  `);
-
-  for (const v of variations) {
-    insertVar.run(
-      v.id,
-      v.product_id,
-      v.shopify_variant_id,
-      v.variation_name,
-      v.sku,
-      v.price_override,
-      v.is_limited_edition,
-      v.total_edition_count,
-      v.release_date,
-      v.status
-    );
-    console.log(`  Processed variation: [${v.sku}] ${v.variation_name}`);
-  }
-
-  console.log('\n🎉 SQLite database seed completed successfully!');
-  console.log(`Summary:`);
-  console.log(`  - Categories: ${categories.length}`);
-  console.log(`  - Products: ${products.length}`);
-  console.log(`  - Product Variations: ${variations.length}\n`);
-
-  return {
-    categoriesCount: categories.length,
-    productsCount: products.length,
-    variationsCount: variations.length,
-  };
+  console.log('✅ [Seed Paradigm 1] Completed.');
+  return { linesCount: lines.length, productsCount: products.length };
 }
 
-if (process.argv[1]?.includes('seed-db')) {
-  try {
-    seedDatabase();
-  } catch (err) {
-    console.error('❌ Database seed failed:', err);
-    process.exit(1);
-  }
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedDatabase();
 }

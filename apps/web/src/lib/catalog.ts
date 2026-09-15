@@ -1,25 +1,51 @@
 /**
  * ChrisShop Catalog Data Access Layer
  *
- * Cloudflare-native / SQLite catalog query engine with price fallback resolution
+ * Cloudflare D1 catalog query engine with price fallback resolution,
+ * Payload CMS v3 schema alignment, Lexical rich-text extraction,
  * and Cloudflare R2 media URL formatting.
  *
- * Specification: docs/HIGH_LEVEL_DESIGN.md Section 3
+ * Specification: docs/HIGH_LEVEL_DESIGN.md Section 3 & Issue #241
  */
 
-import { DatabaseSync } from 'node:sqlite';
-import fs from 'node:fs';
-import path from 'node:path';
+export interface D1DatabaseLike {
+  prepare(sql: string): {
+    bind?(...params: any[]): any;
+    all(...params: any[]): Promise<any> | any;
+    get(...params: any[]): Promise<any> | any;
+    first?(...params: any[]): Promise<any> | any;
+    run(...params: any[]): Promise<any> | any;
+  };
+  exec?(sql: string): Promise<any> | any;
+}
+
+export type DatabaseSync = D1DatabaseLike;
+
 import type {
   Category,
   Product,
   ProductVariation,
   ProductStatus,
   VariationStatus,
+  VariationType,
+  VariationImage,
+  ProductTechnicalSpecs,
 } from '@chrishop/types';
 import { getEffectivePrice } from '@chrishop/types';
+import { catalogSingleFlight } from './singleflight';
+import { getAssetUrl } from './assets';
 
-export type { Category, Product, ProductVariation, ProductStatus, VariationStatus };
+export type {
+  Category,
+  Product,
+  ProductVariation,
+  ProductStatus,
+  VariationStatus,
+  VariationType,
+  VariationImage,
+  ProductTechnicalSpecs,
+};
+export { catalogSingleFlight };
 
 export interface StorefrontVariation {
   id: string;
@@ -27,6 +53,10 @@ export interface StorefrontVariation {
   shopify_variant_id?: string;
   variation_name: string;
   sku: string;
+  variation_type?: VariationType;
+  edition_badge?: string | null;
+  variation_notes?: string | null;
+  variation_images?: Array<{ id?: string; url: string; caption?: string }>;
   price_override?: number | null;
   effective_price: number;
   is_limited_edition: boolean;
@@ -36,12 +66,32 @@ export interface StorefrontVariation {
   stock_quantity: number;
 }
 
+export interface StorefrontProductLine {
+  id: string;
+  title: string;
+  slug: string;
+  story?: string;
+  default_price?: number;
+  hero_image?: string;
+}
+
 export interface StorefrontProduct {
   id: string;
   title: string;
   slug: string;
   description?: string;
+  maker_field_notes?: string;
   artist_statement?: string;
+  technical_specs?: ProductTechnicalSpecs;
+  materials?: string;
+  weight?: string;
+  fit_profile?: string;
+  origin?: string;
+  sku?: string;
+  price?: number | null;
+  effective_price?: number;
+  product_line?: StorefrontProductLine | null;
+  options?: any[];
   base_price: number;
   effective_min_price?: number;
   status: ProductStatus;
@@ -55,115 +105,104 @@ export interface StorefrontProduct {
 
 export interface GetProductsOptions {
   category?: string;
-  status?: ProductStatus[];
+  status?: (ProductStatus | 'active')[];
   limit?: number;
   db?: DatabaseSync;
+  bypassSingleFlight?: boolean;
 }
 
 // ============================================================================
-// Database Connection Resolver (Local SQLite / Miniflare D1)
+// Lexical RichText Serializer & Text Extractor
 // ============================================================================
 
-let singletonDb: DatabaseSync | null = null;
+export function extractLexicalText(raw: any): string {
+  if (!raw) return '';
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const text = extractFromNode(parsed.root || parsed);
+        if (text) return text;
+      } catch {
+        return raw;
+      }
+    }
+    return raw;
+  }
+  if (typeof raw === 'object') {
+    const text = extractFromNode(raw.root || raw);
+    if (text) return text;
+  }
+  return String(raw);
+}
 
-export function getDatabase(customPath?: string): DatabaseSync {
-  if (singletonDb && !customPath) {
+function extractFromNode(node: any): string {
+  if (!node) return '';
+  if (typeof node.text === 'string') return node.text;
+  if (Array.isArray(node.children)) {
+    return node.children.map(extractFromNode).filter(Boolean).join(' ');
+  }
+  return '';
+}
+
+// ============================================================================
+// Database Connection Resolver (Cloudflare D1)
+// ============================================================================
+
+let singletonDb: D1DatabaseLike | null = null;
+
+export function getDatabase(): D1DatabaseLike {
+  if (singletonDb) {
     return singletonDb;
   }
 
-  const dbPath =
-    customPath ||
-    process.env.SQLITE_DB_PATH ||
-    path.resolve(process.cwd(), '.wrangler/state/v3/d1/local.sqlite');
+  // Check if live Cloudflare D1 binding is available
+  const d1 =
+    (typeof globalThis !== 'undefined' && (globalThis as any).DB) ||
+    (typeof globalThis !== 'undefined' &&
+      (globalThis as any)[Symbol.for('__cloudflare-context__')]?.env?.DB);
 
-  try {
-    if (fs.existsSync(dbPath)) {
-      const db = new DatabaseSync(dbPath);
-      db.exec('PRAGMA foreign_keys = ON;');
-      if (!customPath) singletonDb = db;
-      return db;
-    }
-  } catch {
-    // Fall back to in-memory SQLite if file cannot be opened
+  if (d1) {
+    const d1Wrapper: D1DatabaseLike = {
+      prepare(sql: string) {
+        return {
+          bind: (...params: any[]) => d1.prepare(sql).bind(...params),
+          all: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.all().then((res: any) => res?.results || []);
+          },
+          get: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.first();
+          },
+          run: (...params: any[]) => {
+            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            return stmt.run();
+          },
+        };
+      },
+      exec: async (sql: string) => d1.exec(sql),
+    };
+    singletonDb = d1Wrapper;
+    return d1Wrapper;
   }
 
-  // Fallback in-memory database seeded with baseline catalog
-  const fallbackDb = new DatabaseSync(':memory:');
-  fallbackDb.exec('PRAGMA foreign_keys = ON;');
-  ensureSchemaAndBaselineData(fallbackDb);
-  if (!customPath) singletonDb = fallbackDb;
-  return fallbackDb;
+  // Pure edge / mock stub when no D1 binding is attached (e.g. static pre-render)
+  const stubDb: D1DatabaseLike = {
+    exec: async () => {},
+    prepare: () => ({
+      bind: () => stubDb.prepare(''),
+      all: async () => [],
+      get: async () => null,
+      run: async () => ({ changes: 0 }),
+    }),
+  };
+  return stubDb;
 }
 
 export function resetDatabase(): void {
   singletonDb = null;
-}
-
-function ensureSchemaAndBaselineData(db: DatabaseSync): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      description TEXT,
-      image TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      description TEXT,
-      artist_statement TEXT,
-      base_price REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft',
-      category_id TEXT,
-      shopify_product_id TEXT UNIQUE,
-      featured_image TEXT,
-      gallery TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS product_variations (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      shopify_variant_id TEXT UNIQUE,
-      variation_name TEXT NOT NULL,
-      sku TEXT NOT NULL UNIQUE,
-      price_override REAL,
-      is_limited_edition INTEGER NOT NULL DEFAULT 1,
-      total_edition_count INTEGER,
-      release_date TEXT,
-      status TEXT NOT NULL DEFAULT 'coming_soon',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    );
-  `);
-
-  // Baseline Category
-  db.prepare(`
-    INSERT OR IGNORE INTO categories (id, name, slug, description)
-    VALUES ('cat-sculptures', 'Sculptures', 'sculptures', 'Limited edition art sculptures')
-  `).run();
-
-  // Baseline Product
-  db.prepare(`
-    INSERT OR IGNORE INTO products (id, title, slug, description, base_price, status, category_id, shopify_product_id)
-    VALUES ('prod-obsidian-beast', 'Midnight Obsidian Beast', 'midnight-obsidian-beast', 'Hand-cast obsidian sculpture with 24k gold leaf.', 350.0, 'published', 'cat-sculptures', 'gid://shopify/Product/101')
-  `).run();
-
-  // Baseline Variations
-  db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, status)
-    VALUES ('var-beast-std', 'prod-obsidian-beast', 'gid://shopify/ProductVariant/201', 'Standard Obsidian Edition', 'BEAST-OBS-STD', NULL, 1, 50, 'active')
-  `).run();
-
-  db.prepare(`
-    INSERT OR IGNORE INTO product_variations (id, product_id, shopify_variant_id, variation_name, sku, price_override, is_limited_edition, total_edition_count, status)
-    VALUES ('var-beast-gld', 'prod-obsidian-beast', 'gid://shopify/ProductVariant/202', '24K Gold Leaf Inlay Edition', 'BEAST-GLD-LTD', 495.0, 1, 10, 'active')
-  `).run();
 }
 
 // ============================================================================
@@ -172,21 +211,70 @@ function ensureSchemaAndBaselineData(db: DatabaseSync): void {
 
 export { getAssetUrl } from './assets';
 
+function resolveMediaUrl(m?: { url?: string; filename?: string } | null): string | null {
+  if (!m) return null;
+  if (m.url) return m.url;
+  if (m.filename) return `/media/${m.filename}`;
+  return null;
+}
+
 // ============================================================================
 // Catalog Queries
 // ============================================================================
 
+export async function getProductLines(options?: { db?: DatabaseSync }): Promise<StorefrontProductLine[]> {
+  try {
+    const db = options?.db || getDatabase();
+    const raw = await db.prepare("SELECT * FROM product_lines ORDER BY title ASC;").all();
+    const rows = (Array.isArray(raw) ? raw : (raw as any)?.results || []) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      slug: r.slug,
+      story: r.story ?? undefined,
+      default_price: r.default_price != null ? Number(r.default_price) : undefined,
+      hero_image: r.hero_image ?? undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getCategories(options?: { db?: DatabaseSync }): Promise<Category[]> {
   try {
     const db = options?.db || getDatabase();
-    const rows = db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all() as any[];
-    return rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      description: r.description ?? undefined,
-      image: r.image ?? undefined,
-    }));
+    let rows: any[] = [];
+    try {
+      const rawRows = await db
+        .prepare(`
+          SELECT c.*, m.filename AS media_filename, m.url AS media_url
+          FROM categories c
+          LEFT JOIN media m ON c.image_id = m.id
+          ORDER BY c.name ASC;
+        `)
+        .all();
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    } catch {
+      const rawRows = await db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all();
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    }
+
+    return rows.map((r) => {
+      const rawImage =
+        r.media_url ||
+        (r.media_filename ? `/media/${r.media_filename}` : undefined) ||
+        r.image ||
+        undefined;
+
+      return {
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        parent_id: r.parent_id ?? null,
+        description: r.description ?? undefined,
+        image: rawImage ? getAssetUrl(rawImage) || rawImage : undefined,
+      };
+    });
   } catch (error) {
     console.error('Failed to get categories:', error);
     return [];
@@ -202,74 +290,257 @@ export async function getProductVariations(
 
     let basePrice = options?.basePrice;
     if (basePrice === undefined) {
-      const parent = db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId) as any;
+      const parent = (await db.prepare(`SELECT base_price FROM products WHERE id = ?;`).get(productId)) as any;
       basePrice = parent ? Number(parent.base_price) : 0;
     }
 
-    const rows = db
-      .prepare(`SELECT * FROM product_variations WHERE product_id = ? ORDER BY sku ASC;`)
-      .all(productId) as any[];
+    let rows: any[] = [];
+    try {
+      const rawRows = await db
+        .prepare(`SELECT * FROM product_variations WHERE product_id_id = ? ORDER BY sku ASC;`)
+        .all(productId);
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    } catch {
+      const rawRows = await db
+        .prepare(`SELECT * FROM product_variations WHERE product_id = ? ORDER BY sku ASC;`)
+        .all(productId);
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    }
 
-    return rows.map((r) => {
-      const priceOverride = r.price_override != null ? Number(r.price_override) : null;
-      const effectivePrice = getEffectivePrice({ base_price: basePrice! }, { price_override: priceOverride });
+    const variations: StorefrontVariation[] = [];
 
-      return {
+    for (const r of rows) {
+      const rawOverride = r.price_override;
+      const priceOverride =
+        rawOverride != null && rawOverride !== 'null' && rawOverride !== ''
+          ? Number(rawOverride)
+          : null;
+      const effectivePrice = getEffectivePrice(
+        { base_price: basePrice! },
+        { price_override: priceOverride }
+      );
+
+      let variationImages: Array<{ id?: string; url: string; caption?: string }> = [];
+
+      // 1. Try relational table product_variations_variation_images
+      try {
+        const rawImgRows = await db
+          .prepare(`
+            SELECT vi.id, vi.caption, m.url AS media_url, m.filename AS media_filename
+            FROM product_variations_variation_images vi
+            LEFT JOIN media m ON vi.image_id = m.id
+            WHERE vi._parent_id = ?
+            ORDER BY vi._order ASC;
+          `)
+          .all(r.id);
+        const imgRows = (Array.isArray(rawImgRows)
+          ? rawImgRows
+          : ((rawImgRows as any)?.results || [])) as any[];
+        if (imgRows.length > 0) {
+          variationImages = imgRows.map((img) => {
+            const rawKey = img.media_url || (img.media_filename ? `/media/${img.media_filename}` : '');
+            return {
+              id: String(img.id),
+              url: getAssetUrl(rawKey) || rawKey,
+              caption: img.caption || undefined,
+            };
+          });
+        }
+      } catch {
+        // Relational table not present
+      }
+
+      // 2. Fall back to JSON variation_images column
+      if (variationImages.length === 0 && r.variation_images) {
+        try {
+          const parsed =
+            typeof r.variation_images === 'string'
+              ? JSON.parse(r.variation_images)
+              : r.variation_images;
+          if (Array.isArray(parsed)) {
+            variationImages = parsed.map((item: any, idx: number) => {
+              const rawKey = typeof item === 'string' ? item : item.image || item.url;
+              return {
+                id: `var-img-${r.id}-${idx}`,
+                url: getAssetUrl(rawKey) || rawKey,
+                caption: typeof item === 'object' ? item.caption : undefined,
+              };
+            });
+          }
+        } catch {
+          variationImages = [];
+        }
+      }
+
+      const defaultStock = r.status === 'sold_out' ? 0 : 10;
+      const stockQuantity =
+        r.stock_quantity != null ? Number(r.stock_quantity) : defaultStock;
+
+      variations.push({
         id: r.id,
-        product_id: r.product_id,
+        product_id: r.product_id_id || r.product_id || productId,
         shopify_variant_id: r.shopify_variant_id ?? undefined,
         variation_name: r.variation_name,
         sku: r.sku,
+        variation_type: (r.variation_type as VariationType) || 'standard',
+        edition_badge: r.edition_badge ?? null,
+        variation_notes: r.variation_notes ?? null,
+        variation_images: variationImages,
         price_override: priceOverride,
         effective_price: effectivePrice,
         is_limited_edition: Boolean(r.is_limited_edition),
         total_edition_count: r.total_edition_count != null ? Number(r.total_edition_count) : null,
         release_date: r.release_date ?? null,
         status: (r.status as VariationStatus) || 'coming_soon',
-        stock_quantity: 10, // Synced dynamically from Shopify Storefront API
-      };
-    });
+        stock_quantity: stockQuantity,
+      });
+    }
+
+    return variations;
   } catch (error) {
-    console.error(`Failed to get variations for product [${productId}]:`, error);
+    if (!String(error).includes("no such table")) console.error(`Failed to get variations for product [${productId}]:`, error);
     return [];
   }
 }
 
 export async function getProductBySlug(
   slug: string,
+  options?: { db?: DatabaseSync; bypassSingleFlight?: boolean }
+): Promise<StorefrontProduct | null> {
+  if (options?.bypassSingleFlight || options?.db) {
+    return fetchProductBySlugDirect(slug, options);
+  }
+  return catalogSingleFlight.do(`product:${slug}`, () =>
+    fetchProductBySlugDirect(slug, options)
+  );
+}
+
+async function fetchProductBySlugDirect(
+  slug: string,
   options?: { db?: DatabaseSync }
 ): Promise<StorefrontProduct | null> {
   try {
     const db = options?.db || getDatabase();
 
-    const productRow = db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug) as any;
+    const productRow = (await db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug)) as any;
     if (!productRow) return null;
 
+    const categoryId = productRow.category_id_id || productRow.category_id;
     let category: Category | null = null;
-    if (productRow.category_id) {
-      const catRow = db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(productRow.category_id) as any;
-      if (catRow) {
-        category = {
-          id: catRow.id,
-          name: catRow.name,
-          slug: catRow.slug,
-          description: catRow.description ?? undefined,
-          image: catRow.image ?? undefined,
-        };
+    if (categoryId) {
+      try {
+        const catRow = (await db
+          .prepare(`
+            SELECT c.*, m.filename AS media_filename, m.url AS media_url
+            FROM categories c
+            LEFT JOIN media m ON c.image_id = m.id
+            WHERE c.id = ?;
+          `)
+          .get(categoryId)) as any;
+        if (catRow) {
+          const rawCatImage =
+            catRow.media_url ||
+            (catRow.media_filename ? `/media/${catRow.media_filename}` : undefined) ||
+            catRow.image ||
+            undefined;
+          category = {
+            id: catRow.id,
+            name: catRow.name,
+            slug: catRow.slug,
+            parent_id: catRow.parent_id ?? null,
+            description: catRow.description ?? undefined,
+            image: rawCatImage ? getAssetUrl(rawCatImage) || rawCatImage : undefined,
+          };
+        }
+      } catch {
+        try {
+          const catRow = (await db.prepare(`SELECT * FROM categories WHERE id = ?;`).get(categoryId)) as any;
+          if (catRow) {
+            category = {
+              id: catRow.id,
+              name: catRow.name,
+              slug: catRow.slug,
+              parent_id: catRow.parent_id ?? null,
+              description: catRow.description ?? undefined,
+              image: catRow.image ?? undefined,
+            };
+          }
+        } catch {
+          category = {
+            id: String(categoryId),
+            name: String(categoryId).toUpperCase(),
+            slug: String(categoryId),
+          };
+        }
       }
     }
 
+    if (!category && (productRow.category || productRow.category_id)) {
+      const c = productRow.category || productRow.category_id;
+      category = {
+        id: String(c),
+        name: String(c).toUpperCase(),
+        slug: String(c),
+      };
+    }
+
+    let productLine: StorefrontProductLine | null = null;
+    const lineId = productRow.product_line_id || productRow.product_line_id_id;
+    if (lineId) {
+      try {
+        const lineRow = (await db.prepare("SELECT * FROM product_lines WHERE id = ?;").get(lineId)) as any;
+        if (lineRow) {
+          productLine = {
+            id: lineRow.id,
+            title: lineRow.title,
+            slug: lineRow.slug,
+            story: lineRow.story ?? undefined,
+            default_price: lineRow.default_price != null ? Number(lineRow.default_price) : undefined,
+            hero_image: lineRow.hero_image ?? undefined,
+          };
+        }
+      } catch {}
+    }
+
+    const rawExplicitPrice = productRow.price != null ? Number(productRow.price) : (productRow.base_price != null ? Number(productRow.base_price) : null);
+    const effectiveBase = rawExplicitPrice ?? (productLine?.default_price ?? 0);
+
     const variations = await getProductVariations(productRow.id, {
       db,
-      basePrice: Number(productRow.base_price),
+      basePrice: effectiveBase,
     });
 
     const prices =
-      variations.length > 0 ? variations.map((v) => v.effective_price) : [Number(productRow.base_price)];
+      variations.length > 0 ? variations.map((v) => v.effective_price) : [effectiveBase];
     const effectiveMinPrice = Math.min(...prices);
 
     let gallery: string[] = [];
-    if (productRow.gallery) {
+
+    // 1. Try relational products_gallery table
+    try {
+      const rawGalleryRows = await db
+        .prepare(`
+          SELECT pg.id, m.url AS media_url, m.filename AS media_filename
+          FROM products_gallery pg
+          LEFT JOIN media m ON pg.image_id = m.id
+          WHERE pg._parent_id = ?
+          ORDER BY pg._order ASC;
+        `)
+        .all(productRow.id);
+      const galleryRows = (Array.isArray(rawGalleryRows)
+        ? rawGalleryRows
+        : ((rawGalleryRows as any)?.results || [])) as any[];
+      if (galleryRows.length > 0) {
+        gallery = galleryRows
+          .map((g) => g.media_url || (g.media_filename ? `/media/${g.media_filename}` : ''))
+          .filter(Boolean);
+      }
+    } catch {
+      // products_gallery not present
+    }
+
+    // 2. Fall back to JSON gallery column
+    if (gallery.length === 0 && productRow.gallery) {
       try {
         gallery = typeof productRow.gallery === 'string' ? JSON.parse(productRow.gallery) : productRow.gallery;
       } catch {
@@ -277,19 +548,52 @@ export async function getProductBySlug(
       }
     }
 
+    // Resolve featured image
+    let featuredImage: string | null = null;
+    if (productRow.featured_image_id) {
+      try {
+        const m = (await db.prepare(`SELECT url, filename FROM media WHERE id = ?;`).get(productRow.featured_image_id)) as any;
+        if (m) {
+          featuredImage = resolveMediaUrl(m);
+        }
+      } catch {}
+    }
+    if (!featuredImage && productRow.featured_image) {
+      featuredImage = productRow.featured_image;
+    }
+
+    const makerNotes = productRow.maker_field_notes || productRow.artist_statement || undefined;
+    const cleanDescription = extractLexicalText(productRow.description) || undefined;
+
     return {
       id: productRow.id,
       title: productRow.title,
       slug: productRow.slug,
-      description: productRow.description ?? undefined,
-      artist_statement: productRow.artist_statement ?? undefined,
-      base_price: Number(productRow.base_price),
+      description: cleanDescription,
+      maker_field_notes: makerNotes,
+      artist_statement: makerNotes,
+      technical_specs: {
+        materials: productRow.materials ?? undefined,
+        weight: productRow.weight ?? undefined,
+        fit_profile: productRow.fit_profile ?? undefined,
+        origin: productRow.origin ?? undefined,
+      },
+      materials: productRow.materials ?? undefined,
+      weight: productRow.weight ?? undefined,
+      fit_profile: productRow.fit_profile ?? undefined,
+      origin: productRow.origin ?? undefined,
+      sku: productRow.sku ?? undefined,
+      price: productRow.price != null ? Number(productRow.price) : null,
+      base_price: effectiveBase,
+      effective_price: effectiveBase,
+      product_line: productLine,
+      options: productRow.options ? (typeof productRow.options === "string" ? JSON.parse(productRow.options) : productRow.options) : undefined,
       effective_min_price: effectiveMinPrice,
       status: (productRow.status as ProductStatus) || 'draft',
       category,
       shopify_product_id: productRow.shopify_product_id ?? undefined,
-      featured_image: productRow.featured_image ?? null,
-      hero_image: productRow.hero_image ?? productRow.featured_image ?? null,
+      featured_image: featuredImage,
+      hero_image: productRow.hero_image ?? featuredImage,
       gallery,
       variations,
     };
@@ -300,47 +604,178 @@ export async function getProductBySlug(
 }
 
 export async function getProducts(options?: GetProductsOptions): Promise<StorefrontProduct[]> {
+  if (options?.bypassSingleFlight || options?.db) {
+    return fetchProductsDirect(options);
+  }
+  const catKey = options?.category || 'all';
+  const statusKey = (options?.status || ['published']).join(',');
+  const limitKey = options?.limit ?? 'all';
+  const key = `products:${catKey}:${statusKey}:${limitKey}`;
+
+  return catalogSingleFlight.do(key, () => fetchProductsDirect(options));
+}
+
+async function fetchProductsDirect(options?: GetProductsOptions): Promise<StorefrontProduct[]> {
   try {
     const db = options?.db || getDatabase();
 
-    let query = `
-      SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE 1=1
-    `;
+    const requestedStatuses =
+      options?.status && options.status.length > 0 ? options.status : ['published', 'active'];
+    const normalizedStatuses = new Set<string>();
+    for (const s of requestedStatuses) {
+      normalizedStatuses.add(s);
+      if (s === 'published') normalizedStatuses.add('active');
+      if (s === 'active') normalizedStatuses.add('published');
+    }
+    const statuses = Array.from(normalizedStatuses);
+
+    let rows: any[] = [];
     const params: any[] = [];
 
-    // Filter by category slug or ID
-    if (options?.category) {
-      query += ` AND (c.slug = ? OR c.id = ?)`;
-      params.push(options.category, options.category);
+    // Try primary Payload D1 query joined with categories and media
+    try {
+      let query = `
+        SELECT p.*,
+          c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.parent_id AS cat_parent_id,
+          fm.url AS featured_media_url, fm.filename AS featured_media_filename
+        FROM products p
+        LEFT JOIN categories c ON p.category_id_id = c.id
+        LEFT JOIN media fm ON p.featured_image_id = fm.id
+        WHERE 1=1
+      `;
+
+      if (options?.category) {
+        query += ` AND p.category_id_id IN (
+          WITH RECURSIVE cat_tree(id) AS (
+            SELECT id FROM categories WHERE slug = ? OR id = ?
+            UNION ALL
+            SELECT c2.id FROM categories c2 JOIN cat_tree ct ON c2.parent_id = ct.id
+          )
+          SELECT id FROM cat_tree
+        )`;
+        params.push(options.category, options.category);
+      }
+
+      const placeholders = statuses.map(() => '?').join(',');
+      query += ` AND p.status IN (${placeholders})`;
+      params.push(...statuses);
+
+      query += ` ORDER BY p.created_at ASC, p.id ASC`;
+
+      if (options?.limit) {
+        query += ` LIMIT ?`;
+        params.push(options.limit);
+      }
+
+      const rawRows = await db.prepare(query).all(...params);
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    } catch {
+      // Fallback query for schemas without media table or without categories table
+      let hasCat = false;
+      try {
+        await db.prepare('SELECT 1 FROM categories LIMIT 1;').all();
+        hasCat = true;
+      } catch {}
+
+      let fallbackQuery = hasCat
+        ? `SELECT p.*, c.name AS cat_name, c.slug AS cat_slug, c.description AS cat_desc, c.image AS cat_image, c.parent_id AS cat_parent_id
+           FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE 1=1`
+        : `SELECT p.* FROM products p WHERE 1=1`;
+      const fallbackParams: any[] = [];
+
+      if (options?.category) {
+        if (hasCat) {
+          fallbackQuery += ` AND p.category_id IN (
+            WITH RECURSIVE cat_tree(id) AS (
+              SELECT id FROM categories WHERE slug = ? OR id = ?
+              UNION ALL
+              SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
+          )`;
+          fallbackParams.push(options.category, options.category);
+        } else {
+          let catCol = 'category';
+          try {
+            const cols = ((await db.prepare('PRAGMA table_info(products);').all()) as any[]).map((c: any) => c.name);
+            if (cols.includes('category')) catCol = 'category';
+            else if (cols.includes('category_id')) catCol = 'category_id';
+          } catch {}
+          fallbackQuery += ` AND p.${catCol} = ?`;
+          fallbackParams.push(options.category);
+        }
+      }
+
+      const placeholders = statuses.map(() => '?').join(',');
+      fallbackQuery += ` AND p.status IN (${placeholders})`;
+      fallbackParams.push(...statuses);
+
+      let orderClause = ` ORDER BY p.created_at ASC, p.id ASC`;
+      try {
+        db.prepare(`SELECT created_at FROM products LIMIT 1`).all();
+      } catch {
+        orderClause = ` ORDER BY p.id ASC`;
+      }
+
+      let finalQuery = fallbackQuery + orderClause;
+      if (options?.limit) {
+        finalQuery += ` LIMIT ?`;
+        fallbackParams.push(options.limit);
+      }
+
+      const rawRows = await db.prepare(finalQuery).all(...fallbackParams);
+      rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
     }
-
-    // Filter by publication status
-    const statuses = options?.status && options.status.length > 0 ? options.status : ['published'];
-    const placeholders = statuses.map(() => '?').join(',');
-    query += ` AND p.status IN (${placeholders})`;
-    params.push(...statuses);
-
-    query += ` ORDER BY p.title ASC`;
-
-    if (options?.limit) {
-      query += ` LIMIT ?`;
-      params.push(options.limit);
-    }
-
-    const rows = db.prepare(query).all(...params) as any[];
 
     const products: StorefrontProduct[] = [];
     for (const r of rows) {
-      const variations = await getProductVariations(r.id, { db, basePrice: Number(r.base_price) });
+      let productLine: StorefrontProductLine | null = null;
+      const lineId = r.product_line_id || r.product_line_id_id;
+      if (lineId) {
+        try {
+          const lineRow = (await db.prepare("SELECT * FROM product_lines WHERE id = ?;").get(lineId)) as any;
+          if (lineRow) {
+            productLine = {
+              id: lineRow.id,
+              title: lineRow.title,
+              slug: lineRow.slug,
+              story: lineRow.story ?? undefined,
+              default_price: lineRow.default_price != null ? Number(lineRow.default_price) : undefined,
+            };
+          }
+        } catch {}
+      }
+
+      const rawPrice = r.price != null ? Number(r.price) : (r.base_price != null ? Number(r.base_price) : null);
+      const effectiveBase = rawPrice ?? (productLine?.default_price ?? 0);
+
+      const variations = await getProductVariations(r.id, { db, basePrice: effectiveBase });
       const prices =
         variations.length > 0 ? variations.map((v) => v.effective_price) : [Number(r.base_price)];
       const effectiveMinPrice = Math.min(...prices);
 
       let gallery: string[] = [];
-      if (r.gallery) {
+      try {
+        const rawGalleryRows = await db
+          .prepare(`
+            SELECT pg.id, m.url AS media_url, m.filename AS media_filename
+            FROM products_gallery pg
+            LEFT JOIN media m ON pg.image_id = m.id
+            WHERE pg._parent_id = ?
+            ORDER BY pg._order ASC;
+          `)
+          .all(r.id);
+        const galleryRows = (Array.isArray(rawGalleryRows)
+          ? rawGalleryRows
+          : ((rawGalleryRows as any)?.results || [])) as any[];
+        if (galleryRows.length > 0) {
+          gallery = galleryRows
+            .map((g) => g.media_url || (g.media_filename ? `/media/${g.media_filename}` : ''))
+            .filter(Boolean);
+        }
+      } catch {}
+
+      if (gallery.length === 0 && r.gallery) {
         try {
           gallery = typeof r.gallery === 'string' ? JSON.parse(r.gallery) : r.gallery;
         } catch {
@@ -348,27 +783,64 @@ export async function getProducts(options?: GetProductsOptions): Promise<Storefr
         }
       }
 
+      let featuredImage: string | null = null;
+      if (r.featured_media_url) {
+        featuredImage = r.featured_media_url;
+      } else if (r.featured_media_filename) {
+        featuredImage = `/media/${r.featured_media_filename}`;
+      } else if (r.featured_image) {
+        featuredImage = r.featured_image;
+      } else if (r.featured_image_id) {
+        try {
+          const m = (await db.prepare(`SELECT url, filename FROM media WHERE id = ?;`).get(r.featured_image_id)) as any;
+          if (m) {
+            featuredImage = resolveMediaUrl(m);
+          }
+        } catch {}
+      }
+
+      const makerNotes = r.maker_field_notes || r.artist_statement || undefined;
+      const cleanDescription = extractLexicalText(r.description) || undefined;
+      const catId = r.resolved_category_id || r.category_id_id || r.category_id;
+
       products.push({
         id: r.id,
         title: r.title,
         slug: r.slug,
-        description: r.description ?? undefined,
-        artist_statement: r.artist_statement ?? undefined,
-        base_price: Number(r.base_price),
+        description: cleanDescription,
+        maker_field_notes: makerNotes,
+        artist_statement: makerNotes,
+        technical_specs: {
+          materials: r.materials ?? undefined,
+          weight: r.weight ?? undefined,
+          fit_profile: r.fit_profile ?? undefined,
+          origin: r.origin ?? undefined,
+        },
+        materials: r.materials ?? undefined,
+        weight: r.weight ?? undefined,
+        fit_profile: r.fit_profile ?? undefined,
+        origin: r.origin ?? undefined,
+        sku: r.sku ?? undefined,
+        price: r.price != null ? Number(r.price) : null,
+        base_price: effectiveBase,
+        effective_price: effectiveBase,
+        product_line: productLine,
+        options: r.options ? (typeof r.options === "string" ? JSON.parse(r.options) : r.options) : undefined,
         effective_min_price: effectiveMinPrice,
         status: (r.status as ProductStatus) || 'draft',
-        category: r.category_id
+        category: catId
           ? {
-              id: r.category_id,
+              id: catId,
               name: r.cat_name,
               slug: r.cat_slug,
+              parent_id: r.cat_parent_id ?? null,
               description: r.cat_desc ?? undefined,
               image: r.cat_image ?? undefined,
             }
           : null,
         shopify_product_id: r.shopify_product_id ?? undefined,
-        featured_image: r.featured_image ?? null,
-        hero_image: r.hero_image ?? r.featured_image ?? null,
+        featured_image: featuredImage,
+        hero_image: r.hero_image ?? featuredImage,
         gallery,
         variations,
       });

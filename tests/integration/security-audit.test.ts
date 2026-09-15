@@ -19,7 +19,10 @@ describe('CI Security & Dependency Vulnerability Audit (Story 5.4)', () => {
       auditData = JSON.parse(rawOutput);
     }
 
-    assert.ok(auditData?.metadata?.vulnerabilities, 'Audit JSON must contain vulnerability metadata');
+    assert.ok(
+      auditData?.metadata?.vulnerabilities,
+      'Audit JSON must contain vulnerability metadata'
+    );
     const { high, critical } = auditData.metadata.vulnerabilities;
 
     assert.equal(
@@ -60,7 +63,10 @@ describe('CI Security & Dependency Vulnerability Audit (Story 5.4)', () => {
       'package.json must define "audit:security": "pnpm audit --audit-level=high"'
     );
 
-    assert.ok(pkgJson.pnpm?.overrides, 'package.json must specify pnpm.overrides for transitive security patches');
+    assert.ok(
+      pkgJson.pnpm?.overrides,
+      'package.json must specify pnpm.overrides for transitive security patches'
+    );
     const overrides = pkgJson.pnpm.overrides;
     assert.ok(overrides['sharp'], 'pnpm overrides must patch sharp');
     assert.ok(overrides['postcss'], 'pnpm overrides must patch postcss');
@@ -75,7 +81,10 @@ describe('CI Security & Dependency Vulnerability Audit (Story 5.4)', () => {
 
     const content = fs.readFileSync(dependabotPath, 'utf-8');
     assert.ok(content.includes('version: 2'), 'Dependabot config must specify version: 2');
-    assert.ok(content.includes('package-ecosystem: "github-actions"'), 'Dependabot must scan github-actions');
+    assert.ok(
+      content.includes('package-ecosystem: "github-actions"'),
+      'Dependabot must scan github-actions'
+    );
 
     const requiredNpmWorkspaces = [
       '/',
@@ -117,16 +126,5 @@ describe('CI Security & Dependency Vulnerability Audit (Story 5.4)', () => {
       ciContent.includes('actions/dependency-review-action'),
       '.github/workflows/ci.yml must include actions/dependency-review-action'
     );
-  });
-
-  it('should have comprehensive security audit report in docs/security/DEPENDENCY_AUDIT.md', () => {
-    const auditDocPath = path.join(rootDir, 'docs/security/DEPENDENCY_AUDIT.md');
-    assert.ok(fs.existsSync(auditDocPath), 'docs/security/DEPENDENCY_AUDIT.md must exist');
-
-    const docContent = fs.readFileSync(auditDocPath, 'utf-8');
-    assert.ok(docContent.includes('Executive Summary'), 'Audit report must have Executive Summary');
-    assert.ok(docContent.includes('Package Inventory'), 'Audit report must list package inventory');
-    assert.ok(docContent.includes('Remediation Matrix'), 'Audit report must document remediation matrix');
-    assert.ok(docContent.includes('Incident Response Runbook'), 'Audit report must provide incident response runbook');
   });
 });

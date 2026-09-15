@@ -36,6 +36,9 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
       'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
       'NEXT_PUBLIC_CMS_URL',
       'DIRECTUS_URL',
+      'DISCORD_WEBHOOK_URL',
+      'DISCORD_WEBHOOK_ORDERS',
+      'DISCORD_WEBHOOK_ALERTS',
     ];
 
     it('should not contain any obsolete legacy variables in serverEnvSchema shape', () => {
@@ -122,8 +125,10 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
       assert.equal(env.NEXT_PUBLIC_SITE_URL, 'http://localhost:3000');
 
       // Optional credentials should be undefined by default
-      assert.equal(env.DISCORD_WEBHOOK_URL, undefined);
       assert.equal(env.RESEND_API_KEY, undefined);
+      assert.equal(env.RESEND_FROM_EMAIL, undefined);
+      assert.equal(env.MERCHANT_ALERT_EMAIL, undefined);
+      assert.equal(env.OPS_ALERT_WEBHOOK_URL, undefined);
       assert.equal(env.CLOUDFLARE_ACCOUNT_ID, undefined);
       assert.equal(env.CLOUDFLARE_API_TOKEN, undefined);
     });
@@ -144,8 +149,10 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
         R2_SECRET_ACCESS_KEY: 'cf_r2_secret_key_123',
         CLOUDFLARE_ACCOUNT_ID: '0123456789abcdef',
         CLOUDFLARE_API_TOKEN: 'cf_api_token_123',
-        DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/123/abc',
         RESEND_API_KEY: 're_123456789',
+        RESEND_FROM_EMAIL: 'orders@shop.jacobmiller22.com',
+        MERCHANT_ALERT_EMAIL: 'merchant@example.com',
+        OPS_ALERT_WEBHOOK_URL: 'https://webhook.site/ops-alerts',
         NEXT_PUBLIC_SITE_URL: 'https://chrishop.jacobmiller22.com',
       };
 
@@ -168,8 +175,10 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
       assert.equal(parsed.R2_SECRET_ACCESS_KEY, 'cf_r2_secret_key_123');
       assert.equal(parsed.CLOUDFLARE_ACCOUNT_ID, '0123456789abcdef');
       assert.equal(parsed.CLOUDFLARE_API_TOKEN, 'cf_api_token_123');
-      assert.equal(parsed.DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/123/abc');
       assert.equal(parsed.RESEND_API_KEY, 're_123456789');
+      assert.equal(parsed.RESEND_FROM_EMAIL, 'orders@shop.jacobmiller22.com');
+      assert.equal(parsed.MERCHANT_ALERT_EMAIL, 'merchant@example.com');
+      assert.equal(parsed.OPS_ALERT_WEBHOOK_URL, 'https://webhook.site/ops-alerts');
       assert.equal(parsed.NEXT_PUBLIC_SITE_URL, 'https://chrishop.jacobmiller22.com');
     });
   });
@@ -325,14 +334,49 @@ describe('Shared Config Environment Schema (@chrishop/config/env)', () => {
       }
     });
 
-    it('should reject invalid URL for DISCORD_WEBHOOK_URL when provided', () => {
-      const result = serverEnvSchema.safeParse({ DISCORD_WEBHOOK_URL: 'invalid-discord-url' });
+    it('should reject invalid email for MERCHANT_ALERT_EMAIL when provided', () => {
+      const result = serverEnvSchema.safeParse({ MERCHANT_ALERT_EMAIL: 'not-an-email' });
       assert.equal(result.success, false);
       if (!result.success) {
         assert.ok(
           result.error
             .flatten()
-            .fieldErrors.DISCORD_WEBHOOK_URL?.some((msg) => msg.includes('valid URL'))
+            .fieldErrors.MERCHANT_ALERT_EMAIL?.some((msg) => msg.includes('valid email'))
+        );
+      }
+    });
+
+    it('should accept valid email for MERCHANT_ALERT_EMAIL', () => {
+      const result = serverEnvSchema.safeParse({
+        MERCHANT_ALERT_EMAIL: 'orders@shop.jacobmiller22.com',
+      });
+      assert.equal(result.success, true);
+      if (result.success) {
+        assert.equal(result.data.MERCHANT_ALERT_EMAIL, 'orders@shop.jacobmiller22.com');
+      }
+    });
+
+    it('should reject invalid URL for OPS_ALERT_WEBHOOK_URL when provided', () => {
+      const result = serverEnvSchema.safeParse({ OPS_ALERT_WEBHOOK_URL: 'not-a-valid-url' });
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.ok(
+          result.error
+            .flatten()
+            .fieldErrors.OPS_ALERT_WEBHOOK_URL?.some((msg) => msg.includes('valid URL'))
+        );
+      }
+    });
+
+    it('should accept valid URL for OPS_ALERT_WEBHOOK_URL', () => {
+      const result = serverEnvSchema.safeParse({
+        OPS_ALERT_WEBHOOK_URL: 'https://hooks.slack.com/services/T00/B00/X00',
+      });
+      assert.equal(result.success, true);
+      if (result.success) {
+        assert.equal(
+          result.data.OPS_ALERT_WEBHOOK_URL,
+          'https://hooks.slack.com/services/T00/B00/X00'
         );
       }
     });

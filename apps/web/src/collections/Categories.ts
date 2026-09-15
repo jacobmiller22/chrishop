@@ -17,6 +17,14 @@ export const Categories: CollectionConfig = {
   },
   fields: [
     {
+      name: 'id',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Unique category identifier (e.g. cat-apparel, cat-outerwear)',
+      },
+    },
+    {
       name: 'name',
       type: 'text',
       required: true,
@@ -35,10 +43,25 @@ export const Categories: CollectionConfig = {
       },
     },
     {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: false,
+      admin: {
+        description: 'Parent category for hierarchical nesting (supports depth-2 category navigation)',
+      },
+      validate: (value: any, { id }: any) => {
+        if (value && id && (value === id || value?.id === id)) {
+          return 'A category cannot be its own parent (self-parenting cycle detected).';
+        }
+        return true;
+      },
+    },
+    {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Editorial description of the artwork category',
+        description: 'Editorial description of the adventure gear category',
       },
     },
     {

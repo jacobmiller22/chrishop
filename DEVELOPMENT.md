@@ -55,6 +55,7 @@ The root `package.json` provides an organized suite of scripts for development, 
 | `pnpm run dev:wrangler` | `wrangler dev --port 8787` | Runs **only** the Cloudflare Wrangler edge worker emulator |
 | `pnpm run dev:types` | `wrangler types` | Generates/refreshes TypeScript types for Cloudflare bindings |
 | `pnpm run dev:db` | `tsx scripts/seed-db.ts` | Seeds the local SQLite/D1 database with catalog fixtures |
+| `pnpm run branch <name>` | `bash scripts/create-branch.sh` | **Branch Helper**: Fetches `origin/staging` and provisions an isolated worktree from `staging` |
 
 ### 2.2 Production Build Scripts
 | Command | Action | Description |
@@ -68,13 +69,14 @@ The root `package.json` provides an organized suite of scripts for development, 
 | Command | Action | Description |
 | :--- | :--- | :--- |
 | `pnpm run check` | `turbo run check` | Monorepo typecheck across all workspaces |
+| `pnpm run check:bundle` | `tsx scripts/check-bundle-budget.ts` | Profiles `.open-next` worker bundles against Cloudflare size ceilings |
 | `pnpm run lint` | `turbo run check` | Monorepo ESLint & TypeScript linter |
 | `pnpm test` | `turbo run test` | Runs unit tests across all package workspaces |
 | `pnpm run test:unit` | `turbo run test && tsx --test tests/integration/dependency-control.test.ts` | Package unit tests + dependency control gate |
 | `pnpm run test:integration` | `tsx --test tests/integration/**/*.test.ts tests/spike/**/*.test.ts` | Ephemeral D1 SQLite, Shopify client, and integration tests |
 | `pnpm run test:spike` | `tsx --test tests/spike/**/*.test.ts` | Edge runtime and database latency spike tests |
 | `pnpm run test:all` | `pnpm run test:unit && pnpm run test:integration` | Complete unit and integration test suite |
-| `pnpm run verify:local` | `tsx scripts/verify-local.ts` | Turnkey 7-stage pre-PR verification pipeline |
+| `pnpm run verify:local` | `tsx scripts/verify-local.ts` | Turnkey 8-stage pre-PR verification pipeline |
 | `pnpm run audit:security` | `pnpm audit --audit-level=high` | Checks all dependencies against known CVEs |
 | `pnpm run format` | `prettier --write .` | Formats all files with Prettier |
 | `pnpm run format:check` | `prettier --check .` | Checks formatting without modifying files |
@@ -95,6 +97,29 @@ ChrisShop is designed to run locally with **zero external background daemons or 
 - **Cloudflare Edge Worker (`http://localhost:8787`)**: Local Miniflare instance emulating Cloudflare edge environment.
 - **Local D1 Database**: Backed by a local SQLite file stored under `.wrangler/state/v3/d1/local.sqlite` (or ephemeral `:memory:` during automated tests).
 - **Local KV Store**: Backed by local filesystem storage under `.wrangler/state/v3/kv`.
+
+---
+
+## 3.1 Git Workflow & Staging-First Branching Protocol
+
+ChrisShop follows a strict staged promotion pipeline: `feature/*` ➔ `staging` ➔ `production`.
+
+- **`staging`**: Active integration target where all feature branches merge. All new branches **MUST** branch from fresh `origin/staging`.
+- **`production`**: Protected live release edge. Direct PRs to `production` are strictly blocked; code promotes from `staging` via release PRs.
+- **`main`**: Legacy branch. Direct PRs to `main` are strictly blocked by CI (`enforce-promotion-rules`).
+
+### Branching Commands
+```bash
+# Recommended turnkey command
+pnpm run branch feature/story-<X>-<Y>-<shortname>
+
+# Or manually with worktrunk:
+git fetch origin staging && wt switch --create feature/story-<X>-<Y>-<shortname> --base origin/staging
+```
+
+### Pull Request & Teardown Protocol
+- Always target `staging`: `gh pr create --base staging ...`
+- Worktree teardown: switch back to `staging`: `wt switch staging && wt remove --reap feature/...`
 
 ---
 

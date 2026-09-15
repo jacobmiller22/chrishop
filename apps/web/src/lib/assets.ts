@@ -14,7 +14,7 @@ export function getAssetUrl(fileOrKey?: string | { id?: string; url?: string } |
   const key = fileOrKey.trim();
   if (!key) return null;
 
-  if (key.startsWith('http://') || key.startsWith('https://')) {
+  if (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('/')) {
     return key;
   }
 

@@ -24,7 +24,7 @@ The **Adversarial Roadmap Evaluation Workflow** enforces continuous synchronizat
 ### Pillar 2: Milestone Hygiene & Zero-Orphan Policy
 - **Zero Orphaned Issues**: Every open issue MUST be assigned to an Epic label (`epic:phase-X`) AND an active GitHub Milestone. Floating issues with `milestone: null` are strictly forbidden.
 - **De-duplication**: Proactively identify duplicate stories across phases (e.g. CI/CD deploy pipeline stories split across Phase 2 and Phase 4) and consolidate them immediately.
-- **Issue Lifecycle Sync**: Any story marked `status:completed` or documented in `docs/` as finished MUST be formally closed on GitHub with linked commits/PRs.
+- **Issue Lifecycle Sync**: Stories marked `status:completed` legitimately remain open while their respective pull requests are pending review/merge. Once the pull request is merged, the issue MUST be formally closed on GitHub with linked commits/PRs.
 
 ### Pillar 3: Priority-First Governance
 Every story MUST be classified into a standardized priority tier:
@@ -47,6 +47,16 @@ A GitHub milestone CANNOT be closed until:
 1. All child issues are closed OR explicitly re-parented to a future milestone with documented rationale.
 2. The corresponding `creator-review` story (Story 1.8 for Phase 1, Story 2.7 for Phase 2, Story 3.7 for Phase 3) has recorded explicit client sign-off.
 3. Monorepo verification pipeline passes cleanly (`pnpm run verify:local`).
+
+### Pillar 6: Two-Stage Git Promotion & Deployment Gates
+Code promotion to live environments is governed by strict git branch hierarchy:
+1. **Feature branches** target `staging` (repository default branch).
+2. **Release promotion** from `staging` into `production` requires:
+   - PR originating exclusively from `staging` (enforced via `enforce-promotion-rules` CI check).
+   - Automated staging deployment and live edge health verification (`staging-chrishop.jacobmiller22.com/api/health`).
+   - Human approval gate in GitHub Actions `production` environment (`jacobmiller22`).
+   - Post-deployment edge health probe against `https://chrishop.jacobmiller22.com/api/health`.
+   - See [docs/runbooks/PRODUCTION_PROMOTION.md](runbooks/PRODUCTION_PROMOTION.md) for standard operating procedures.
 
 ---
 
@@ -73,14 +83,34 @@ python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4
 python3 .agents/skills/story-orchestrator/scripts/find_candidates.py --limit 4 --min-priority high
 ```
 
-### 3.3 Automated Scheduled Daemon (`launchd`)
-The adversarial audit is wired into the 12-hour local `launchd` service (`com.chrishop.backlog-refinement`). Every scheduled execution at 02:00 and 14:00 runs:
-1. Monorepo health check (`pnpm run check`).
-2. Adversarial backlog critique (`refinement_audit.py`).
-3. Roadmap & milestone audit (`pnpm run audit:roadmap`).
+### 3.3 On-Demand Execution & Project Management Skill
+The legacy 12-hour background `launchd` daemon has been decommissioned in favor of an on-demand, unified TypeScript auditor.
 
-To test the daemon run manually:
+Operators and AI agents can invoke the audit instantly:
 ```bash
-./infra/launchd/install.sh run-now
-./infra/launchd/install.sh logs
+# Direct CLI execution
+pnpm run audit:roadmap
+
+# With full codebase deliverables verification
+pnpm run audit:backlog
+
+# Trigger via Project Management skill
+/project-management roadmap audit
 ```
+### 3.4 Automated Staging-to-Production Release PR & Rolling Changelog Generation
+When features, bugfixes, or dependencies merge into the `staging` integration branch:
+1. **GitHub Actions Trigger**: `.github/workflows/staging-release-pr.yml` runs automatically on pushes to `staging`.
+2. **Delta & Manifest Composition**: Invokes `pnpm run release:notes` (`scripts/compose-release-notes.ts`) to compute the `production..staging` git delta:
+   - Merged pull requests and commit hashes.
+   - Closed issue references (`Fixes #X`, `Closes #X`, `Resolves #X`).
+   - Impacted monorepo workspaces (`apps/web`, `packages/*`, `infra/`, `.github/`, etc.).
+   - Pending D1 SQLite database migrations (`migrations/*.sql`) with execution alerts.
+   - Standard preflight promotion checklist.
+3. **Release PR Synchronization**:
+   - Queries GitHub API for an existing open PR with `head: staging` and `base: production`.
+   - If found: dynamically updates the PR title and description with the latest composed release manifest.
+   - If none exists: creates a new Release PR titled `chore(release): Promote staging to production [Pending Review]`.
+   - Attaches labels `type:release` and `status:needs-review`, and assigns designated reviewer (`jacobmiller22`).
+4. **Human Review Gate & Production Edge Deployment**:
+   - Maintainer reviews the rolling changelog, verifies staging edge health, and approves the PR.
+   - Merging into `production` triggers the multi-stage deployment pipeline in `.github/workflows/deploy.yml` (build ➔ deploy-staging ➔ test-staging ➔ human environment gate ➔ deploy-production).
