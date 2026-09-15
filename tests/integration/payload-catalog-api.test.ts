@@ -12,7 +12,7 @@ try {
   }
 } catch {}
 
-describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', () => {
+describe('Story 3.17 Candidate 3: Strict 3-Tier Hierarchy Payload CMS Catalog API & D1 Relational Schema', () => {
   const rootDir = process.cwd();
 
   const getPayloadInstance = async (db: DatabaseSync) => {
@@ -74,30 +74,10 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
     const seedSql = fs.readFileSync(path.join(rootDir, 'scripts/seed.sql'), 'utf-8');
     db.exec(seedSql);
 
-    // Defensive schema compatibility for Candidate Paradigms (Story 3.17)
-    // Ensures Payload Drizzle ORM queries against in-memory SQLite succeed regardless of branch-specific schema additions
-    try { db.exec('ALTER TABLE payload_locked_documents_rels ADD COLUMN product_lines_id TEXT;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN product_line_id_id TEXT;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN price REAL;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN sku TEXT;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN category TEXT DEFAULT \'packs\';'); } catch {}
-    try { db.exec('UPDATE products SET category = \'packs\' WHERE category IS NULL;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN parent_id_id TEXT;'); } catch {}
-    try { db.exec('ALTER TABLE products ADD COLUMN node_role TEXT DEFAULT \'model\';'); } catch {}
-    try { db.exec('ALTER TABLE products_gallery ADD COLUMN caption TEXT;'); } catch {}
-    try { db.exec('CREATE TABLE IF NOT EXISTS product_lines (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, story TEXT, default_price REAL, hero_image TEXT, hero_image_id INTEGER, updated_at TEXT, created_at TEXT);'); } catch {}
-    try { db.exec('ALTER TABLE product_lines ADD COLUMN hero_image_id INTEGER;'); } catch {}
-    try {
-      db.exec("INSERT OR IGNORE INTO product_lines (id, title, slug, story, default_price) VALUES ('line-default', 'Default Product Line', 'default-product-line', 'Baseline container', 200);");
-      db.exec("UPDATE products SET product_line_id_id = 'line-default' WHERE product_line_id_id IS NULL;");
-    } catch {}
-    try { db.exec('CREATE TABLE IF NOT EXISTS products_options (_order INTEGER NOT NULL, _parent_id TEXT NOT NULL, id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, value TEXT NOT NULL, sku_suffix TEXT);'); } catch {}
-    try { db.exec('CREATE TABLE IF NOT EXISTS products_tags (_order INTEGER NOT NULL, _parent_id TEXT NOT NULL, id TEXT PRIMARY KEY NOT NULL, tag TEXT NOT NULL);'); } catch {}
-
     return db;
   };
 
-  it('should verify payload_locked_documents_rels has "order" and "parent_id" columns', () => {
+  it('should verify payload_locked_documents_rels has "order" and "parent_id" columns and 3-tier relation columns', () => {
     const db = setupTestDatabase();
     const columns = db.prepare('PRAGMA table_info(payload_locked_documents_rels);').all() as any[];
     const colNames = columns.map((c) => c.name);
@@ -105,26 +85,35 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
     assert.ok(colNames.includes('order'), 'payload_locked_documents_rels must have "order" column');
     assert.ok(colNames.includes('parent_id'), 'payload_locked_documents_rels must have "parent_id" column');
     assert.ok(colNames.includes('categories_id'), 'must have categories_id column');
-    assert.ok(colNames.includes('products_id'), 'must have products_id column');
-    assert.ok(colNames.includes('product_variations_id'), 'must have product_variations_id column');
+    assert.ok(colNames.includes('product_lines_id'), 'must have product_lines_id column (Tier 1)');
+    assert.ok(colNames.includes('products_id'), 'must have products_id column (Tier 2)');
+    assert.ok(colNames.includes('product_variations_id'), 'must have product_variations_id column (Tier 3)');
   });
 
-  it('should query products collection through Payload local API without Lexical parse errors', async () => {
+  it('should query product_lines collection (Tier 1) through Payload local API', async () => {
     const db = setupTestDatabase();
     const payload = await getPayloadInstance(db);
 
     const result = await payload.find({
-      collection: 'products',
+      collection: 'product_lines',
       limit: 10,
     });
 
-    assert.ok(result.docs.length >= 6, 'Must find at least 6 seeded products');
-    const anorak = result.docs.find((p: any) => p.id === 'prod-bushwhack-anorak');
-    assert.ok(anorak, 'Must find prod-bushwhack-anorak');
-    assert.equal(anorak.title, 'The Bushwhack Storm Anorak');
-    assert.equal(anorak.status, 'active');
-    assert.ok(anorak.description, 'Description must exist');
-    assert.equal(typeof anorak.description, 'object', 'Description must be Lexical editor JSON object');
+    assert.ok(result.docs.length >= 3, 'Must find at least 3 seeded product lines');
+    const bushwhackSeries = result.docs.find((l: any) => l.id === 'line-bushwhack-series');
+    assert.ok(bushwhackSeries, 'Must find line-bushwhack-series');
+    assert.equal(bushwhackSeries.title, 'Bushwhack Series');
+    assert.equal(bushwhackSeries.slug, 'bushwhack-series');
+    assert.equal(bushwhackSeries.default_price, 285);
+
+    const alpineRig = result.docs.find((l: any) => l.id === 'line-alpine-chest-rig');
+    assert.ok(alpineRig, 'Must find line-alpine-chest-rig');
+    assert.equal(alpineRig.title, 'Alpine Chest Rig System');
+    assert.equal(alpineRig.default_price, 165);
+
+    const archive = result.docs.find((l: any) => l.id === 'line-bench-archive');
+    assert.ok(archive, 'Must find line-bench-archive');
+    assert.equal(archive.title, 'Bench Prototypes & One-Off Archive');
   });
 
   it('should query categories collection through Payload local API', async () => {
@@ -142,7 +131,49 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
     assert.equal(stormShells.slug, 'waterproof-storm-shells');
   });
 
-  it('should query product_variations collection through Payload local API', async () => {
+  it('should query products collection (Tier 2) through Payload local API and verify mandatory parent relation to product_lines', async () => {
+    const db = setupTestDatabase();
+    const payload = await getPayloadInstance(db);
+
+    const result = await payload.find({
+      collection: 'products',
+      limit: 10,
+    });
+
+    assert.ok(result.docs.length >= 6, 'Must find at least 6 seeded products');
+
+    // Verify that every product has a mandatory parent product_line_id relation in Candidate 3
+    for (const p of result.docs as any[]) {
+      assert.ok(p.product_line_id, `Product [${p.id}] MUST have a mandatory parent relation to product_lines`);
+      const lineId = typeof p.product_line_id === 'object' ? p.product_line_id.id : p.product_line_id;
+      assert.ok(
+        ['line-alpine-chest-rig', 'line-bushwhack-series', 'line-bench-archive'].includes(lineId),
+        `Product [${p.id}] linked to valid product line [${lineId}]`
+      );
+    }
+
+    const anorak = result.docs.find((p: any) => p.id === 'prod-bushwhack-anorak');
+    assert.ok(anorak, 'Must find prod-bushwhack-anorak');
+    assert.equal(anorak.title, 'The Bushwhack Storm Anorak');
+    assert.equal(anorak.status, 'active');
+    assert.ok(anorak.description, 'Description must exist');
+    assert.equal(typeof anorak.description, 'object', 'Description must be Lexical editor JSON object');
+    assert.equal(
+      typeof anorak.product_line_id === 'object' ? anorak.product_line_id.id : anorak.product_line_id,
+      'line-bushwhack-series',
+      'Anorak must belong to Bushwhack Series'
+    );
+
+    const rig = result.docs.find((p: any) => p.id === 'prod-minimalist-chest-rig');
+    assert.ok(rig, 'Must find prod-minimalist-chest-rig');
+    assert.equal(
+      typeof rig.product_line_id === 'object' ? rig.product_line_id.id : rig.product_line_id,
+      'line-alpine-chest-rig',
+      'Minimalist rig must belong to Alpine Chest Rig System'
+    );
+  });
+
+  it('should query product_variations collection (Tier 3) through Payload local API and verify parent relation to products', async () => {
     const db = setupTestDatabase();
     const payload = await getPayloadInstance(db);
 
@@ -152,13 +183,33 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
     });
 
     assert.ok(result.docs.length >= 13, 'Must find at least 13 seeded variations');
+
+    // Verify all variations enforce parent relation to Tier 2 Product
+    for (const v of result.docs as any[]) {
+      assert.ok(v.product_id, `Variation [${v.id}] MUST have a parent product_id in Strict 3-Tier`);
+      const prodId = typeof v.product_id === 'object' ? v.product_id.id : v.product_id;
+      assert.ok(prodId.startsWith('prod-'), `Variation [${v.id}] linked to valid product`);
+    }
+
     const camoAnorak = result.docs.find((v: any) => v.id === 'var-anorak-camo-micro');
     assert.ok(camoAnorak, 'Must find var-anorak-camo-micro');
     assert.equal(camoAnorak.variation_type, 'micro_batch');
     assert.equal(camoAnorak.sku, 'BWK-ANRK-CAMO-LTD');
+    assert.equal(
+      typeof camoAnorak.product_id === 'object' ? camoAnorak.product_id.id : camoAnorak.product_id,
+      'prod-bushwhack-anorak',
+      'Camo anorak variation must link to parent prod-bushwhack-anorak'
+    );
+
+    // Transitive Tier 1 verification via populated relationship
+    if (typeof camoAnorak.product_id === 'object' && camoAnorak.product_id.product_line_id) {
+      const line = camoAnorak.product_id.product_line_id;
+      const lineId = typeof line === 'object' ? line.id : line;
+      assert.equal(lineId, 'line-bushwhack-series', 'Transitive Tier 1 link verified');
+    }
   });
 
-  it('should update documents with document locking without throwing SQLite errors', async () => {
+  it('should test document locking and updates across Tier 1, Tier 2, and Tier 3 collections without SQLite errors', async () => {
     const db = setupTestDatabase();
     const payload = await getPayloadInstance(db);
 
@@ -168,6 +219,13 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
       data: { name: 'Field Accessories Updated' },
     });
     assert.equal(updatedCat.name, 'Field Accessories Updated');
+
+    const updatedLine = await payload.update({
+      collection: 'product_lines',
+      id: 'line-alpine-chest-rig',
+      data: { default_price: 180 },
+    });
+    assert.equal(updatedLine.default_price, 180);
 
     const updatedProd = await payload.update({
       collection: 'products',
@@ -182,5 +240,19 @@ describe('Story 3.1: Payload CMS Catalog API & D1 Relational Schema Alignment', 
       data: { price_override: 395 },
     });
     assert.equal(updatedVar.price_override, 395);
+
+    // Document locking verification across Tier 1, Tier 2, and Tier 3
+    db.exec(`
+      INSERT INTO payload_locked_documents (id, global_slug, updated_at, created_at) VALUES (1, NULL, datetime('now'), datetime('now'));
+      INSERT INTO payload_locked_documents_rels (id, _order, _parent_id, "order", parent_id, path, product_lines_id) VALUES (1, 1, 1, 1, 1, 'product_lines', 'line-alpine-chest-rig');
+      INSERT INTO payload_locked_documents_rels (id, _order, _parent_id, "order", parent_id, path, products_id) VALUES (2, 2, 1, 2, 1, 'products', 'prod-bushwhack-anorak');
+      INSERT INTO payload_locked_documents_rels (id, _order, _parent_id, "order", parent_id, path, product_variations_id) VALUES (3, 3, 1, 3, 1, 'product_variations', 'var-anorak-camo-micro');
+    `);
+
+    const locks = db.prepare('SELECT * FROM payload_locked_documents_rels ORDER BY id ASC').all() as any[];
+    assert.equal(locks.length, 3, 'Must record locks across all 3 tiers');
+    assert.equal(locks[0].product_lines_id, 'line-alpine-chest-rig', 'Tier 1 lock recorded');
+    assert.equal(locks[1].products_id, 'prod-bushwhack-anorak', 'Tier 2 lock recorded');
+    assert.equal(locks[2].product_variations_id, 'var-anorak-camo-micro', 'Tier 3 lock recorded');
   });
 });
