@@ -8,7 +8,7 @@ This document specifies the serverless relational database architecture, SQLite 
 
 - **Provider**: Cloudflare, Inc.
 - **Engine**: SQLite dialect running serverlessly across Cloudflare's global edge network.
-- **Role in ChrisShop**: Primary relational database for Payload CMS content collections (`categories`, `products`, `product_variations`, `media`).
+- **Role in ChrisShop**: Primary relational database for Payload CMS content collections (`categories`, `product_lines`, `products`, `product_variations`, `media`).
 - **Data Scope**: Content, artist statements, limited edition parameters, and media metadata. All customer payment data and checkout orders are owned by Shopify.
 - **Consistency Model**: Strongly consistent single-primary writes with globally distributed read replication.
 
@@ -31,6 +31,7 @@ Cloudflare D1 Paid Plan billing is determined by **Rows Read** and **Rows Writte
   ```sql
   CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
   CREATE INDEX IF NOT EXISTS idx_products_shopify_id ON products(shopify_product_id);
+  CREATE INDEX IF NOT EXISTS idx_product_lines_slug ON product_lines(slug);
   CREATE INDEX IF NOT EXISTS idx_variations_product_id ON product_variations(product_id);
   CREATE INDEX IF NOT EXISTS idx_variations_sku ON product_variations(sku);
   CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);

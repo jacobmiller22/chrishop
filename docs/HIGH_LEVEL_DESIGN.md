@@ -69,35 +69,60 @@ To combine boutique creative presentation with robust, PCI-compliant transaction
 | **Orders & Fulfillment**          | Shopify                         | Centralized merchant dashboard for shipping and labels   |
 | **Tax & Shipping Rules**          | Shopify                         | Configured once in Shopify Admin; calculated dynamically |
 
-### 3.2 Content Schema (Cloudflare D1 via Payload CMS)
+### 3.2 Content Schema (Cloudflare D1 via Payload CMS — Paradigm 1: Hybrid Product-First)
+
+The production catalog data model follows **Paradigm 1 (Hybrid Product-First with Optional Product Lines)** adopted in Story 3.18. Products are first-class, standalone entities enabling solo makers to publish 1-of-1 prototypes with zero parent container boilerplate, while optional `product_lines` provide shared storytelling and default price inheritance for major gear families.
 
 1. **`categories` (Collection)**
    - `id` (Text / UUID, Primary Key)
-   - `name` (Text, Required: e.g., "Original Sculptures", "Fine Art Prints")
+   - `name` (Text, Required: e.g., "Packs & Carry Systems", "Apparel & Outerwear")
    - `slug` (Text, Unique Index)
    - `description` (Text)
    - `image` (Upload relationship -> Cloudflare R2)
 
-2. **`products` (Collection)**
-   - `id` (Text / UUID, Primary Key)
+2. **`product_lines` (Collection — Optional Capsule / Series Container)**
+   - `id` (Text, Primary Key: e.g., `line-alpine-chest-rig`)
+   - `title` (Text, Required: e.g., "Alpine Chest Rig System", "Bushwhack Series")
+   - `slug` (Text, Unique Index: URL slug for capsule landing pages)
+   - `story` (Textarea: Shared narrative design philosophy and field testing background)
+   - `default_price` (Number, Optional: Default base price in USD inherited by member products)
+   - `hero_image` (Upload relationship -> `media`)
+   - `lookbook_gallery` (Array of Upload relationships -> `media` with captions)
+
+3. **`products` (Collection — Primary First-Class Catalog Entity)**
+   - `id` (Text, Primary Key: e.g., `prod-rig-minimalist`)
    - `shopify_product_id` (Text, Unique Index: Linked Shopify Product GID)
    - `title` (Text, Required)
    - `slug` (Text, Unique Index)
-   - `description` (Rich Text / Lexical)
-   - `artist_statement` (Text: Extended provenance and inspiration)
-   - `category_id` (Relationship -> `categories`)
-   - `featured_image` (Upload relationship -> Cloudflare R2)
-   - `gallery` (Array of Upload relationships -> Cloudflare R2)
-   - `base_price` (Number: Synchronized to default Shopify variant)
+   - `base_price` (Number, Required: Base price in USD; can be inherited from line `default_price`)
+   - `price` (Number, Optional: Direct price override)
+   - `sku` (Text, Unique SKU)
+   - `product_line_id` (Relationship -> `product_lines`, Optional)
+   - `category_id` (Relationship -> `categories`, Optional)
+   - `category` (Select: `packs`, `apparel`, `accessories`)
+   - `options` (Array: Embedded colorways, sizing, or material dimensions: `name`, `value`, `sku_suffix`)
    - `status` (Select: `draft`, `scheduled`, `active`, `archived`)
+   - `featured_image` (Upload relationship -> Cloudflare R2 `media`)
+   - `gallery` (Array of Upload relationships -> Cloudflare R2 `media`)
+   - `maker_field_notes` (Textarea: Bench and field testing notes)
+   - `artist_statement` (Textarea: Extended provenance and inspiration)
+   - `materials` (Text: Technical fabric specs and hardware)
+   - `weight` (Text: Garment or pack weight)
+   - `fit_profile` (Text: Fit characteristics or carrying ergonomics)
+   - `origin` (Text: Default: "Hand-crafted in Chris's workshop")
+   - `description` (Rich Text / Lexical: Full editorial description)
 
-3. **`product_variations` (Collection)**
-   - `id` (Text / UUID, Primary Key)
+4. **`product_variations` (Collection — Serialized & Limited Editions)**
+   - `id` (Text, Primary Key)
    - `product_id` (Relationship -> `products`)
    - `shopify_variant_id` (Text, Unique Index: Linked Shopify ProductVariant GID)
-   - `variation_name` (Text: e.g., "Obsidian Cast Edition")
+   - `variation_name` (Text: e.g., "Obsidian Dyneema Edition")
    - `sku` (Text, Unique Index)
-   - `price_override` (Number, Optional: Falls back to product base price)
+   - `variation_type` (Select: `standard`, `limited_edition`, `one_off_prototype`, `numbered_run`)
+   - `edition_badge` (Text: e.g., "Only 10 Crafted", "1-of-1 Workbench Prototype")
+   - `variation_notes` (Text: Serialized bench notes)
+   - `variation_images` (Array of Upload relationships -> `media`)
+   - `price_override` (Number, Optional: Overrides product base price)
    - `is_limited_edition` (Boolean, Default: true)
    - `total_edition_count` (Number: Total serialized prints/casts created)
    - `stock_quantity` (Number: Synced to Shopify inventory level)
@@ -106,8 +131,9 @@ To combine boutique creative presentation with robust, PCI-compliant transaction
 
 ### 3.3 Price Resolution Formula
 
-The storefront computes effective display prices consistently:
-$$\text{Effective Price} = \text{COALESCE}(\text{product\_variations.price\_override}, \text{products.base\_price})$$
+The storefront computes effective display prices via a unified cascading fallback:
+$$\text{Effective Base Price} = \text{COALESCE}(\text{products.price}, \text{products.base\_price}, \text{product\_lines.default\_price})$$
+$$\text{Effective Display Price} = \text{COALESCE}(\text{product\_variations.price\_override}, \text{Effective Base Price})$$
 
 At checkout time, Shopify Storefront API acts as the authoritative price validator, ensuring zero client-side tampering.
 
