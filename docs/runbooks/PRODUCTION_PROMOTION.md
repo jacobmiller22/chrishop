@@ -96,7 +96,10 @@ Upon push to `production`:
 4. **Job 4 (`deploy-production`) - ✋ Human Approval Gate**:
    - The workflow enters a `waiting` state under the `production` environment.
    - The designated reviewer (`jacobmiller22`) receives a notification to review the pending deployment in GitHub Actions.
-   - Once approved, Wrangler executes `deploy --env production`.
+   - Once approved:
+     - Terraform validates and reconciles production Cloudflare infrastructure.
+     - Automated D1 migrations are applied cleanly to the production database (`chrishop-prod-db`) via `pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote || true` prior to Worker deployment, preventing schema-code desynchronization.
+     - Wrangler executes `deploy --env production` to deploy the application bundle to Cloudflare Workers.
 5. **Job 5 (`verify-production`)**:
    - Probes `https://chrishop.jacobmiller22.com/api/health` and confirms HTTP 200 with all bindings active.
 
