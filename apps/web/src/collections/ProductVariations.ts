@@ -1,6 +1,28 @@
 import type { CollectionConfig } from 'payload';
 
 /**
+ * Derives a human-readable edition badge based on maker batch classification (Story 3.19)
+ */
+export function deriveEditionBadge(
+  variationType?: string | null,
+  totalEditionCount?: number | null
+): string {
+  switch (variationType) {
+    case 'one_of_one':
+      return '1-of-1 Prototype';
+    case 'micro_batch':
+      return totalEditionCount && totalEditionCount > 0
+        ? `Only ${totalEditionCount} Crafted`
+        : 'Limited Micro-Batch';
+    case 'prototype':
+      return 'Archive Sample';
+    case 'standard':
+    default:
+      return 'Standard Production';
+  }
+}
+
+/**
  * ProductVariations Collection Schema
  *
  * ARCHITECTURAL INVARIANT (Story 2.18 / HLD Section 3.2):
@@ -15,6 +37,19 @@ export const ProductVariations: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeChange: [
+      ({ data }) => {
+        if (data) {
+          // Auto-derive edition_badge if not explicitly provided
+          if (!data.edition_badge || (typeof data.edition_badge === 'string' && data.edition_badge.trim() === '')) {
+            data.edition_badge = deriveEditionBadge(data.variation_type, data.total_edition_count);
+          }
+        }
+        return data;
+      },
+    ],
   },
   fields: [
     {
