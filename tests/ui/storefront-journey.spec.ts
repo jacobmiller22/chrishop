@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Storefront Critical Path Journeys', () => {
   test('1. Homepage loads with BankBeaters branding, navigation, and drop countdown timer', async ({
     page,
+    isMobile,
   }) => {
     await page.goto('/');
 
@@ -19,9 +20,14 @@ test.describe('Storefront Critical Path Journeys', () => {
     await expect(countdownTimer.getByTestId('countdown-seconds')).toBeVisible();
 
     // Verify navigation links
-    const nav = page.locator('header nav');
-    await expect(nav.getByText(/Adventure Gear|All Gear|Field Gear|Active Drops/i).first()).toBeVisible();
-    await expect(page.getByTestId('header-cart-button').first()).toBeVisible();
+    if (isMobile) {
+      await expect(page.getByRole('button', { name: /toggle navigation menu/i })).toBeVisible();
+      await expect(page.getByTestId('header-cart-button').last()).toBeVisible();
+    } else {
+      const nav = page.locator('header nav');
+      await expect(nav.getByText(/Adventure Gear|All Gear|Field Gear|Active Drops/i).first()).toBeVisible();
+      await expect(page.getByTestId('header-cart-button').first()).toBeVisible();
+    }
   });
 
   test('2. Product catalog navigation and product detail view inspection', async ({
@@ -41,7 +47,11 @@ test.describe('Storefront Critical Path Journeys', () => {
     // Verify on product detail page
     await expect(page).toHaveURL(/\/products\/.+/);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByTestId('deploy-gear-button').first()).toBeVisible();
+    const deployButton = page
+      .getByTestId('deploy-gear-button')
+      .or(page.getByTestId('mobile-deploy-gear-button'))
+      .first();
+    await expect(deployButton).toBeVisible();
   });
 
   test('3. Edition variant selection updates price and SKU', async ({ page }) => {
@@ -69,7 +79,10 @@ test.describe('Storefront Critical Path Journeys', () => {
     await page.goto('/products/bushwhack-storm-anorak');
 
     // Add item to cart via deploy button
-    const deployButton = page.getByTestId('deploy-gear-button').first();
+    const deployButton = page
+      .getByTestId('deploy-gear-button')
+      .or(page.getByTestId('mobile-deploy-gear-button'))
+      .first();
     await expect(deployButton).toBeVisible();
     await deployButton.click();
 
@@ -97,7 +110,11 @@ test.describe('Storefront Critical Path Journeys', () => {
     await page.goto('/products/bushwhack-storm-anorak');
 
     // Open drawer by deploying gear
-    await page.getByTestId('deploy-gear-button').first().click();
+    const deployButton = page
+      .getByTestId('deploy-gear-button')
+      .or(page.getByTestId('mobile-deploy-gear-button'))
+      .first();
+    await deployButton.click();
     const drawer = page.getByTestId('cart-drawer');
     await expect(drawer).toBeVisible();
 

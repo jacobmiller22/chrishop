@@ -45,6 +45,7 @@ export const RichMediaViewer: React.FC<RichMediaViewerProps> = ({
   priority = false,
 }) => {
   const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const type = resolveMediaType(media);
@@ -128,8 +129,6 @@ export const RichMediaViewer: React.FC<RichMediaViewerProps> = ({
       </div>
     );
   }
-
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // 3. Still Photographic Image (with Progressive Blur-Up & Cloudflare Image Resizing srcset)
   const isInternalR2 =
