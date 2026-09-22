@@ -14,7 +14,45 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request): Promise<NextResponse>;
 export async function GET(): Promise<NextResponse>;
-export async function GET(_request?: Request): Promise<NextResponse> {
+export async function GET(request?: Request): Promise<NextResponse> {
+  // Support simulated outage for testing and on-call drills (Story 4.7)
+  const url = request ? new URL(request.url) : null;
+  const simulateParam = url?.searchParams.get('simulate');
+  const simulateHeader = request?.headers.get('x-simulate-health-status');
+
+  if (
+    simulateParam === '500' ||
+    simulateParam === 'downtime' ||
+    simulateParam === 'unhealthy' ||
+    simulateHeader === '500'
+  ) {
+    const errorPayload = {
+      status: 'unhealthy',
+      service: 'chrishop-edge-worker',
+      runtime: 'cloudflare-workers',
+      timestamp: new Date().toISOString(),
+      durationMs: 5,
+      simulated: true,
+      error: 'Simulated downtime drill (Story 4.7 / Better Stack Uptime Monitoring)',
+      probes: {
+        d1: { status: 'unhealthy', error: 'Simulated D1 connection timeout' },
+        kv: { status: 'healthy' },
+        shopify: { status: 'healthy' },
+        r2: { status: 'healthy' },
+      },
+    };
+
+    return NextResponse.json(errorPayload, {
+      status: 500,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+        'x-simulated-outage': 'true',
+      },
+    });
+  }
+
   const { payload, httpStatus } = await performHealthCheck();
 
   return NextResponse.json(payload, {
