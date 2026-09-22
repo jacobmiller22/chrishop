@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
  * ProductLines Collection Schema (Paradigm 1: Hybrid Product-First)
@@ -15,6 +16,9 @@ export const ProductLines: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdmin,
   },
   fields: [
     {

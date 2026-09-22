@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
  * Derives a human-readable edition badge based on maker batch classification (Story 3.19)
@@ -37,6 +38,9 @@ export const ProductVariations: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdmin,
   },
   hooks: {
     beforeChange: [

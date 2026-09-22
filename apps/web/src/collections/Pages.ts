@@ -7,6 +7,7 @@ import {
   MaterialProvenanceBlock,
 } from '../blocks';
 import { revalidatePage } from './hooks/revalidatePage';
+import { isAdmin, isAdminOrEditor } from '../access';
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -20,6 +21,9 @@ export const Pages: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdmin,
   },
   hooks: {
     afterChange: [revalidatePage],

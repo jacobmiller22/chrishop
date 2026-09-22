@@ -55,7 +55,52 @@ export function seedDatabase(dbInstance?: DatabaseSync) {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (product_line_id) REFERENCES product_lines(id)
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      roles TEXT DEFAULT '["editor"]',
+      totp_enabled INTEGER DEFAULT 0,
+      totp_secret TEXT,
+      totp_verified_at TEXT,
+      totp_backup_codes TEXT,
+      reset_password_token TEXT,
+      reset_password_expiration TEXT,
+      salt TEXT,
+      hash TEXT,
+      login_attempts NUMERIC DEFAULT 0,
+      lock_until TEXT
+    );
   `);
+
+  console.log('👤 [Seed RBAC] Seeding Default Admin and Editor Accounts...');
+  const users = [
+    {
+      email: 'admin@chrishop.com',
+      roles: JSON.stringify(['admin']),
+      totp_enabled: 1,
+    },
+    {
+      email: 'editor@chrishop.com',
+      roles: JSON.stringify(['editor']),
+      totp_enabled: 0,
+    },
+  ];
+
+  const insertUser = db.prepare(`
+    INSERT INTO users (email, roles, totp_enabled)
+    VALUES (?, ?, ?)
+    ON CONFLICT(email) DO UPDATE SET
+      roles=excluded.roles,
+      totp_enabled=excluded.totp_enabled;
+  `);
+
+  for (const u of users) {
+    insertUser.run(u.email, u.roles, u.totp_enabled);
+    console.log(`  User: ${u.email} (Roles: ${u.roles}, 2FA Enforced: ${u.totp_enabled === 1})`);
+  }
 
   console.log('🌱 [Seed Paradigm 1] Seeding Product Lines...');
   const lines = [

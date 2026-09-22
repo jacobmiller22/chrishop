@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 import { syncProductToShopify } from './hooks/syncProductToShopify';
+import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
  * Standard BankBeaters Technical Textile Presets (Story 3.19)
@@ -83,6 +84,9 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdmin,
   },
   hooks: {
     beforeChange: [
