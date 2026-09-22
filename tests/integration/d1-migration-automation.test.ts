@@ -230,7 +230,7 @@ describe('Story 4.3: Cloudflare D1 Migration Automation & Rollback Strategy', ()
       assert.ok(output.includes('D1 migration execution and validation finished successfully'));
     });
 
-    it('should verify that Miniflare D1 contains core tables and 9 migration records', () => {
+    it('should verify that Miniflare D1 contains core tables and all migration records', () => {
       const tablesJson = execSync(
         'pnpm exec wrangler d1 execute chrishop-prod-db --local --command "SELECT name FROM sqlite_master WHERE type=\'table\';" --json',
         { cwd: rootDir, encoding: 'utf-8' }
@@ -250,7 +250,10 @@ describe('Story 4.3: Cloudflare D1 Migration Automation & Rollback Strategy', ()
       );
       const parsedMigrations = JSON.parse(migrationsJson.match(/\[\s*\{[\s\S]*\}\s*\]/)![0]);
       const count = parsedMigrations[0].results[0].count;
-      assert.equal(count, 9, 'All 9 migrations must be recorded in d1_migrations');
+      const expectedCount = fs
+        .readdirSync(path.join(rootDir, 'migrations'))
+        .filter((f) => f.endsWith('.sql')).length;
+      assert.equal(count, expectedCount, `All ${expectedCount} migrations must be recorded in d1_migrations`);
     });
   });
 

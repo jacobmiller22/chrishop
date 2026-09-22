@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
  * Media Collection Schema
@@ -34,6 +35,9 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdmin,
   },
   hooks: {
     beforeChange: [

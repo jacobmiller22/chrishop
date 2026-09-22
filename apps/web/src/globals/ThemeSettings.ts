@@ -1,4 +1,5 @@
 import type { GlobalConfig } from 'payload';
+import { isAdmin } from '../access';
 
 export const FONT_PAIRING_PRESETS = [
   {
@@ -26,6 +27,7 @@ export const ThemeSettings: GlobalConfig = {
   label: 'Theme & Typography Settings',
   access: {
     read: () => true,
+    update: isAdmin,
   },
   hooks: {
     afterChange: [
