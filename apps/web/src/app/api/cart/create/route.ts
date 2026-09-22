@@ -45,12 +45,58 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Shopify Storefront API with forwarded buyer IP header
-    const shopifyResponse = await shopify.createCart(variantId, quantity, buyerIp);
+    let shopifyResponse: any;
+    try {
+      shopifyResponse = await shopify.createCart(variantId, quantity, buyerIp);
+    } catch (err: any) {
+      const errMsg = String(err?.message || '');
+      if (
+        errMsg.toLowerCase().includes('rate limit exceeded') ||
+        errMsg.includes('429') ||
+        errMsg.toLowerCase().includes('throttled')
+      ) {
+        return NextResponse.json(
+          {
+            error: "Drop traffic is surging! We're queuing your request, please retry in a moment.",
+            code: 'RATE_LIMIT_EXCEEDED',
+            retryAfterSec: 2,
+          },
+          {
+            status: 429,
+            headers: {
+              'Cache-Control': 'no-store',
+              'Retry-After': '2',
+            },
+          }
+        );
+      }
+      if (errMsg.includes('CIRCUIT_BREAKER_ACTIVE')) {
+        return NextResponse.json(
+          {
+            error: 'Checkout is temporarily paused during maintenance. Please check back shortly.',
+            code: 'CIRCUIT_BREAKER_ACTIVE',
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store' } }
+        );
+      }
+      throw err;
+    }
 
     const userErrors = shopifyResponse.data?.cartCreate?.userErrors;
     if (userErrors && userErrors.length > 0) {
+      const first = userErrors[0];
+      const isOutOfStock =
+        first.code === 'OUT_OF_STOCK' ||
+        first.message?.toLowerCase().includes('out of stock') ||
+        first.message?.toLowerCase().includes('exceeds available');
       return NextResponse.json(
-        { error: userErrors[0].message, userErrors },
+        {
+          error: isOutOfStock
+            ? 'The requested limited edition drop item is currently out of stock or reserved by another buyer.'
+            : first.message,
+          code: first.code || (isOutOfStock ? 'OUT_OF_STOCK' : 'USER_ERROR'),
+          userErrors,
+        },
         { status: 400, headers: { 'Cache-Control': 'no-store' } }
       );
     }
