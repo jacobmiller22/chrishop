@@ -44,6 +44,7 @@
     "dns:verify": "tsx scripts/verify-dns-caching-policy.ts",
     "metrics:verify": "tsx scripts/verify-metrics-catalog.ts",
     "dashboard:verify": "tsx scripts/verify-dashboard-architecture.ts",
+    "incident:verify": "tsx scripts/verify-incident-response.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
