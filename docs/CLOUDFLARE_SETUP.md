@@ -323,6 +323,11 @@ In Cloudflare Dashboard:
 2. Set Encryption Mode to **Full (Strict)**.
 3. Under **Edge Certificates**, confirm **Always Use HTTPS** and **Automatic HTTPS Rewrites** are enabled.
 
+### Official Production Domain Migration (`chrishop.com`)
+
+For zero-downtime cutover from `chrishop.jacobmiller22.com` to the official production domain `chrishop.com`, dual-routing worker configurations, Shopify Headless sales channel binding, and automated verification probes, refer to the operational runbook:
+- [`docs/runbooks/DOMAIN_MIGRATION_DNS_CUTOVER.md`](runbooks/DOMAIN_MIGRATION_DNS_CUTOVER.md)
+
 ---
 
 ## 8. Local Emulation via Miniflare (`wrangler dev`)
