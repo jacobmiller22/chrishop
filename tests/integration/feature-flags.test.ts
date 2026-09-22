@@ -408,5 +408,176 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
       assert.equal(headers['X-ChrisShop-Flag-KillSwitch'], 'false');
       assert.equal(headers['X-ChrisShop-Flag-CanaryPercent'], '100');
     });
+
+    it('should include X-ChrisShop-Flag-ReviewerOverride when session overrides are present', () => {
+      const flags = ENVIRONMENT_FLAG_DEFAULTS.preview;
+      const headers = generateFlagDebugHeaders(flags, 'preview', {
+        sessionFlags: { FLAG_IS_DROP_ACTIVE: false },
+      });
+
+      assert.equal(headers['X-ChrisShop-Flag-ReviewerOverride'], 'true');
+    });
+  });
+
+  // ----------------------------------------------------------------------------
+  // 7. Story 2.47: Decoupled Ephemeral PR Feature Flags & Precedence Cascade
+  // ----------------------------------------------------------------------------
+  describe('7. Story 2.47: Decoupled Ephemeral PR Feature Flags & Precedence Cascade', () => {
+    it('AC4 & AC6: PR worker variable overrides supersede Staging Flagship in preview', async () => {
+      // Staging Flagship has WireMock = false
+      mockFlagship.flags.set('FLAG_ENABLE_WIREMOCK', false);
+
+      // PR worker var has WireMock = true
+      const prEnv = {
+        FLAG_ENABLE_WIREMOCK: 'true',
+        FLAGS: mockFlagship,
+      };
+
+      const result = await evaluateFlag(
+        'FLAG_ENABLE_WIREMOCK',
+        false,
+        { environmentTier: 'preview' },
+        prEnv
+      );
+
+      assert.equal(result, true, 'PR worker var must supersede Staging Flagship binding in preview');
+    });
+
+    it('AC4 & AC6: Reviewer session query parameter overrides supersede PR worker vars in preview', async () => {
+      // PR worker var has WireMock = true
+      const prEnv = {
+        FLAG_ENABLE_WIREMOCK: 'true',
+        FLAGS: mockFlagship,
+      };
+
+      // Reviewer flipper passes session flag WireMock = false
+      const context: EvaluationContext = {
+        environmentTier: 'preview',
+        sessionFlags: { FLAG_ENABLE_WIREMOCK: false },
+      };
+
+      const result = await evaluateFlag('FLAG_ENABLE_WIREMOCK', true, context, prEnv);
+      assert.equal(result, false, 'Reviewer session flag must supersede PR worker vars in preview');
+    });
+
+    it('AC4 & AC6: Flags unspecified in PR vars cleanly cascade to Flagship staging binding and staging defaults', async () => {
+      // Flagship staging has drop active = false
+      mockFlagship.flags.set('FLAG_IS_DROP_ACTIVE', false);
+
+      // PR worker vars only specify WireMock
+      const prEnv = {
+        FLAG_ENABLE_WIREMOCK: 'true',
+        FLAGS: mockFlagship,
+      };
+
+      // Unspecified flag cascades to Staging Flagship
+      const dropResult = await evaluateFlag(
+        'FLAG_IS_DROP_ACTIVE',
+        true,
+        { environmentTier: 'preview' },
+        prEnv
+      );
+      assert.equal(dropResult, false, 'Unspecified flag must cascade to Staging Flagship');
+
+      // Flag missing from both PR vars and Flagship cascades to staging defaults
+      const canaryResult = await evaluateFlag(
+        'FLAG_PHASE_6_CANARY_PERCENT',
+        0,
+        { environmentTier: 'preview' },
+        prEnv
+      );
+      assert.equal(
+        canaryResult,
+        50,
+        'Unspecified flag missing from Flagship must cascade to staging default (50%)'
+      );
+    });
+
+    it('AC5: Reviewer query parameter and cookie flag overrides are STRICTLY IGNORED in production', async () => {
+      mockFlagship.flags.set('FLAG_IS_DROP_ACTIVE', false);
+
+      const prodContext: EvaluationContext = {
+        environmentTier: 'production',
+        sessionFlags: { FLAG_IS_DROP_ACTIVE: true }, // Malicious or testing override
+      };
+
+      const prodEnv = {
+        FLAGS: mockFlagship,
+      };
+
+      const result = await evaluateFlag(
+        'FLAG_IS_DROP_ACTIVE',
+        false,
+        prodContext,
+        prodEnv
+      );
+
+      assert.equal(
+        result,
+        false,
+        'Production must strictly ignore reviewer session overrides'
+      );
+    });
+
+    it('AC4: extractEvaluationContext extracts query params (?flag:KEY=val) and cookies in preview', () => {
+      const req = new Request(
+        'https://pr-233-chrishop.jacobmiller22.com/products?flag:FLAG_IS_DROP_ACTIVE=false&flag:wiremock=true',
+        {
+          headers: {
+            cookie: 'chrishop_flags_override=FLAG_MAINTENANCE_MODE:true',
+            'x-session-id': 'test-session-123',
+          },
+        }
+      );
+
+      // Mock process.env to preview
+      process.env.NODE_ENV = 'preview';
+      const context = extractEvaluationContext(req);
+
+      assert.equal(context.environmentTier, 'preview');
+      assert.ok(context.sessionFlags);
+      assert.equal(context.sessionFlags.FLAG_IS_DROP_ACTIVE, false);
+      assert.equal(context.sessionFlags.FLAG_ENABLE_WIREMOCK, true);
+      assert.equal(context.sessionFlags.FLAG_MAINTENANCE_MODE, true);
+    });
+
+    it('AC4: extractEvaluationContext parses JSON cookie overrides properly', () => {
+      const jsonCookie = encodeURIComponent(
+        JSON.stringify({ FLAG_DISABLE_CHECKOUT: true, FLAG_PHASE_6_CANARY_PERCENT: 80 })
+      );
+      const req = new Request('https://pr-233-chrishop.jacobmiller22.com/', {
+        headers: {
+          cookie: `chrishop_flags_override=${jsonCookie}`,
+        },
+      });
+
+      process.env.NODE_ENV = 'preview';
+      const context = extractEvaluationContext(req);
+
+      assert.ok(context.sessionFlags);
+      assert.equal(context.sessionFlags.FLAG_DISABLE_CHECKOUT, true);
+      assert.equal(context.sessionFlags.FLAG_PHASE_6_CANARY_PERCENT, 80);
+    });
+
+    it('AC5: extractEvaluationContext drops reviewer session flags when in production tier', () => {
+      const req = new Request(
+        'https://chrishop.jacobmiller22.com/products?flag:FLAG_IS_DROP_ACTIVE=true',
+        {
+          headers: {
+            cookie: 'chrishop_flags_override=FLAG_MAINTENANCE_MODE:true',
+          },
+        }
+      );
+
+      process.env.NODE_ENV = 'production';
+      const context = extractEvaluationContext(req);
+
+      assert.equal(context.environmentTier, 'production');
+      assert.equal(
+        context.sessionFlags,
+        undefined,
+        'extractEvaluationContext must drop sessionFlags in production'
+      );
+    });
   });
 });

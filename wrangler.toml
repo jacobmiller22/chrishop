@@ -153,7 +153,17 @@ binding = "BUCKET"
 bucket_name = "chrishop-media-preview"
 
 # Ephemeral Preview Feature Flags (Story 2.47 & ADR-001)
-# Ephemeral previews evaluate flags via: Reviewer Session (?flag:KEY=val) -> PR Worker Vars ([env.preview.vars]) -> Staging Flagship Fallback
+# Ephemeral previews evaluate flags via:
+# 1. Reviewer Session (?flag:KEY=val or cookie chrishop_flags_override)
+# 2. PR Worker Vars declared below in [env.preview.vars]
+# 3. Fallback to Staging Flagship App (<STAGING_FLAGSHIP_APP_ID>)
+# 4. Fallback to Staging Environment Defaults (ENVIRONMENT_FLAG_DEFAULTS.staging)
+#
+# Developers: Declare ONLY the flags your PR modifies below.
+# Unspecified flags automatically inherit live staging configuration and defaults.
+# [[env.preview.flagship]]
+# binding = "FLAGS"
+# app_id = "<STAGING_FLAGSHIP_APP_ID>"
 
 [env.preview.vars]
 NODE_ENV = "preview"
@@ -169,4 +179,5 @@ FLAG_DISABLE_CHECKOUT = "false"
 FLAG_VIP_EARLY_ACCESS = "true"
 FLAG_VERBOSE_DEBUG_HEADERS = "true"
 FLAG_PHASE_6_CANARY_PERCENT = "100"
+
 
