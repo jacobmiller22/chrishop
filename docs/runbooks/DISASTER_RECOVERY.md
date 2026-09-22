@@ -143,8 +143,9 @@ Execute the following verification steps immediately after completing an emergen
 3. **Payload CMS Admin**: Authenticate at `/admin` and confirm collection records load properly.
 4. **Shopify Cart Mutation**: Execute a test cart creation mutation to verify Shopify Storefront API connectivity.
 5. **Observability Verification**: Verify alert dispatch to Discord `#dev-alerts` and confirm error spikes in Sentry / Better Stack have subsided.
-6. **Automated Verification**: Run the automated rollback and D1 integration test suites:
+6. **Automated Verification**: Run the automated rollback and D1 integration test suites to verify system resilience:
    ```bash
+   pnpm run test:rollback
    pnpm exec tsx --test tests/integration/worker-instant-rollback.test.ts
    pnpm exec tsx --test tests/integration/d1-migration-automation.test.ts
    ```
