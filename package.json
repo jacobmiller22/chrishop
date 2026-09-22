@@ -18,6 +18,7 @@
     "test:unit": "turbo run test",
     "test:integration": "tsx --test --test-concurrency=1 tests/integration/**/*.test.ts",
     "test:responsive": "playwright test",
+    "test:parity": "tsx scripts/verify-parity.ts",
     "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:responsive",
     "verify:images": "tsx scripts/verify-image-pipeline.ts",
     "verify:local": "tsx scripts/verify-local.ts",

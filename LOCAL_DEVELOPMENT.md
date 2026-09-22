@@ -242,17 +242,21 @@ pnpm run test:integration
 # 4. Multi-Viewport Storefront Responsiveness Guardrails (Playwright)
 pnpm run test:responsive
 
-# 5. Run All Tests
+# 5. Environment Parity Verification (D1 Schema & Edge Runtime Probes)
+pnpm run test:parity --mock
+pnpm run test:parity --target staging --dry-run
+
+# 6. Run All Tests
 pnpm run test:all
 
-# 6. Production Build Validation (All Workspaces & Cloudflare Worker)
+# 7. Production Build Validation (All Workspaces & Cloudflare Worker)
 pnpm run build
 # Or explicitly build only apps or only worker bundle:
 pnpm run build:apps
 pnpm run build:worker
 pnpm run build:prod
 
-# 7. Turnkey Pre-PR Verification Pipeline (All 9 Stages)
+# 8. Turnkey Pre-PR Verification Pipeline (All 9 Stages)
 pnpm run verify:local
 ```
 

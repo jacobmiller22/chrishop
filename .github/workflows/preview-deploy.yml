@@ -147,26 +147,26 @@ jobs:
           command: deploy --env preview
 
 
-      - name: Verify Edge Health Probe
+      - name: Verify Ephemeral Preview Parity & Edge Health
         id: verify_edge
         if: steps.deploy.outcome == 'success'
         run: |
-          echo "Verifying edge health probe at ${PREVIEW_URL}/api/health..."
+          echo "Verifying ephemeral preview parity and edge health at ${PREVIEW_URL}..."
           MAX_ATTEMPTS=12
           ATTEMPT=0
           SUCCESS=0
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
-            echo "Health probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
-            if HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${PREVIEW_URL}/api/health") && [ "$HTTP_STATUS" = "200" ]; then
-              echo "Edge health probe passed (HTTP 200)!"
+            echo "Preview parity probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            if pnpm run test:parity --url "${PREVIEW_URL}" --env preview; then
+              echo "Preview parity and edge health probe passed!"
               SUCCESS=1
               break
             fi
             sleep 5
           done
           if [ $SUCCESS -ne 1 ]; then
-            echo "Edge health probe failed to reach ${PREVIEW_URL}/api/health after $MAX_ATTEMPTS attempts."
+            echo "Edge parity verification probe failed to reach ${PREVIEW_URL} after $MAX_ATTEMPTS attempts."
             exit 1
           fi
 
@@ -185,11 +185,11 @@ jobs:
 
             let body = '';
             if (deployOutcome === 'success' && verifyOutcome === 'success') {
-              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Edge Health Probe**: Verified (\`/api/health\` returned HTTP 200)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is merged or closed.*`;
+              body = `🚀 **Ephemeral PR Preview Ready & Verified!**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Environment Parity**: Verified (\`pnpm run test:parity\` passed)\n- **Edge Health & Bindings**: Verified (\`/api/health\`, \`/products\`, \`/admin\` healthy)\n- **Architecture**: Cloudflare Workers + D1 SQLite + Workers KV + R2\n- **Local In-Memory Integration Tests**: Passed\n\n*This environment will automatically tear down when the PR is merged or closed.*`;
             } else if (deployOutcome === 'skipped') {
               body = `⚠️ **Ephemeral PR Preview Skipped**\n\n- **Reason**: Cloudflare credentials (\`CLOUDFLARE_API_TOKEN\`, \`CLOUDFLARE_ACCOUNT_ID\`) are not configured in repository secrets.\n- **Local Verification**: Passed (typecheck, lint, unit tests, in-memory integration tests, build)\n- **Preview Environment**: Skipped deployment to edge\n\n*Configure Cloudflare repository secrets to enable automated preview environments on pull requests.*`;
             } else {
-              body = `❌ **Ephemeral PR Preview Deployment Failed**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Status**: Deployment or edge health verification failed.\n\n*Please inspect the GitHub Actions run logs for detailed diagnostic output.*`;
+              body = `❌ **Ephemeral PR Preview Deployment Failed**\n\n- **Preview Environment**: [${previewUrl}](${previewUrl})\n- **Status**: Deployment or edge parity verification failed.\n\n*Please inspect the GitHub Actions run logs for detailed diagnostic output.*`;
             }
 
             const { data: comments } = await github.rest.issues.listComments({

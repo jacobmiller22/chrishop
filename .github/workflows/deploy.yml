@@ -127,40 +127,53 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env staging
   test-staging:
-    name: Verify Staging Integration & Edge Health
+    name: Verify Staging Integration & Edge Parity
     runs-on: ubuntu-latest
     needs: [deploy-staging]
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
     steps:
-      - name: Staging Edge Health Probe Loop
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Staging Environment Parity Loop
         run: |
           STAGING_URL="https://staging-chrishop.jacobmiller22.com"
-          FALLBACK_URL="https://staging.chrishop.jacobmiller22.com"
-          echo "Probing staging edge health at ${STAGING_URL}/api/health..."
-
+          echo "Verifying staging edge parity and /api/health probe at ${STAGING_URL}..."
           MAX_ATTEMPTS=12
           ATTEMPT=0
           SUCCESS=0
 
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
-            echo "Staging health probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            echo "Staging parity probe attempt $ATTEMPT of $MAX_ATTEMPTS..."
 
-            HTTP_STATUS=$(curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 5 "${STAGING_URL}/api/health" || curl -s -o /tmp/health_res.json -w "%{http_code}" --max-time 5 "${FALLBACK_URL}/api/health" || true)
-
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "✅ Staging edge health probe succeeded with HTTP 200!"
-              cat /tmp/health_res.json
+            if pnpm run test:parity --target staging --url "${STAGING_URL}"; then
+              echo "✅ Staging environment parity and /api/health verified!"
               SUCCESS=1
               break
             fi
 
-            echo "Probe returned HTTP status: ${HTTP_STATUS}. Retrying in 5 seconds..."
+            echo "Parity probe returned failure. Retrying in 5 seconds..."
             sleep 5
           done
 
           if [ $SUCCESS -ne 1 ]; then
-            echo "❌ Staging edge health probe failed after $MAX_ATTEMPTS attempts."
+            echo "❌ Staging environment parity verification failed after $MAX_ATTEMPTS attempts."
             exit 1
           fi
 

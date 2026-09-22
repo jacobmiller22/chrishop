@@ -267,6 +267,7 @@ export default {
           headers: {
             "content-type": "application/json; charset=utf-8",
             "cache-control": "no-store",
+            "x-content-type-options": "nosniff",
           },
         }
       );
@@ -290,6 +291,9 @@ export default {
           const tablesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
           debugInfo.tables = (tablesResult?.results || []).map((t) => t.name);
 
+          const indexesResult = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'").all().catch(() => null);
+          debugInfo.indexes = (indexesResult?.results || []).map((i) => i.name);
+
           const migrationsResult = await env.DB.prepare("SELECT name FROM d1_migrations ORDER BY id ASC").all().catch(() => null);
           debugInfo.appliedMigrations = (migrationsResult?.results || []).map((m) => m.name);
 
@@ -311,6 +315,7 @@ export default {
         headers: {
           "content-type": "application/json; charset=utf-8",
           "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
         },
       });
     }
