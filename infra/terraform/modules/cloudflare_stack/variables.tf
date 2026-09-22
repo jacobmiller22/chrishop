@@ -62,3 +62,21 @@ variable "enable_media_cname" {
   default     = false
 }
 
+variable "enable_custom_error_pages" {
+  description = "Whether to configure custom branded error pages for 500-series and 1000-series errors"
+  type        = bool
+  default     = true
+}
+
+variable "custom_page_500_url" {
+  description = "URL where 500-errors.html is hosted"
+  type        = string
+  default     = ""
+}
+
+variable "custom_page_1000_url" {
+  description = "URL where 1000-errors.html is hosted"
+  type        = string
+  default     = ""
+}
+

@@ -28,6 +28,7 @@ export const STATIC_ASSET_REGEX =
 export function isStaticAssetRequest(pathname: string): boolean {
   if (pathname.startsWith('/_next/static/')) return true;
   if (pathname.startsWith('/api/media/file/')) return true;
+  if (pathname.startsWith('/error-pages/')) return true;
   if (pathname === '/favicon.ico' || pathname === '/robots.txt' || pathname === '/sitemap.xml') {
     return true;
   }
@@ -119,6 +120,15 @@ export function buildWorker(): void {
   }
   if (fs.existsSync(webPublicDir)) {
     fs.cpSync(webPublicDir, assetsDir, { recursive: true, dereference: false });
+  }
+
+  // Populate static error pages in assets/error-pages
+  const errorPagesSrcDir = path.resolve(rootDir, 'infra/cloudflare/error-pages');
+  const errorPagesDestDir = path.join(assetsDir, 'error-pages');
+  if (fs.existsSync(errorPagesSrcDir)) {
+    fs.mkdirSync(errorPagesDestDir, { recursive: true });
+    fs.cpSync(errorPagesSrcDir, errorPagesDestDir, { recursive: true });
+    console.log('  ✔ Synchronized Cloudflare custom error pages to assets/error-pages');
   }
 
   // Populate flat media files in assets/api/media/file so Payload media files resolve cleanly via env.ASSETS
@@ -257,6 +267,7 @@ import { maybeGetSkewProtectionResponse } from "./cloudflare/skew-protection.js"
 // @ts-expect-error: Will be resolved by wrangler build
 import { handler as middlewareHandler } from "./middleware/handler.mjs";
 import { handleOrderQueueBatch } from "../apps/web/src/lib/order-consumer.ts";
+import { executeWithEdgeTimeout } from "../apps/web/src/lib/edge-timeout.ts";
 
 const STATIC_ASSET_REGEX =
   /\\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|otf|map|txt|webmanifest|json)$/i;
@@ -264,6 +275,7 @@ const STATIC_ASSET_REGEX =
 function isStaticAssetRequest(pathname) {
   if (pathname.startsWith("/_next/static/")) return true;
   if (pathname.startsWith("/api/media/file/")) return true;
+  if (pathname.startsWith("/error-pages/")) return true;
   if (pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
     return true;
   }
@@ -451,30 +463,32 @@ export default {
         };
 
         try {
-          // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
-          // to preserve the request body stream and eliminate duplicate stream consumption.
-          const isMutation = request.method !== "GET" && request.method !== "HEAD";
-          let resp;
-          if (isMutation || url.pathname.startsWith("/api/")) {
-            resp = await handler(request, env, executionCtx, request.signal);
-          } else {
-            // Run Next.js edge middleware for GET/HEAD page navigation
-            const reqOrResp = await middlewareHandler(request, env, executionCtx);
-            if (reqOrResp instanceof Response) {
-              return reqOrResp;
+          return await executeWithEdgeTimeout(request, env, executionCtx, async (signal) => {
+            // For mutations (POST/PUT/PATCH/DELETE) or API routes, dispatch directly to server handler
+            // to preserve the request body stream and eliminate duplicate stream consumption.
+            const isMutation = request.method !== "GET" && request.method !== "HEAD";
+            let resp;
+            if (isMutation || url.pathname.startsWith("/api/")) {
+              resp = await handler(request, env, executionCtx, signal);
+            } else {
+              // Run Next.js edge middleware for GET/HEAD page navigation
+              const reqOrResp = await middlewareHandler(request, env, executionCtx);
+              if (reqOrResp instanceof Response) {
+                return reqOrResp;
+              }
+              resp = await handler(reqOrResp, env, executionCtx, signal);
             }
-            resp = await handler(reqOrResp, env, executionCtx, request.signal);
-          }
 
-          if (resp) {
-            const h = new Headers(resp.headers);
-            h.set("x-chrishop-commit-sha", "${buildCommitSha}");
-            if (resp.status >= 500 && lastError) {
-              h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+            if (resp) {
+              const h = new Headers(resp.headers);
+              h.set("x-chrishop-commit-sha", "${buildCommitSha}");
+              if (resp.status >= 500 && lastError) {
+                h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+              }
+              return new Response(resp.body, { status: resp.status, headers: h });
             }
-            return new Response(resp.body, { status: resp.status, headers: h });
-          }
-          return resp;
+            return resp;
+          });
         } finally {
           console.error = origError;
         }
