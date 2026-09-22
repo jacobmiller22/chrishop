@@ -1,14 +1,16 @@
 import Link from 'next/link';
 import { Card, Badge, Button } from '@chrishop/ui';
-import { fetchProducts, fetchCategories, getAssetUrl } from '@/lib/catalog';
+import { fetchProducts, fetchCategories, getAssetUrl, enrichProductsWithShopifyPricing } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
+import { ProductFilters } from './ProductFilters';
 
-export const dynamic = 'force-static';
 export const revalidate = 10;
 
 interface ProductsPageProps {
   searchParams?: Promise<{
     category?: string;
+    sort?: string;
+    type?: string;
   }>;
 }
 
@@ -18,8 +20,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   'field-accessories': '🧰',
   outerwear: '🌧️',
   'waterproof-storm-shells': '⚡',
+  'storm-shells': '⚡',
   pants: '👖',
   'technical-brush-pants': '🪨',
+  'brush-pants': '🪨',
   'sling-packs': '🎒',
   'chest-rigs': '🎣',
   'dry-bags': '🌊',
@@ -31,22 +35,66 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default async function ProductsPage(props: ProductsPageProps) {
   const searchParams = await props.searchParams;
   const activeCategory = searchParams?.category;
+  const activeSort = searchParams?.sort || 'latest';
+  const activeType = searchParams?.type || 'all';
 
-  const [products, categories] = await Promise.all([
+  const [rawProducts, categories] = await Promise.all([
     fetchProducts({ categorySlug: activeCategory }),
     fetchCategories(),
   ]);
 
-  // Find active category object if selected
-  const activeCategoryObj = categories.find((c) => c.slug === activeCategory || c.id === activeCategory);
+  // Enrich products with real-time Shopify Storefront pricing & stock
+  const enrichedProducts = await enrichProductsWithShopifyPricing(rawProducts);
 
-  // Separate top-level categories (depth 0) and subcategories
-  const topCategories = categories.filter((c) => !c.parent_id);
+  // Find active category object if selected
+  const activeCategoryObj = categories.find(
+    (c) => c.slug === activeCategory || c.id === activeCategory
+  );
+
+  // Apply batch type filtering
+  let products = enrichedProducts;
+  if (activeType === 'micro_batch') {
+    products = products.filter((p) =>
+      p.variations?.some(
+        (v) =>
+          v.variation_type === 'micro_batch' ||
+          v.variation_type === 'one_of_one' ||
+          v.is_limited_edition
+      )
+    );
+  } else if (activeType === 'standard') {
+    products = products.filter(
+      (p) =>
+        !p.variations?.some(
+          (v) =>
+            v.variation_type === 'micro_batch' ||
+            v.variation_type === 'one_of_one' ||
+            v.is_limited_edition
+        )
+    );
+  }
+
+  // Apply sorting
+  if (activeSort === 'price-asc') {
+    products = [...products].sort(
+      (a, b) => (a.effective_min_price ?? a.base_price) - (b.effective_min_price ?? b.base_price)
+    );
+  } else if (activeSort === 'price-desc') {
+    products = [...products].sort(
+      (a, b) => (b.effective_min_price ?? b.base_price) - (a.effective_min_price ?? a.base_price)
+    );
+  } else if (activeSort === 'title') {
+    products = [...products].sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  const hasActiveFilters = Boolean(
+    activeCategory || (activeSort && activeSort !== 'latest') || (activeType && activeType !== 'all')
+  );
 
   return (
     <div className="space-y-10">
-      {/* Page Header */}
-      <div className="border-b border-stone-800/80 pb-8 space-y-4">
+      {/* Page Header & Navigation */}
+      <div className="border-b border-stone-800/80 pb-8 space-y-6">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-stone-400 flex-wrap">
           <Link href="/" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
             Home
@@ -85,79 +133,32 @@ export default async function ProductsPage(props: ProductsPageProps) {
           </Badge>
         </div>
 
-        {/* Depth-2 Category Filter Pills */}
-        <div className="space-y-2 pt-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/products"
-              className={`min-h-[44px] inline-flex items-center px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
-                !activeCategory
-                  ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                  : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
-              }`}
-            >
-              All Gear ({products.length})
-            </Link>
-
-            {topCategories.map((cat) => {
-              const isSelected = activeCategory === cat.slug;
-              const icon = CATEGORY_ICONS[cat.slug] || '🎒';
-              return (
-                <Link
-                  key={cat.id}
-                  href={`/products?category=${cat.slug}`}
-                  className={`min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
-                    isSelected
-                      ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                      : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
-                  }`}
-                >
-                  <span>{icon}</span>
-                  <span>{cat.name}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Subcategory Pills (Level 1 & 2) */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-mono text-stone-500 uppercase mr-1">Sub-Categories:</span>
-            {categories
-              .filter((c) => Boolean(c.parent_id))
-              .map((cat) => {
-                const isSelected = activeCategory === cat.slug;
-                return (
-                  <Link
-                    key={cat.id}
-                    href={`/products?category=${cat.slug}`}
-                    className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono transition-all ${
-                      isSelected
-                        ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
-                        : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'
-                    }`}
-                  >
-                    {cat.name}
-                  </Link>
-                );
-              })}
-          </div>
-        </div>
+        {/* Interactive Filter Drawer & Category Toolbar */}
+        <ProductFilters
+          categories={categories}
+          activeCategory={activeCategory}
+          activeSort={activeSort}
+          activeType={activeType}
+          totalCount={products.length}
+        />
       </div>
 
       {/* Catalog Grid */}
       {products.length === 0 ? (
         <div className="text-center py-16 bg-[#15191E] border border-stone-800 rounded-2xl p-8 space-y-4">
           <span className="text-5xl">🎒</span>
-          <h2 className="text-xl font-bold text-stone-200 font-mono uppercase">No Gear In This Category</h2>
+          <h2 className="text-xl font-bold text-stone-200 font-mono uppercase">
+            {hasActiveFilters ? 'No Matching Gear Found' : 'No Gear In This Category'}
+          </h2>
           <p className="text-stone-400 text-sm max-w-md mx-auto">
-            {activeCategory
-              ? `No published equipment found under category "${activeCategory}". View all categories to see available small batches.`
+            {hasActiveFilters
+              ? 'No equipment matches the active category, batch type, or filter combination. Reset filters to explore all bench builds.'
               : 'The equipment catalog is being prepared on the workbench. Check back shortly for active drops!'}
           </p>
-          {activeCategory && (
+          {hasActiveFilters && (
             <Link href="/products">
-              <Button variant="outline" size="sm" className="mt-2 font-mono text-xs">
-                View All Categories
+              <Button variant="outline" size="sm" className="mt-2 font-mono text-xs min-h-[44px]">
+                Reset All Filters
               </Button>
             </Link>
           )}
@@ -170,7 +171,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
               (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🎒';
             const price = product.effective_min_price ?? product.base_price;
             const hasMicroBatch = product.variations?.some(
-              (v) => v.variation_type === 'micro_batch' || v.variation_type === 'one_of_one'
+              (v) => v.variation_type === 'micro_batch' || v.variation_type === 'one_of_one' || v.is_limited_edition
             );
 
             return (
