@@ -22,6 +22,18 @@ const webOpenNextDir = path.join(webAppDir, '.open-next');
 const webNextStaticDir = path.join(webAppDir, '.next/static');
 const webPublicDir = path.join(webAppDir, 'public');
 
+export const STATIC_ASSET_REGEX =
+  /\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|otf|map|txt|webmanifest|json)$/i;
+
+export function isStaticAssetRequest(pathname: string): boolean {
+  if (pathname.startsWith('/_next/static/')) return true;
+  if (pathname.startsWith('/api/media/file/')) return true;
+  if (pathname === '/favicon.ico' || pathname === '/robots.txt' || pathname === '/sitemap.xml') {
+    return true;
+  }
+  return STATIC_ASSET_REGEX.test(pathname);
+}
+
 export function buildWorker(): void {
   const startTime = Date.now();
   console.log('⚡ Building ChrisShop Unified Cloudflare Worker bundle (.open-next/worker.js)...');
@@ -235,6 +247,18 @@ import { maybeGetSkewProtectionResponse } from "./cloudflare/skew-protection.js"
 import { handler as middlewareHandler } from "./middleware/handler.mjs";
 import { handleOrderQueueBatch } from "../apps/web/src/lib/order-consumer.ts";
 
+const STATIC_ASSET_REGEX =
+  /\\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|woff|woff2|ttf|eot|otf|map|txt|webmanifest|json)$/i;
+
+function isStaticAssetRequest(pathname) {
+  if (pathname.startsWith("/_next/static/")) return true;
+  if (pathname.startsWith("/api/media/file/")) return true;
+  if (pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
+    return true;
+  }
+  return STATIC_ASSET_REGEX.test(pathname);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const executionCtx =
@@ -346,11 +370,13 @@ export default {
       }
     }
 
-    // 3. Static Assets Bridge (env.ASSETS)
-    // Only query static assets for GET/HEAD requests outside /api/* (except /api/media/file/*) to avoid consuming mutation request bodies
+    // 3. Deterministic Static Assets Bridge (env.ASSETS)
+    // Only route requests matching static asset paths or extensions to env.ASSETS.
+    // Bypassing env.ASSETS for dynamic routes (/, /products, /admin, /drops) eliminates speculative 404 subrequests
+    // and prevents locking or consuming the request body stream on mutations.
     if (
       (request.method === "GET" || request.method === "HEAD") &&
-      (!url.pathname.startsWith("/api/") || url.pathname.startsWith("/api/media/file/")) &&
+      isStaticAssetRequest(url.pathname) &&
       env.ASSETS &&
       typeof env.ASSETS.fetch === "function"
     ) {
