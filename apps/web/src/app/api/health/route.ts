@@ -24,6 +24,7 @@ export async function GET(_request?: Request): Promise<NextResponse> {
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
       'x-response-time-ms': String(payload.durationMs),
+      'x-chrishop-commit-sha': payload.commitSha || 'dev-local',
     },
   });
 }

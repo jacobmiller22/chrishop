@@ -21,6 +21,10 @@ export interface HealthResponsePayload {
   runtime: string;
   timestamp: string;
   durationMs: number;
+  commitSha: string;
+  shortSha: string;
+  buildTimestamp: string;
+  environment: string;
   bindings: {
     d1: boolean;
     kv: boolean;
@@ -236,7 +240,27 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
   const httpStatus = isHealthy ? 200 : 503;
   const durationMs = Date.now() - startTime;
 
-  // 7. Dispatch Alert on Failure (out-of-band)
+  // 7. Commit SHA & Build Runtime Metadata (Story 4.23)
+  const commitSha =
+    (env.NEXT_PUBLIC_COMMIT_SHA as string) ||
+    (env.CF_PAGES_COMMIT_SHA as string) ||
+    (env.COMMIT_SHA as string) ||
+    (env.GIT_COMMIT_SHA as string) ||
+    (g.COMMIT_SHA as string) ||
+    'dev-local';
+  const shortSha = commitSha.length >= 7 ? commitSha.slice(0, 7) : commitSha;
+  const buildTimestamp =
+    (env.BUILD_TIMESTAMP as string) ||
+    (env.NEXT_PUBLIC_BUILD_TIMESTAMP as string) ||
+    (g.BUILD_TIMESTAMP as string) ||
+    new Date().toISOString();
+  const environment =
+    (env.ENVIRONMENT as string) ||
+    (env.NEXT_PUBLIC_VERCEL_ENV as string) ||
+    (env.NODE_ENV as string) ||
+    'production';
+
+  // 8. Dispatch Alert on Failure (out-of-band)
   if (!isHealthy) {
     void dispatchHealthAlert(overallStatus, failedProbes).catch((alertErr) => {
       console.error('[HealthCheck:AlertDispatchFailed]', alertErr);
@@ -249,6 +273,10 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
     runtime: 'cloudflare-workers',
     timestamp: new Date().toISOString(),
     durationMs,
+    commitSha,
+    shortSha,
+    buildTimestamp,
+    environment,
     bindings,
     probes: {
       d1: d1Probe,

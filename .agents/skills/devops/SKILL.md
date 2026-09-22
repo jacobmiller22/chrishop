@@ -37,8 +37,12 @@ ChrisShop enforces a strict two-stage git promotion pipeline:
         │
         ├─► 1. Run Build, Lint, Typecheck & Unit Tests (build-and-validate)
         ├─► 2. Deploy to Cloudflare Workers Staging Edge (deploy-staging)
-        ├─► 3. Probe Staging Edge Health (/api/health) (test-staging) (MUST PASS)
+        ├─► 3. Staging Edge Verification & SHA Integrity Suite (test-staging)
+        │       ├─► Checkpoint A: Pre-Test Staging Edge Commit Hash Assertion
+        │       ├─► Checkpoint B: Staging Environment Parity Loop (/api/health)
+        │       └─► Checkpoint C: Post-Test Staging SHA Integrity Check (Anti-Mutation)
         ├─► 4. ✋ Await Human Reviewer Approval (GitHub Actions Environment Gate: jacobmiller22)
+        │       └─► Pre-Approval Production Target Commit Validation (HEAD == Trigger SHA)
         ├─► 5. Deploy to Production Edge (https://chrishop.jacobmiller22.com) & Verify (deploy-production)
         └─► 6. Dispatch Discord #dev-alerts Status Alert (notify-deployment)
 ```
@@ -47,7 +51,10 @@ ChrisShop enforces a strict two-stage git promotion pipeline:
 
 1. **Default PR Target**: The repository default branch is `staging`. All standard feature branches, bugfixes, and refactors target `staging` by default.
 2. **Promotion Hierarchy Enforcement**: Direct pull requests or pushes to `production` from any branch other than `staging` are strictly rejected by the CI check `enforce-promotion-rules` (`.github/workflows/ci.yml`).
-3. **Automated Staging Gate**: Production deployments automatically re-deploy and verify the health of the staging edge (`https://staging-chrishop.jacobmiller22.com/api/health`) before requesting human approval.
+3. **Commit Hash Verification (Story 4.23)**:
+   - **Pre-Test Staging SHA Assertion**: Before tests execute, probes `staging-chrishop.jacobmiller22.com/api/health` and asserts that the live edge `commitSha` matches the candidate commit.
+   - **Post-Test Mutation Guard**: Immediately after tests pass, re-probes staging to detect and reject mid-test mutations or interleaving merges.
+   - **Pre-Approval Gate**: Asserts that the commit being approved and compiled strictly matches the release candidate SHA.
 4. **Human Reviewer Gate**: Production deployments pause at the GitHub Actions `production` environment, requiring explicit sign-off from designated reviewers (`jacobmiller22`).
 5. **Post-Deployment Health Probe**: Once deployed, the edge health endpoint (`https://chrishop.jacobmiller22.com/api/health`) is probed up to 12 times to confirm live operational status.
 6. **Automated Discord Alerts**: Dispatches rich embedded operational status notifications to `#dev-alerts` via incoming webhook on both successful deployments and regressions.
@@ -126,8 +133,12 @@ gh run watch <run-id>
 #### The 5 Stages Explained:
 - **Stage 1: `build-and-validate`**: Builds application, checks bundle budget, runs unit tests and linter.
 - **Stage 2: `deploy-staging`**: Deploys the release bundle to Cloudflare Workers staging edge.
-- **Stage 3: `test-staging`**: Probes `https://staging-chrishop.jacobmiller22.com/api/health` up to 12 times.
+- **Stage 3: `test-staging`**:
+  - **Pre-Test Staging Edge Commit Hash Assertion**: Probes `https://staging-chrishop.jacobmiller22.com/api/health` and verifies that the live edge `commitSha` matches the candidate commit SHA before tests run.
+  - **Staging Environment Parity Loop**: Executes 12-attempt health and parity test suite against the staging edge.
+  - **Post-Test Staging SHA Integrity Check**: Re-probes staging `/api/health` post-test to confirm the edge SHA has not drifted mid-test due to interleaving merges.
 - **Stage 4: `deploy-production` (✋ Human Gate)**:
+  - **Pre-Approval Production Target Commit Validation**: Asserts local checkout HEAD strictly matches the trigger commit SHA prior to prompting reviewer.
   - When the run transitions to `waiting`, **immediately alert the user**:
     > ✋ **ACTION REQUIRED**: Production deployment is paused at the GitHub Actions Environment Approval Gate.
     >
@@ -176,14 +187,23 @@ pnpm exec wrangler rollback --env production
 
 ## 3. Automation Tooling (`scripts/promote-production.ts`)
 
-ChrisShop provides an automated TypeScript CLI script for production promotion:
+ChrisShop provides an automated TypeScript CLI script for production promotion with built-in commit hash verification:
 
 ```bash
-# Dry-run inspection (probes staging & production, lists pending commits, simulates PR)
+# Dry-run inspection (probes staging & production, lists pending commits, verifies SHAs)
 pnpm run deploy:prod --dry-run
 
 # Run full promotion with staging health probe and PR creation
 pnpm run deploy:prod
+
+# Enforce commit SHA verification (enabled by default)
+pnpm exec tsx scripts/promote-production.ts --verify-sha
+
+# Bypass SHA verification if troubleshooting edge propagation delays
+pnpm exec tsx scripts/promote-production.ts --no-verify-sha
+
+# Wait and poll up to 12 attempts for staging edge to finish propagating candidate commit
+pnpm exec tsx scripts/promote-production.ts --wait-for-staging
 
 # Probe staging and production edge health only
 pnpm run deploy:prod --probe-only
@@ -194,7 +214,29 @@ pnpm run deploy:prod --create-pr-only
 
 ---
 
-## 4. DevOps Tooling & Scripts Inventory
+## 4. Promotion Integrity & Immutable Version Promotion Protocol (Story 4.23)
+
+### Pattern A: Runtime Commit Hash Verification (Current Production Standard)
+ChrisShop currently operates under Pattern A:
+1. **Worker Build Injection**: `scripts/build-worker.ts` bakes `buildCommitSha`, `buildShortSha`, and `buildIsoTimestamp` directly into the worker runtime bundle.
+2. **Runtime Endpoint & Headers**: `GET /api/health` exposes `commitSha`, `shortSha`, `buildTimestamp`, and `environment`, and returns `x-chrishop-commit-sha` in the HTTP response headers.
+3. **Triple Checkpoints**:
+   - **Pre-Test Assertion**: Confirms staging edge is running the candidate commit before tests execute.
+   - **Post-Test Mutation Guard**: Confirms staging edge did not receive an interleaving deployment during test execution.
+   - **Pre-Approval Gate**: Validates target commit identity prior to human reviewer approval.
+
+### Pattern B: Cloudflare Workers Immutable Version Promotion (`wrangler versions promote`)
+Pattern B decouples deployment from source rebuilding by promoting immutable bytecode:
+1. **Upload**: `wrangler versions upload --message "Candidate ${{ github.sha }}"` compiles and uploads the Worker bundle once, yielding an immutable Version ID.
+2. **Staging Deploy**: `wrangler versions deploy <version-id>@100% --env staging` activates that exact binary on staging.
+3. **Validate**: Integration and parity tests validate the exact artifact.
+4. **Promote**: `wrangler versions promote <version-id>@100% --env production` activates that exact same immutable artifact on production with zero rebuilds.
+
+This architecture completely eliminates build artifact divergence and environment drift, paving the way for Cloudflare Gradual Deployments (canary releases).
+
+---
+
+## 5. DevOps Tooling & Scripts Inventory
 
 The DevOps engineer must be familiar with the location and role of all automation scripts in the monorepo:
 
@@ -229,7 +271,7 @@ The DevOps engineer must be familiar with the location and role of all automatio
 
 ---
 
-## 5. Emergency Rollback Procedures
+## 6. Emergency Rollback Procedures
 
 If unexpected regressions, edge routing exceptions, or downtime occur in production:
 

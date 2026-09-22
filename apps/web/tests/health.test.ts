@@ -38,6 +38,10 @@ describe('Story 4.2: Cloudflare Workers Health Checks & Edge Monitoring (/api/he
       assert.equal(body.runtime, 'cloudflare-workers');
       assert.ok(body.timestamp, 'Response must include timestamp');
       assert.ok(typeof body.durationMs === 'number', 'Response must include durationMs');
+      assert.ok(body.commitSha, 'Response must include commitSha');
+      assert.ok(body.shortSha, 'Response must include shortSha');
+      assert.ok(body.buildTimestamp, 'Response must include buildTimestamp');
+      assert.ok(body.environment, 'Response must include environment');
       assert.ok(body.bindings, 'Response must include bindings object');
       assert.ok(body.probes, 'Response must include probes object');
 
@@ -45,6 +49,24 @@ describe('Story 4.2: Cloudflare Workers Health Checks & Edge Monitoring (/api/he
       assert.equal(response.headers.get('cache-control'), 'no-store');
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
       assert.ok(response.headers.get('x-response-time-ms'));
+      assert.equal(response.headers.get('x-chrishop-commit-sha'), body.commitSha);
+    });
+
+    it('should expose custom commitSha and shortSha when configured in environment', async () => {
+      process.env.COMMIT_SHA = 'a1b2c3d4e5f6789012345678901234567890abcd';
+      process.env.ENVIRONMENT = 'staging';
+
+      const response = await GET();
+      assert.equal(response.status, 200);
+
+      const body = await response.json();
+      assert.equal(body.commitSha, 'a1b2c3d4e5f6789012345678901234567890abcd');
+      assert.equal(body.shortSha, 'a1b2c3d');
+      assert.equal(body.environment, 'staging');
+      assert.equal(
+        response.headers.get('x-chrishop-commit-sha'),
+        'a1b2c3d4e5f6789012345678901234567890abcd'
+      );
     });
 
     it('should report all 6 bindings active when configured in environment', async () => {

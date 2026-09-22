@@ -231,6 +231,17 @@ if (typeof globalThis.FinalizationRegistry === "undefined") {
   fs.writeFileSync(path.join(openNextDir, 'edge-env.js'), edgeEnvContent, 'utf-8');
 
   // 5. Generate Unified Cloudflare Worker Entrypoint (.open-next/worker.js)
+  let buildCommitSha = process.env.COMMIT_SHA || process.env.GITHUB_SHA || '';
+  if (!buildCommitSha) {
+    try {
+      buildCommitSha = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+    } catch {
+      buildCommitSha = 'dev-local';
+    }
+  }
+  const buildShortSha = buildCommitSha.slice(0, 7);
+  const buildIsoTimestamp = new Date().toISOString();
+
   const workerContent = `/**
  * ChrisShop Unified Edge Worker Entrypoint
  * Option B: Single Worker Architecture (Storefront + Genuine Payload CMS v3)
@@ -278,12 +289,21 @@ export default {
         cms: Boolean(env.CMS_URL || env.PAYLOAD_PUBLIC_SERVER_URL),
       };
 
+      const commitSha = "${buildCommitSha}";
+      const shortSha = "${buildShortSha}";
+      const buildTimestamp = "${buildIsoTimestamp}";
+      const environment = env.ENVIRONMENT || env.NEXT_PUBLIC_VERCEL_ENV || "production";
+
       return new Response(
         JSON.stringify({
           status: "healthy",
           service: "@chrishop/web",
           runtime: "cloudflare-workers",
           timestamp: new Date().toISOString(),
+          commitSha,
+          shortSha,
+          buildTimestamp,
+          environment,
           bindings,
         }),
         {
@@ -292,6 +312,7 @@ export default {
             "content-type": "application/json; charset=utf-8",
             "cache-control": "no-store",
             "x-content-type-options": "nosniff",
+            "x-chrishop-commit-sha": commitSha,
           },
         }
       );
@@ -445,9 +466,12 @@ export default {
             resp = await handler(reqOrResp, env, executionCtx, request.signal);
           }
 
-          if (resp && resp.status >= 500 && lastError) {
+          if (resp) {
             const h = new Headers(resp.headers);
-            h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+            h.set("x-chrishop-commit-sha", "${buildCommitSha}");
+            if (resp.status >= 500 && lastError) {
+              h.set("x-debug-server-error", encodeURIComponent(lastError.slice(0, 1500)));
+            }
             return new Response(resp.body, { status: resp.status, headers: h });
           }
           return resp;
