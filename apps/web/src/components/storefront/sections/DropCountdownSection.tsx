@@ -1,6 +1,9 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
+import { trackCountdownView } from '../../../lib/funnel-client';
 
 export interface DropCountdownSectionProps {
   title?: string;
@@ -19,6 +22,13 @@ export const DropCountdownSection: React.FC<DropCountdownSectionProps> = ({
   ctaHref = '/drops',
   teaserNotes = 'Small batch run of serialized Alpine Chest Rigs sewn from salvaged multicam sailcloth and Mil-Spec Cordura.',
 }) => {
+  useEffect(() => {
+    trackCountdownView('leadville-drop', 'drop-countdown-section', {
+      title,
+      subtitle,
+      targetDate,
+    });
+  }, [title, subtitle, targetDate]);
   return (
     <section data-testid="section-drop-countdown" className="space-y-6">
       <Card className="bg-[#12161B] border-stone-800 p-8 sm:p-10 rounded-2xl relative overflow-hidden shadow-2xl">

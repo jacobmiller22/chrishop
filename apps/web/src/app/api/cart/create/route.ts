@@ -6,6 +6,7 @@ import {
   runWithTraceContext,
   withTraceHeaders,
 } from '../../../../lib/tracing';
+import { recordFunnelEvent } from '../../../../lib/funnel-telemetry';
 
 export async function POST(request: NextRequest) {
   const trace = extractTraceHeaders(request);
@@ -14,7 +15,14 @@ export async function POST(request: NextRequest) {
     try {
       const buyerIp = extractBuyerIp(request);
       const body = await request.json();
-      const { variantId, quantity = 1, turnstileToken } = body;
+      const {
+        variantId,
+        quantity = 1,
+        turnstileToken,
+        dropId = 'bankbeaters-leadville',
+        productId,
+        sessionId,
+      } = body;
 
       if (!variantId) {
         const res = NextResponse.json(
@@ -66,6 +74,17 @@ export async function POST(request: NextRequest) {
           errMsg.includes('429') ||
           errMsg.toLowerCase().includes('throttled')
         ) {
+          recordFunnelEvent({
+            event_name: 'cart_create_result',
+            outcome: 'rate_limited',
+            drop_id: dropId,
+            product_id: productId || variantId,
+            variant_id: variantId,
+            session_id: sessionId,
+            correlation_id: trace.requestId,
+            metadata: { error: 'RATE_LIMIT_EXCEEDED', buyerIp },
+          });
+
           const res = NextResponse.json(
             {
               error: "Drop traffic is surging! We're queuing your request, please retry in a moment.",
@@ -83,6 +102,17 @@ export async function POST(request: NextRequest) {
           return withTraceHeaders(res, trace);
         }
         if (errMsg.includes('CIRCUIT_BREAKER_ACTIVE')) {
+          recordFunnelEvent({
+            event_name: 'cart_create_result',
+            outcome: 'failure',
+            drop_id: dropId,
+            product_id: productId || variantId,
+            variant_id: variantId,
+            session_id: sessionId,
+            correlation_id: trace.requestId,
+            metadata: { error: 'CIRCUIT_BREAKER_ACTIVE', buyerIp },
+          });
+
           const res = NextResponse.json(
             {
               error: 'Checkout is temporarily paused during maintenance. Please check back shortly.',
@@ -102,6 +132,22 @@ export async function POST(request: NextRequest) {
           first.code === 'OUT_OF_STOCK' ||
           first.message?.toLowerCase().includes('out of stock') ||
           first.message?.toLowerCase().includes('exceeds available');
+
+        recordFunnelEvent({
+          event_name: 'cart_create_result',
+          outcome: isOutOfStock ? 'out_of_stock' : 'failure',
+          drop_id: dropId,
+          product_id: productId || variantId,
+          variant_id: variantId,
+          session_id: sessionId,
+          correlation_id: trace.requestId,
+          metadata: {
+            error: first.code || (isOutOfStock ? 'OUT_OF_STOCK' : 'USER_ERROR'),
+            errorMessage: first.message,
+            buyerIp,
+          },
+        });
+
         const res = NextResponse.json(
           {
             error: isOutOfStock
@@ -117,12 +163,39 @@ export async function POST(request: NextRequest) {
 
       const cart = shopifyResponse.data?.cartCreate?.cart;
       if (!cart) {
+        recordFunnelEvent({
+          event_name: 'cart_create_result',
+          outcome: 'failure',
+          drop_id: dropId,
+          product_id: productId || variantId,
+          variant_id: variantId,
+          session_id: sessionId,
+          correlation_id: trace.requestId,
+          metadata: { error: 'MISSING_CART_RESPONSE', buyerIp },
+        });
+
         const res = NextResponse.json(
           { error: 'Failed to create Shopify cart' },
           { status: 502, headers: { 'Cache-Control': 'no-store' } }
         );
         return withTraceHeaders(res, trace);
       }
+
+      recordFunnelEvent({
+        event_name: 'cart_create_result',
+        outcome: 'cart_create_success',
+        drop_id: dropId,
+        product_id: productId || variantId,
+        variant_id: variantId,
+        session_id: sessionId,
+        correlation_id: trace.requestId,
+        metadata: {
+          cartId: cart.id,
+          checkoutUrl: cart.checkoutUrl,
+          quantity,
+          buyerIp,
+        },
+      });
 
       const res = NextResponse.json(
         {

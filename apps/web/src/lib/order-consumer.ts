@@ -10,6 +10,7 @@ import {
   type WebhookDispatchResult,
 } from '@chrishop/notifications';
 import type { Order, ShippingAddress } from '@chrishop/types';
+import { recordFunnelEvent } from './funnel-telemetry';
 
 export { formatCarrierTrackingUrl, type ShippingUpdatePayload };
 
@@ -784,6 +785,30 @@ export async function processOrderEvent(
 
   const { order, receipt, rawLineItems } = normalizeOrderEvent(messagePayload.order);
   const lowStockThreshold = options.lowStockThreshold ?? LOW_STOCK_THRESHOLD;
+
+  // Stage 6: Shopify Order Paid / Completed Funnel Telemetry (order_completed)
+  try {
+    const firstLine = rawLineItems?.[0];
+    const anyFirstLine = firstLine as any;
+    recordFunnelEvent({
+      event_name: 'order_completed',
+      drop_id: anyFirstLine?.properties?.find?.((p: any) => p.name === 'drop_id')?.value || 'bankbeaters-leadville',
+      product_id: anyFirstLine?.product_id ? String(anyFirstLine.product_id) : String(firstLine?.id || order.id),
+      variant_id: firstLine?.variant_id ? String(firstLine.variant_id) : undefined,
+      correlation_id: messagePayload.eventId || `ord-${order.id}`,
+      outcome: 'success',
+      metadata: {
+        orderId: order.id,
+        orderNumber: receipt.order_number,
+        totalPrice: receipt.amount_total,
+        currency: (order as any).currency || 'USD',
+        itemsCount: receipt.items?.length || 0,
+        topic,
+      },
+    });
+  } catch (err) {
+    console.error('[OrderConsumer:FunnelTelemetryFailure]', err);
+  }
 
   // 1. Customer Order Receipt (Resend)
   // Story 3.9: Transactional Email Policy & Customer Notification Disambiguation (Shopify vs. Resend)

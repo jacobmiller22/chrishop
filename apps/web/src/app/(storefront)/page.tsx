@@ -5,6 +5,7 @@ import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 import { isHomepageHeroPocEnabled } from '@/lib/flags';
 import { HeroBanner } from '@/components/storefront/HeroBanner';
+import { DropCountdownTracker } from '../../components/storefront/DropCountdownTracker';
 
 import { homeMetadata } from '@/lib/metadata';
 
@@ -42,6 +43,7 @@ export default async function HomePage() {
     <div className="space-y-20">
       <div className="flex justify-center pt-4">
         <DropCountdown title="Workshop Drop Countdown" />
+        <DropCountdownTracker title="Workshop Drop Countdown" />
       </div>
 
       {/* Dynamic Hero Experience: Immersive Hero Banner (POC) vs Legacy Text Hero */}

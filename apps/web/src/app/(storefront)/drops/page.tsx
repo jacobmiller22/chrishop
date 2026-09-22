@@ -5,6 +5,7 @@ import { getScheduledDrops, getAssetUrl, enrichProductsWithShopifyPricing } from
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 
 import { dropsMetadata } from '@/lib/metadata';
+import { DropCountdownTracker } from '../../../components/storefront/DropCountdownTracker';
 
 export const revalidate = 10;
 
@@ -187,6 +188,12 @@ export default async function DropSchedulePage() {
                     {releaseDate && (
                       <div className="max-w-xl">
                         <CountdownTimer targetDate={releaseDate} />
+                        <DropCountdownTracker
+                          dropId={product.product_line?.slug || 'bankbeaters-leadville'}
+                          productId={product.slug || product.id}
+                          title={product.title}
+                          targetDate={releaseDate}
+                        />
                       </div>
                     )}
 
