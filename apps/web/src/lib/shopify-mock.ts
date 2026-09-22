@@ -68,6 +68,14 @@ export class ShopifyStorefrontMockEngine {
     this.inventory.set(variantId, 0);
   }
 
+  setVariantStock(variantId: string, availableQuantity: number): void {
+    this.setInventory(variantId, availableQuantity);
+  }
+
+  setVariantSoldOut(variantId: string): void {
+    this.simulateOutOfStock(variantId);
+  }
+
   /**
    * Checks if requested quantity is available for variant
    */
@@ -307,6 +315,35 @@ export class ShopifyStorefrontMockEngine {
           cartLinesRemove: {
             cart: result.cart ? this.formatCart(result.cart) : null,
             userErrors: result.userErrors,
+          },
+        },
+      };
+    }
+
+    // 4b. cartBuyerIdentityUpdate mutation
+    if (query.includes('cartBuyerIdentityUpdate')) {
+      const cartId = variables?.cartId;
+      const buyerIdentity = variables?.buyerIdentity;
+      const cart = this.getCart(cartId);
+      if (!cart) {
+        return {
+          data: {
+            cartBuyerIdentityUpdate: {
+              cart: null,
+              userErrors: [{ code: 'CART_NOT_FOUND', field: ['cartId'], message: 'Cart not found' }],
+            },
+          },
+        };
+      }
+      if (buyerIdentity?.countryCode) {
+        const separator = cart.checkoutUrl.includes('?') ? '&' : '?';
+        cart.checkoutUrl = `${cart.checkoutUrl}${separator}locale=${buyerIdentity.countryCode.toLowerCase()}`;
+      }
+      return {
+        data: {
+          cartBuyerIdentityUpdate: {
+            cart: this.formatCart(cart),
+            userErrors: [],
           },
         },
       };
