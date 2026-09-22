@@ -125,3 +125,123 @@ export async function verifyTurnstileToken(
     };
   }
 }
+
+export interface TurnstileRateLimitOptions {
+  key: string;
+  limit?: number;
+  windowSeconds?: number;
+  kv?: any;
+}
+
+export interface TurnstileRateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+  retryAfterSeconds?: number;
+}
+
+// In-memory sliding/fixed window fallback store
+const inMemoryRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+export function resetTurnstileRateLimits(): void {
+  inMemoryRateLimits.clear();
+}
+
+/**
+ * Edge rate limiter protecting Turnstile token verification endpoint (/api/checkout/verify-turnstile)
+ * against bot spam and automated credential/token stuffing.
+ * Backed by Cloudflare Workers KV (NEXT_CACHE_WORKERS_KV) with in-memory fallback.
+ */
+export async function checkTurnstileRateLimit(
+  options: TurnstileRateLimitOptions
+): Promise<TurnstileRateLimitResult> {
+  const { key, limit = 10, windowSeconds = 60, kv } = options;
+  const now = Date.now();
+  const storageKey = `ratelimit:turnstile:${key}`;
+
+  // 1. Cloudflare Workers KV Rate Limiter
+  if (kv && typeof kv.get === 'function' && typeof kv.put === 'function') {
+    try {
+      const raw = await kv.get(storageKey, 'json');
+      const record = raw as { count: number; resetAt: number } | null;
+
+      if (record && record.resetAt > now) {
+        if (record.count >= limit) {
+          const retryAfterSeconds = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
+          return {
+            success: false,
+            limit,
+            remaining: 0,
+            resetAt: record.resetAt,
+            retryAfterSeconds,
+          };
+        }
+        record.count += 1;
+        const ttl = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
+        await kv.put(storageKey, JSON.stringify(record), { expirationTtl: ttl });
+        return {
+          success: true,
+          limit,
+          remaining: Math.max(0, limit - record.count),
+          resetAt: record.resetAt,
+        };
+      }
+
+      // New or expired window
+      const newResetAt = now + windowSeconds * 1000;
+      const newRecord = { count: 1, resetAt: newResetAt };
+      await kv.put(storageKey, JSON.stringify(newRecord), { expirationTtl: windowSeconds });
+      return {
+        success: true,
+        limit,
+        remaining: limit - 1,
+        resetAt: newResetAt,
+      };
+    } catch (kvErr) {
+      console.warn(
+        '[TurnstileRateLimit:KVWarning] KV lookup failed, falling back to memory store:',
+        kvErr
+      );
+    }
+  }
+
+  // 2. In-Memory Store Fallback
+  // Cleanup expired entries
+  for (const [k, v] of inMemoryRateLimits.entries()) {
+    if (v.resetAt <= now) {
+      inMemoryRateLimits.delete(k);
+    }
+  }
+
+  const existing = inMemoryRateLimits.get(storageKey);
+  if (existing && existing.resetAt > now) {
+    if (existing.count >= limit) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
+      return {
+        success: false,
+        limit,
+        remaining: 0,
+        resetAt: existing.resetAt,
+        retryAfterSeconds,
+      };
+    }
+    existing.count += 1;
+    return {
+      success: true,
+      limit,
+      remaining: Math.max(0, limit - existing.count),
+      resetAt: existing.resetAt,
+    };
+  }
+
+  // New window
+  const newResetAt = now + windowSeconds * 1000;
+  inMemoryRateLimits.set(storageKey, { count: 1, resetAt: newResetAt });
+  return {
+    success: true,
+    limit,
+    remaining: limit - 1,
+    resetAt: newResetAt,
+  };
+}

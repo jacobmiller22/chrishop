@@ -14,3 +14,4 @@ export * from './components/StockIndicator';
 export * from './components/AddToCartButton';
 export * from './components/CountdownTimer';
 export * from './components/ProductJsonLd';
+export * from './components/TurnstileWidget';
