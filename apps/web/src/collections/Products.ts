@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { syncProductToShopify } from './hooks/syncProductToShopify';
 
 /**
  * Products Collection Schema (Paradigm 1: Hybrid Product-First)
@@ -16,6 +17,9 @@ export const Products: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    afterChange: [syncProductToShopify],
   },
   fields: [
     {
