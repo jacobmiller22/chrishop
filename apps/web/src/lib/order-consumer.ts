@@ -43,6 +43,78 @@ export function verifyShopifyWebhookHmac(
   }
 }
 
+/**
+ * Validates Shopify HMAC-SHA256 signature using Web Crypto API (crypto.subtle)
+ * with constant-time comparison for Cloudflare Edge and Node.js runtimes.
+ */
+export async function verifyShopifyWebhookHmacSubtle(
+  rawBody: string,
+  hmacHeader: string | null,
+  secret: string | undefined
+): Promise<boolean> {
+  if (!secret) {
+    return true;
+  }
+  if (!rawBody || !hmacHeader) {
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+
+    const subtle =
+      globalThis.crypto?.subtle ||
+      ((await import('node:crypto')).webcrypto as unknown as Crypto)?.subtle;
+
+    if (!subtle) {
+      return verifyShopifyWebhookHmac(rawBody, hmacHeader, secret);
+    }
+
+    const key = await subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const bodyData = encoder.encode(rawBody);
+    const signatureBuffer = await subtle.sign('HMAC', key, bodyData);
+
+    const signatureBytes = new Uint8Array(signatureBuffer);
+    let binary = '';
+    for (let i = 0; i < signatureBytes.byteLength; i++) {
+      binary += String.fromCharCode(signatureBytes[i]);
+    }
+    const computedHmac =
+      typeof btoa === 'function'
+        ? btoa(binary)
+        : Buffer.from(signatureBuffer).toString('base64');
+
+    const expectedBuffer = Buffer.from(computedHmac, 'utf8');
+    const actualBuffer = Buffer.from(hmacHeader, 'utf8');
+
+    if (expectedBuffer.length !== actualBuffer.length) {
+      return false;
+    }
+
+    const nodeCrypto = await import('node:crypto').catch(() => null);
+    if (nodeCrypto && typeof nodeCrypto.timingSafeEqual === 'function') {
+      return nodeCrypto.timingSafeEqual(expectedBuffer, actualBuffer);
+    }
+
+    let mismatch = 0;
+    for (let i = 0; i < expectedBuffer.length; i++) {
+      mismatch |= expectedBuffer[i] ^ actualBuffer[i];
+    }
+    return mismatch === 0;
+  } catch (err) {
+    console.warn('[ShopifyWebhook:HmacSubtleError]', err);
+    return false;
+  }
+}
+
 // ============================================================================
 // 1. Types & Data Contracts
 // ============================================================================
@@ -158,6 +230,10 @@ export interface OrderConsumerEnv {
   EMAIL_FROM?: string;
   MERCHANT_ALERT_EMAIL?: string;
   OPS_ALERT_WEBHOOK_URL?: string;
+  DISCORD_WEBHOOK_STORE_ORDERS?: string;
+  DISCORD_WEBHOOK_ORDERS?: string;
+  DISCORD_WEBHOOK_URL?: string;
+  NEXT_CACHE_WORKERS_KV?: any;
   SHOPIFY_ORDERS_QUEUE?: {
     send(message: any): Promise<void>;
   };
@@ -448,9 +524,15 @@ export async function processOrderEvent(
       merchantAlertEmail: env.MERCHANT_ALERT_EMAIL,
     });
 
+  const webhookUrl =
+    env.DISCORD_WEBHOOK_STORE_ORDERS ||
+    env.DISCORD_WEBHOOK_ORDERS ||
+    env.DISCORD_WEBHOOK_URL ||
+    env.OPS_ALERT_WEBHOOK_URL;
+
   const webhookProvider =
     options.webhookProvider ||
-    new WebhookNotificationProvider(env.OPS_ALERT_WEBHOOK_URL);
+    new WebhookNotificationProvider(webhookUrl);
 
   const { order, receipt, rawLineItems } = normalizeOrderEvent(messagePayload.order);
   const lowStockThreshold = options.lowStockThreshold ?? LOW_STOCK_THRESHOLD;
@@ -523,9 +605,11 @@ export async function processOrderEvent(
     }
   }
 
-  // 4. Ops Webhook Telemetry Dispatch (if OPS_ALERT_WEBHOOK_URL is configured)
+  // 4. Ops / Discord Webhook Telemetry Dispatch (if webhook URL is configured)
   if (webhookProvider.isConfigured) {
     try {
+      const shortId = order.shopify_order_number || `#${order.id.slice(0, 8)}`;
+      const amountStr = `$${order.amount_total.toFixed(2)} ${(order.currency || 'USD').toUpperCase()}`;
       const webhookResult: WebhookDispatchResult = await webhookProvider.sendJson({
         event: messagePayload.topic || 'orders/create',
         order_id: order.id,
@@ -535,6 +619,8 @@ export async function processOrderEvent(
         currency: order.currency,
         timestamp: new Date().toISOString(),
         items_count: receipt.items.length,
+        text: `🛒 New Order Placed: ${shortId} for ${amountStr} (${order.customer_email})`,
+        content: `🛒 New Order Placed: ${shortId} for ${amountStr} (${order.customer_email})`,
       });
 
       if (webhookResult.success) {
