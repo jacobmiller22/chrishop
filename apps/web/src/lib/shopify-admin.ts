@@ -153,6 +153,31 @@ export class ShopifyAdminMockEngine {
   public getProduct(id: string): ShopifyAdminProductResponse | null {
     return this.mockProducts.get(id) || null;
   }
+
+  public getShopInfo(): {
+    id: string;
+    name: string;
+    email: string;
+    currencyCode: string;
+    myshopifyDomain: string;
+    plan: { displayName: string; partnerDevelopment: boolean };
+  } {
+    return {
+      id: 'gid://shopify/Shop/8291029384',
+      name: 'ChrisShop Leadville Workshop',
+      email: 'chris@leadville.example',
+      currencyCode: 'USD',
+      myshopifyDomain: 'chrishop-dev.myshopify.com',
+      plan: {
+        displayName: 'Partner Development',
+        partnerDevelopment: true,
+      },
+    };
+  }
+
+  public getAccessScopes(): string[] {
+    return ['write_products', 'read_products', 'write_inventory', 'read_inventory'];
+  }
 }
 
 export const defaultShopifyAdminMock = new ShopifyAdminMockEngine();
@@ -433,6 +458,98 @@ export class ShopifyAdminClient {
     } catch (err) {
       console.error('[ShopifyAdmin:GetProductException]', err);
       return null;
+    }
+  }
+
+  /**
+   * Retrieves shop details via Admin API.
+   */
+  public async getShopInfo(): Promise<{
+    id: string;
+    name: string;
+    email?: string;
+    currencyCode: string;
+    myshopifyDomain: string;
+    plan?: { displayName: string; partnerDevelopment: boolean };
+  } | null> {
+    if (this.isMockMode()) {
+      return this.mockEngine.getShopInfo();
+    }
+
+    const query = `
+      query AdminShopInfo {
+        shop {
+          id
+          name
+          email
+          currencyCode
+          myshopifyDomain
+          plan {
+            displayName
+            partnerDevelopment
+          }
+        }
+      }
+    `;
+
+    try {
+      const endpoint = `https://${this.storeDomain}/admin/api/${this.apiVersion}/graphql.json`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.adminToken,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) return null;
+      const json = (await response.json()) as any;
+      return json.data?.shop || null;
+    } catch (err) {
+      console.error('[ShopifyAdmin:GetShopInfoException]', err);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieves active access scopes for the installed custom app via Admin API.
+   */
+  public async getAccessScopes(): Promise<string[]> {
+    if (this.isMockMode()) {
+      return this.mockEngine.getAccessScopes();
+    }
+
+    const query = `
+      query CurrentAppInstallation {
+        app {
+          installation {
+            accessScopes {
+              handle
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const endpoint = `https://${this.storeDomain}/admin/api/${this.apiVersion}/graphql.json`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.adminToken,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) return [];
+      const json = (await response.json()) as any;
+      const scopes = json.data?.app?.installation?.accessScopes || [];
+      return scopes.map((s: any) => s.handle);
+    } catch (err) {
+      console.error('[ShopifyAdmin:GetAccessScopesException]', err);
+      return [];
     }
   }
 }
