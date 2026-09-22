@@ -3,11 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
 
-export const metadata: Metadata = {
-  title: "The Maker's Story & Workshop Origin | BankBeaters Adventure Gear",
-  description:
-    'The story of BankBeaters Adventure Gear: hand-sewn technical outdoor and adventure fishing apparel built by Chris in Leadville, Colorado. Built for the miles off-trail.',
-};
+import { aboutMetadata } from '@/lib/metadata';
+
+export const metadata: Metadata = aboutMetadata;
 
 export default function AboutPage() {
   return (
