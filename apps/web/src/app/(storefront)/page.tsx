@@ -76,6 +76,11 @@ export default async function HomePage() {
                 Explore Gear Roster ({products.length})
               </Button>
             </Link>
+            <Link href="/about">
+              <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm px-6 py-3.5">
+                The Maker&apos;s Story
+              </Button>
+            </Link>
             {featuredProduct && (
               <Link href={`/products/${featuredProduct.slug}`}>
                 <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm">
@@ -86,6 +91,7 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
 
       {/* Flagship Product Showcase (The Bushwhack Storm Anorak) */}
       {featuredProduct && (
@@ -339,9 +345,104 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Visual Category Pathways (Section 4.1.5) */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b border-stone-800/80 pb-4">
+          <div>
+            <span className="text-xs font-mono text-[#E55B24] uppercase tracking-widest block font-bold">
+              Field Architectures
+            </span>
+            <h2 className="text-2xl font-black text-stone-100 uppercase tracking-tight font-mono">
+              Equipment Categories
+            </h2>
+          </div>
+          <Link href="/products" className="text-sm text-[#E55B24] hover:text-orange-400 font-mono font-semibold">
+            All Equipment Categories →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link href="/products?category=outerwear" className="group block">
+            <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-4xl group-hover:scale-110 transition-transform">🧥</span>
+                  <Badge variant="warning" className="text-[10px] uppercase font-mono">
+                    Toray 3-Layer
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-mono uppercase text-stone-100 group-hover:text-[#E55B24] transition-colors">
+                    Technical Outerwear
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-2 leading-relaxed">
+                    Waterproof storm shells, anoraks, and high-denier brush pants built for cold canyon winds and wet wading.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 mt-4 border-t border-stone-800/80 flex items-center justify-between text-xs font-mono text-[#E55B24] font-semibold">
+                <span>Browse Outerwear</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/products?category=packs-carry" className="group block">
+            <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-4xl group-hover:scale-110 transition-transform">🎒</span>
+                  <Badge variant="olive" className="text-[10px] uppercase font-mono">
+                    500D Cordura / X-Pac
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-mono uppercase text-stone-100 group-hover:text-[#E55B24] transition-colors">
+                    Packs &amp; Carry Systems
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-2 leading-relaxed">
+                    Convertible sling packs, chest rigs, and roll-top dry gear designed to ride high and tight while casting.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 mt-4 border-t border-stone-800/80 flex items-center justify-between text-xs font-mono text-[#E55B24] font-semibold">
+                <span>Browse Carry Systems</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/products?category=field-accessories" className="group block">
+            <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-4xl group-hover:scale-110 transition-transform">🧰</span>
+                  <Badge variant="neutral" className="text-[10px] uppercase font-mono">
+                    Martexin Waxed
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-mono uppercase text-stone-100 group-hover:text-[#E55B24] transition-colors">
+                    Field Accessories
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-2 leading-relaxed">
+                    Waxed canvas tool rolls, weather-treated caps, and essential hand-sewn field gear items.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 mt-4 border-t border-stone-800/80 flex items-center justify-between text-xs font-mono text-[#E55B24] font-semibold">
+                <span>Browse Field Tools</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Card>
+          </Link>
+        </div>
+      </section>
+
       {/* The Maker's Bench Section */}
       <section
         id="makers-bench"
+
         className="rounded-2xl border border-stone-800/80 bg-[#101317] p-8 sm:p-12 space-y-8"
       >
         <div className="max-w-3xl space-y-4">
