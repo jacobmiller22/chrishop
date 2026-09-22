@@ -59,6 +59,7 @@ export async function GET(request?: Request): Promise<NextResponse> {
 
   const { payload, httpStatus } = await performHealthCheck();
 
+  const d1Telemetry = payload.d1Telemetry;
   const res = NextResponse.json(payload, {
     status: httpStatus,
     headers: {
@@ -67,6 +68,13 @@ export async function GET(request?: Request): Promise<NextResponse> {
       'x-content-type-options': 'nosniff',
       'x-response-time-ms': String(payload.durationMs),
       'x-chrishop-commit-sha': payload.commitSha || 'dev-local',
+      ...(d1Telemetry
+        ? {
+            'x-d1-query-count': String(d1Telemetry.totalQueries),
+            'x-d1-slow-queries': String(d1Telemetry.slowQueries),
+            'x-d1-avg-latency-ms': String(d1Telemetry.avgDurationMs),
+          }
+        : {}),
     },
   });
   return withTraceHeaders(res, trace);
