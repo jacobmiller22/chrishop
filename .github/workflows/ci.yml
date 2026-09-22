@@ -120,7 +120,7 @@ jobs:
         run: pnpm wrangler deploy --dry-run --env preview
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.16.1"
 
