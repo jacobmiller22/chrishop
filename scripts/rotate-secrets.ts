@@ -161,6 +161,19 @@ export const SECRET_REGISTRY: Record<string, SecretDefinition> = {
       return { valid: true };
     },
   },
+  CLOUDFLARE_API_TOKEN: {
+    id: 'CLOUDFLARE_API_TOKEN',
+    description: 'Cloudflare API token for Workers deployment, D1, KV, and DNS routing',
+    supportedEnvs: ['staging', 'production', 'preview'],
+    defaultCadenceDays: 90,
+    autoGeneratable: false,
+    validateValue: (val: string) => {
+      if (!val || val.trim().length < 32) {
+        return { valid: false, error: 'CLOUDFLARE_API_TOKEN must be at least 32 characters' };
+      }
+      return { valid: true };
+    },
+  },
 };
 
 // ============================================================================
