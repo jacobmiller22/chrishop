@@ -30,12 +30,12 @@ output "turnstile_site_key" {
 
 output "access_admin_application_id" {
   description = "ID of the Cloudflare Access Admin application"
-  value       = var.enable_cloudflare_access ? cloudflare_access_application.admin[0].id : ""
+  value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_application.admin[0].id : ""
 }
 
 output "access_admin_aud" {
   description = "AUD tag of the Cloudflare Access Admin application"
-  value       = var.enable_cloudflare_access ? cloudflare_access_application.admin[0].aud : ""
+  value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_application.admin[0].aud : ""
 }
 
 output "access_service_token_id" {

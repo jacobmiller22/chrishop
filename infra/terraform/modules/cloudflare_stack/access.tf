@@ -3,7 +3,7 @@
 
 # 1. Access Application for Payload CMS Admin Panel (/admin/*)
 resource "cloudflare_access_application" "admin" {
-  count                     = var.enable_cloudflare_access ? 1 : 0
+  count                     = var.enable_cloudflare_access && var.manage_shared_resources ? 1 : 0
   zone_id                   = local.zone_id
   name                      = var.environment == "production" ? "ChrisShop Admin (Production)" : "ChrisShop Admin (${var.environment})"
   domain                    = "${local.primary_hostname}/admin"
@@ -14,7 +14,7 @@ resource "cloudflare_access_application" "admin" {
 
 # 2. Access Application for Non-Production / Staging Environments
 resource "cloudflare_access_application" "staging_perimeter" {
-  count                     = var.enable_cloudflare_access && var.environment != "production" ? 1 : 0
+  count                     = var.enable_cloudflare_access && var.manage_shared_resources && var.environment != "production" ? 1 : 0
   zone_id                   = local.zone_id
   name                      = "ChrisShop Staging Perimeter (${var.environment})"
   domain                    = local.primary_hostname
@@ -37,7 +37,7 @@ resource "cloudflare_access_service_token" "ci_probe" {
 
 # 4. Access Policy: Allow Authorized Team Emails to Admin Panel
 resource "cloudflare_access_policy" "admin_allow_team" {
-  count          = var.enable_cloudflare_access ? 1 : 0
+  count          = var.enable_cloudflare_access && var.manage_shared_resources ? 1 : 0
   application_id = cloudflare_access_application.admin[0].id
   zone_id        = local.zone_id
   name           = "Allow Authorized Admin Team"
