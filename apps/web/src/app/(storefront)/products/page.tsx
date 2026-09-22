@@ -178,8 +178,8 @@ export default async function ProductsPage(props: ProductsPageProps) {
                 key={product.id}
                 className="group flex flex-col justify-between overflow-hidden p-0 border-stone-800 hover:border-[#E55B24]/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-950/20"
               >
-                {/* Visual Header / Image Container */}
-                <div className="relative aspect-square w-full bg-[#101317] overflow-hidden flex items-center justify-center border-b border-stone-800/80">
+                {/* Visual Header / Image Container (4:5 Portrait Aspect Ratio per Section 4.3) */}
+                <div className="relative aspect-[4/5] w-full bg-[#101317] overflow-hidden flex items-center justify-center border-b border-stone-800/80">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -265,12 +265,13 @@ export default async function ProductsPage(props: ProductsPageProps) {
                     </div>
 
                     <Link href={`/products/${product.slug}`}>
-                      <Button variant="primary" size="sm" className="font-mono text-xs uppercase font-bold tracking-wider">
+                      <Button variant="primary" size="sm" className="font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] px-4">
                         Inspect Gear →
                       </Button>
                     </Link>
                   </div>
                 </div>
+
               </Card>
             );
           })}

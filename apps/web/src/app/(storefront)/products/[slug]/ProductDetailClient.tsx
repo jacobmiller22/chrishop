@@ -35,8 +35,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedVariationId, setSelectedVariationId] = useState<string>(variations[0]?.id || '');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [isStickyVisible, setIsStickyVisible] = useState<boolean>(false);
+  const buyButtonRef = useRef<HTMLDivElement | null>(null);
 
   const markImageLoaded = useCallback((url: string) => {
+
     if (!url) return;
     setLoadedImages((prev) => {
       if (prev.has(url)) return prev;
@@ -160,6 +163,24 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
         });
     }
   }, [activeMedia?.url, markImageLoaded]);
+
+  // Mobile Sticky Action Bar Visibility Observer
+  useEffect(() => {
+    const target = buyButtonRef.current;
+    if (!target || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When main purchase block is scrolled past (above viewport), show sticky bar
+        setIsStickyVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
 
   // Price resolution
   const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
@@ -452,8 +473,47 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             </p>
           </div>
 
+          {/* Quick Spec // Field Gist Summary Panel (Creator IA Specification) */}
+          <div className="p-4 rounded-xl bg-[#101317] border border-stone-800 space-y-3 font-mono text-xs shadow-inner">
+            <div className="flex items-center justify-between border-b border-stone-800/80 pb-2">
+              <span className="font-bold text-[#E55B24] uppercase tracking-wider flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>Quick Spec // Field Gist</span>
+              </span>
+              <span className="text-[10px] text-stone-500 uppercase">
+                {product.category?.name || 'Alpine Spec'}
+              </span>
+            </div>
+            <ul className="space-y-2 text-stone-300">
+              <li className="flex items-start gap-2">
+                <span className="text-[#E55B24] font-bold">▪</span>
+                <span>
+                  <strong className="text-stone-100 font-semibold uppercase">Utility: </strong>
+                  {product.description || 'Rugged off-trail technical build engineered for wet wading, alpine squalls, and brush navigation.'}
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#E55B24] font-bold">▪</span>
+                <span>
+                  <strong className="text-stone-100 font-semibold uppercase">Textiles &amp; Hardware: </strong>
+                  {product.materials || '500D Cordura® / Toray 3-Layer 20k/20k membrane · YKK AquaGuard® zips · Bonded nylon seams'}
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#E55B24] font-bold">▪</span>
+                <span>
+                  <strong className="text-stone-100 font-semibold uppercase">Field Specs: </strong>
+                  {product.weight ? `Weight: ${product.weight} · ` : ''}
+                  {product.fit_profile ? `Fit: ${product.fit_profile} · ` : ''}
+                  {product.origin || 'Leadville, CO (Elev. 10,152 ft)'}
+                </span>
+              </li>
+            </ul>
+          </div>
+
           {/* Dynamic Price Display */}
           <div className="p-4 rounded-xl bg-[#15191E] border border-stone-800 space-y-1">
+
             <div className="flex items-baseline justify-between">
               <div>
                 <span className="text-xs text-stone-400 font-mono uppercase tracking-wider block">
@@ -668,11 +728,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           )}
 
           {/* Purchase Actions */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2" ref={buyButtonRef}>
             <Button
               variant="primary"
               size="lg"
-              className="w-full font-bold shadow-lg shadow-orange-500/20 py-3.5 text-base bg-[#E55B24] hover:bg-[#d04f1d] text-stone-900 border-none"
+              className="w-full font-bold uppercase tracking-wider shadow-lg shadow-orange-950/40 py-3.5 text-base bg-[#E55B24] hover:bg-[#D04A15] text-white border-none min-h-[48px]"
               disabled={!isAvailable || isCheckingOut}
               onClick={handleCheckout}
             >
@@ -690,7 +750,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             )}
 
             <Link href="/products" className="block">
-              <Button variant="outline" size="md" className="w-full">
+              <Button variant="outline" size="md" className="w-full min-h-[44px]">
                 ← Back to Field Gear Catalog
               </Button>
             </Link>
@@ -703,6 +763,50 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Action Bar (Section 4.4.2) */}
+      {isStickyVisible && (
+        <div className="fixed bottom-0 inset-x-0 z-50 p-3 bg-[#15191E]/95 border-t border-stone-800/90 backdrop-blur-md md:hidden flex items-center justify-between gap-3 shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {activeMedia && (
+              <div className="w-10 h-10 rounded-lg overflow-hidden border border-stone-800 shrink-0 bg-[#101317]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={buildCloudflareImageUrl(activeMedia.url, {
+                    width: 80,
+                    quality: 70,
+                    format: 'auto',
+                    fit: 'cover',
+                  })}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-stone-100 truncate">{product.title}</div>
+              <div className="text-xs font-mono font-bold text-[#E55B24]">
+                ${Number(currentPrice).toFixed(2)}
+                {selectedVariation?.edition_badge && (
+                  <span className="ml-1.5 text-[10px] text-stone-400 font-normal">
+                    ({selectedVariation.edition_badge})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!isAvailable || isCheckingOut}
+            onClick={handleCheckout}
+            className="shrink-0 min-h-[44px] px-4 font-bold text-xs uppercase tracking-wider"
+          >
+            {isCheckingOut ? 'Rolling...' : isSoldOut ? 'Depleted' : 'Deploy Gear'}
+          </Button>
+        </div>
+      )}
     </div>
+
   );
 }

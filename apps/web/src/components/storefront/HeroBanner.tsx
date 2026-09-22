@@ -94,28 +94,29 @@ export function HeroBanner({ productsCount = 0, featuredProduct }: HeroBannerPro
             </Button>
           </Link>
 
-          {featuredProduct ? (
+          <Link href="/about">
+            <Button
+              variant="outline"
+              size="lg"
+              className="font-bold uppercase tracking-wider text-sm px-8 py-4 bg-stone-900/60 hover:bg-stone-800/80 border-stone-600 text-stone-100 backdrop-blur-md transition-all transform hover:-translate-y-0.5"
+            >
+              The Maker&apos;s Story →
+            </Button>
+          </Link>
+
+          {featuredProduct && (
             <Link href={`/products/${featuredProduct.slug}`}>
               <Button
                 variant="outline"
                 size="lg"
-                className="font-bold uppercase tracking-wider text-sm px-8 py-4 bg-stone-900/60 hover:bg-stone-800/80 border-stone-600 text-stone-100 backdrop-blur-md transition-all transform hover:-translate-y-0.5"
+                className="font-mono uppercase text-xs px-6 py-4 bg-stone-900/40 hover:bg-stone-800/60 border-stone-700 text-stone-300 backdrop-blur-md transition-all"
               >
-                Inspect The Anorak →
-              </Button>
-            </Link>
-          ) : (
-            <Link href="#makers-bench">
-              <Button
-                variant="outline"
-                size="lg"
-                className="font-bold uppercase tracking-wider text-sm px-8 py-4 bg-stone-900/60 hover:bg-stone-800/80 border-stone-600 text-stone-100 backdrop-blur-md transition-all transform hover:-translate-y-0.5"
-              >
-                The Maker&apos;s Bench →
+                Inspect Flagship Anorak
               </Button>
             </Link>
           )}
         </div>
+
 
         {/* Micro-Batch Craftsmanship Callout */}
         <div className="pt-6 border-t border-stone-800/60 flex items-center justify-center gap-3 text-xs font-mono text-stone-300 drop-shadow">
