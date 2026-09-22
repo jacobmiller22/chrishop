@@ -88,6 +88,7 @@ The root `package.json` provides an organized suite of scripts for development, 
 | `pnpm test` | `turbo run test` | Runs unit tests across all package workspaces |
 | `pnpm run test:unit` | `turbo run test && tsx --test tests/integration/dependency-control.test.ts` | Package unit tests + dependency control gate |
 | `pnpm run test:integration` | `tsx --test tests/integration/**/*.test.ts tests/spike/**/*.test.ts` | Ephemeral D1 SQLite, Shopify client, and integration tests |
+| `pnpm run test:parity` | `tsx scripts/verify-parity.ts` | **Environment Parity**: Validates D1 schema & edge runtime bindings across tiers ([`ENVIRONMENT_PARITY.md`](docs/runbooks/ENVIRONMENT_PARITY.md)) |
 | `pnpm run test:spike` | `tsx --test tests/spike/**/*.test.ts` | Edge runtime and database latency spike tests |
 | `pnpm run test:all` | `pnpm run test:unit && pnpm run test:integration` | Complete unit and integration test suite |
 | `pnpm run verify:local` | `tsx scripts/verify-local.ts` | Turnkey 8-stage pre-PR verification pipeline |
