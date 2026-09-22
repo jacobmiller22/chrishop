@@ -3,10 +3,6 @@ name: Cloudflare Workers Emergency Rollback
 on:
   workflow_dispatch:
     inputs:
-      deployment_id:
-        description: 'Cloudflare Workers deployment ID to rollback to (or leave blank for previous)'
-        required: false
-        default: ''
       environment:
         description: 'Environment to rollback'
         required: true
@@ -15,11 +11,20 @@ on:
         options:
           - production
           - staging
+      deployment_id:
+        description: 'Cloudflare Workers deployment ID to rollback to (or leave blank to revert to previous deployment)'
+        required: false
+        default: ''
+      reason:
+        description: 'Reason for emergency rollback'
+        required: true
+        default: 'Emergency rollback due to operational regression or edge error'
 
 jobs:
   rollback:
     name: Execute Instant Workers Rollback
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout Code
@@ -37,9 +42,99 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rollback Deployment
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: rollback ${{ github.event.inputs.deployment_id }} --env ${{ github.event.inputs.environment }}
+      - name: Execute Cloudflare Worker Rollback
+        id: execute_rollback
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "================================================================"
+          echo "  🚨 ChrisShop Cloudflare Workers Instant Rollback Triggered   "
+          echo "================================================================"
+          echo "Target Environment: ${{ inputs.environment }}"
+          echo "Deployment ID:      ${{ inputs.deployment_id || 'Previous Deployment' }}"
+          echo "Reason:             ${{ inputs.reason }}"
+          echo "Triggered By:       ${{ github.actor }}"
+          echo ""
+
+          if [ -n "${{ inputs.deployment_id }}" ]; then
+            echo "▶ Rolling back to specific deployment ID: ${{ inputs.deployment_id }}"
+            pnpm exec wrangler rollback "${{ inputs.deployment_id }}" --env "${{ inputs.environment }}"
+          else
+            echo "▶ Rolling back to previous known deployment"
+            pnpm exec wrangler rollback --env "${{ inputs.environment }}"
+          fi
+
+      - name: Verify Post-Rollback Edge Health
+        id: health_check
+        if: steps.execute_rollback.outcome == 'success'
+        run: |
+          TARGET_URL="https://chrishop.jacobmiller22.com"
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            TARGET_URL="https://staging-chrishop.jacobmiller22.com"
+          fi
+
+          echo "▶ Verifying edge health at: ${TARGET_URL}/api/health"
+          # Retry up to 3 times with 5s delay
+          for i in {1..3}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${TARGET_URL}/api/health" || echo "000")
+            echo "Probe attempt $i: HTTP ${HTTP_STATUS}"
+            if [ "${HTTP_STATUS}" = "200" ]; then
+              echo "✅ Edge health verified (HTTP 200)"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "⚠️ Warning: Health probe returned HTTP ${HTTP_STATUS}"
+
+      - name: Dispatch Rollback Alert to Discord (#dev-alerts)
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_DEV_ALERTS || secrets.DISCORD_WEBHOOK_ALERTS || secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "${DISCORD_WEBHOOK}" ]; then
+            echo "ℹ️ Discord webhook secret not configured. Skipping alert dispatch."
+            exit 0
+          fi
+
+          STATUS="SUCCESS"
+          COLOR=65280
+          ICON="↩️"
+          if [ "${{ steps.execute_rollback.outcome }}" != "success" ]; then
+            STATUS="FAILURE"
+            COLOR=16711680
+            ICON="🚨"
+          fi
+
+          TARGET_URL="https://chrishop.jacobmiller22.com"
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            TARGET_URL="https://staging-chrishop.jacobmiller22.com"
+          fi
+
+          DEPLOYMENT_TARGET="${{ inputs.deployment_id }}"
+          if [ -z "${DEPLOYMENT_TARGET}" ]; then
+            DEPLOYMENT_TARGET="Previous Deployment"
+          fi
+
+          TITLE="${ICON} Cloudflare Worker Rollback ${STATUS}: ${{ inputs.environment }}"
+          BODY="**ChrisShop Emergency Rollback Execution**\n\n• **Environment**: \`${{ inputs.environment }}\`\n• **Status**: \`${STATUS}\`\n• **Deployment Target**: \`${DEPLOYMENT_TARGET}\`\n• **Reason**: ${{ inputs.reason }}\n• **Triggered by**: @${{ github.actor }}\n• **Edge URL**: ${TARGET_URL}\n• **Health Probe**: ${TARGET_URL}/api/health\n• **GitHub Run**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PAYLOAD=$(cat <<JSON
+          {
+            "content": "${ICON} **[Worker Rollback]** ${{ inputs.environment }} rollback ${STATUS}",
+            "embeds": [
+              {
+                "title": "${TITLE}",
+                "description": "${BODY}",
+                "color": ${COLOR},
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              }
+            ]
+          }
+          JSON
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" \
+            -d "${PAYLOAD}" \
+            "${DISCORD_WEBHOOK}" || true
