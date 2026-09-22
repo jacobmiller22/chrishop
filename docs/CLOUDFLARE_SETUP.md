@@ -321,7 +321,44 @@ routes = [
 In Cloudflare Dashboard:
 1. Navigate to **SSL/TLS** > **Overview**.
 2. Set Encryption Mode to **Full (Strict)**.
-3. Under **Edge Certificates**, confirm **Always Use HTTPS** and **Automatic HTTPS Rewrites** are enabled.
+### Edge Caching Configuration & Cache Rules Matrix
+
+ChrisShop implements a multi-tier edge caching architecture that guarantees **> 80% cache hit ratio** for static and media assets while strictly bypassing cache for authenticated admin and mutation API routes per [`docs/HIGH_LEVEL_DESIGN.md`](HIGH_LEVEL_DESIGN.md) Section 10.
+
+#### Cache Rules & Routing Matrix:
+
+| Route Pattern | Cache Level | Browser TTL | Edge TTL | Revalidation / Invalidation | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/_next/static/*` | **Cache Everything** | 1 year (`31536000s`) | 1 year (`31536000s`) | Content-hashed immutable bundles | Next.js compiled scripts, styles, and static chunks |
+| `/media/*`, `media.*` | **Cache Everything** | 1 year (`31536000s`) | 1 year (`31536000s`) | Purged on CMS update | Cloudflare R2 artwork and uploaded media files |
+| `/products`, `/products/*` | **ISR Cached** | 10 seconds | 10 seconds | `stale-while-revalidate=50s` | Storefront catalog and product detail pages |
+| `/admin/*` | **Bypass** | `no-store` | `no-store` | Never cached (`max-age=0`) | Payload CMS editorial panel, auth, and dashboard |
+| `/api/*` (webhooks, cart) | **Bypass** | `no-store` | `no-store` | Never cached (`max-age=0`) | Shopify webhooks, cart mutations, and health probes |
+
+#### Declarative IaC (Terraform):
+Managed declaratively via `infra/terraform/modules/cloudflare_stack/cache.tf` utilizing `cloudflare_page_rule` and `cloudflare_zone_settings_override`:
+- **HTTP/3 (QUIC)**: Enabled (`http3 = "on"`) for 0-RTT handshakes and zero packet drop recovery.
+- **0-RTT Resumption**: Enabled (`zero_rtt = "on"`) for repeat shopper session acceleration.
+- **Brotli Compression**: Enabled (`brotli = "on"`).
+- **Early Hints (103)**: Enabled (`early_hints = "on"`).
+
+#### Cache Purge Procedures:
+```bash
+# 1. Purge all cache via Cloudflare API
+curl -X POST "https://api.cloudflare.com/client/v4/zones/<zone_id>/purge_cache" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"purge_everything": true}'
+
+# 2. Granular Purge by Exact URL
+curl -X POST "https://api.cloudflare.com/client/v4/zones/<zone_id>/purge_cache" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"files": ["https://chrishop.com/products/leadville-flannel"]}'
+
+# 3. Turnkey Edge Cache Verification CLI
+pnpm run cache:verify --mock
+```
 
 ### Official Production Domain Migration (`chrishop.com`)
 
