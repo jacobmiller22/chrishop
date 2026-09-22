@@ -51,6 +51,7 @@
     "demo:verify": "tsx scripts/verify-demo-crawler.ts",
     "tracing:verify": "tsx scripts/verify-distributed-tracing.ts",
     "d1:telemetry:verify": "tsx scripts/verify-d1-telemetry.ts",
+    "funnel:verify": "tsx scripts/verify-conversion-funnel.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

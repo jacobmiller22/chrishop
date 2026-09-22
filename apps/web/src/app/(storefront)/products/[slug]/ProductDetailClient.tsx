@@ -18,6 +18,12 @@ import { getAssetUrl } from '@/lib/assets';
 import { shopify } from '@/lib/shopify';
 import { buildCloudflareImageUrl } from '@/lib/r2-image';
 import { MediaCarousel, type CarouselMediaItem } from '@/components/storefront/MediaCarousel';
+import {
+  trackProductView,
+  trackAddToCartAttempt,
+  trackCheckoutRedirect,
+  getFunnelSessionId,
+} from '../../../../lib/funnel-client';
 
 interface ProductDetailClientProps {
   product: StorefrontProduct;
@@ -130,6 +136,19 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
   const isOverride = selectedVariation?.price_override != null;
 
+  // Stage 2: Product Detail Page View Telemetry (product_view)
+  useEffect(() => {
+    trackProductView(
+      product.slug || product.id,
+      product.product_line?.slug || 'bankbeaters-leadville',
+      selectedVariation?.id,
+      {
+        title: product.title,
+        price: currentPrice,
+      }
+    );
+  }, [product.id, product.slug]);
+
   const variationOptions: VariationOption[] = variations.map((v) => ({
     id: v.id,
     name: v.variation_name,
@@ -173,6 +192,18 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       ? Number(selectedVariation.effective_price)
       : Number(product.base_price);
     const itemId = `${product.id}-${selectedVariation.id}`;
+
+    // Stage 3: Add to Cart Attempt Telemetry (add_to_cart_attempt)
+    trackAddToCartAttempt(
+      product.slug || product.id,
+      selectedVariation.shopify_variant_id || selectedVariation.id,
+      product.product_line?.slug || 'bankbeaters-leadville',
+      {
+        title: product.title,
+        price: itemPrice,
+        quantity: 1,
+      }
+    );
 
     setCartItems((prev) => {
       const existing = prev.find((i) => i.id === itemId);
@@ -222,13 +253,32 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
         selectedVariation.shopify_variant_id ||
         `gid://shopify/ProductVariant/${selectedVariation.id}`;
 
+      // Stage 3: Add to Cart Attempt Telemetry (Direct Express Checkout)
+      trackAddToCartAttempt(
+        product.slug || product.id,
+        variantId,
+        product.product_line?.slug || 'bankbeaters-leadville',
+        {
+          title: product.title,
+          price: currentPrice,
+          quantity: 1,
+        }
+      );
+
       let checkoutUrl: string | undefined;
 
       try {
         const response = await fetch('/api/cart/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId, quantity: 1, turnstileToken }),
+          body: JSON.stringify({
+            variantId,
+            quantity: 1,
+            turnstileToken,
+            dropId: product.product_line?.slug || 'bankbeaters-leadville',
+            productId: product.slug || product.id,
+            sessionId: getFunnelSessionId(),
+          }),
         });
 
         if (response.ok) {
@@ -249,6 +299,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       }
 
       if (checkoutUrl) {
+        // Stage 5: Shopify Checkout Redirection Telemetry (checkout_redirect)
+        trackCheckoutRedirect(
+          product.slug || product.id,
+          checkoutUrl,
+          variantId,
+          product.product_line?.slug || 'bankbeaters-leadville',
+          {
+            title: product.title,
+            price: currentPrice,
+          }
+        );
         window.location.href = checkoutUrl;
       } else {
         setCheckoutError('Checkout is currently unavailable');

@@ -12,6 +12,7 @@ import {
   runWithTraceContext,
   withTraceHeaders,
 } from '../../../../lib/tracing';
+import { recordFunnelEvent } from '../../../../lib/funnel-telemetry';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,7 +103,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return withTraceHeaders(res, trace);
     }
 
-    // 5. Resolve Runtime Queue & Environment
+    // 5. Stage 6: Shopify Order Paid / Completed Funnel Telemetry (order_completed)
+    if (topic === 'orders/paid' || topic === 'orders/create') {
+      try {
+        const lineItems = (payload.line_items as any[]) || [];
+        const firstLine = lineItems[0];
+        recordFunnelEvent({
+          event_name: 'order_completed',
+          drop_id: 'bankbeaters-leadville',
+          product_id: firstLine?.product_id ? String(firstLine.product_id) : String(payload.id || webhookId),
+          variant_id: firstLine?.variant_id ? String(firstLine.variant_id) : undefined,
+          correlation_id: trace.requestId || String(webhookId),
+          outcome: 'success',
+          metadata: {
+            webhookId: String(webhookId),
+            topic,
+            orderId: payload.id,
+            orderNumber: payload.order_number,
+            totalPrice: payload.total_price,
+            currency: payload.currency,
+          },
+        });
+      } catch {
+        // Non-blocking telemetry error
+      }
+    }
+
+    // 6. Resolve Runtime Queue & Environment
     const cloudflareEnv: OrderConsumerEnv = {
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM,
