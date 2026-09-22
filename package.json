@@ -33,6 +33,8 @@
     "verify:local": "tsx scripts/verify-local.ts",
     "domain:verify": "tsx scripts/verify-domain-cutover.ts",
     "cache:verify": "tsx scripts/verify-edge-cache.ts",
+    "access:verify": "tsx scripts/cloudflare-access.ts verify",
+    "access:token": "tsx scripts/cloudflare-access.ts token",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -27,3 +27,19 @@ output "turnstile_site_key" {
   description = "Turnstile widget site key"
   value       = var.manage_shared_resources ? cloudflare_turnstile_widget.checkout[0].id : ""
 }
+
+output "access_admin_application_id" {
+  description = "ID of the Cloudflare Access Admin application"
+  value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_application.admin[0].id : ""
+}
+
+output "access_admin_aud" {
+  description = "AUD tag of the Cloudflare Access Admin application"
+  value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_application.admin[0].aud : ""
+}
+
+output "access_service_token_id" {
+  description = "ID of the Cloudflare Access CI probe service token"
+  value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_service_token.ci_probe[0].id : ""
+}
+

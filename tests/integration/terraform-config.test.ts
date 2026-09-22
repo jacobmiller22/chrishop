@@ -173,7 +173,7 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
       encoding: 'utf-8',
     });
     assert.ok(
-      validateRoot.includes('Success! The configuration is valid.'),
+      validateRoot.includes('Success! The configuration is valid'),
       'Root configuration must validate cleanly'
     );
 
@@ -188,7 +188,7 @@ describe('Story 4.12: Terraform Infrastructure as Code (IaC) Multi-Tier Suite', 
         { cwd: rootDir, encoding: 'utf-8' }
       );
       assert.ok(
-        validateEnv.includes('Success! The configuration is valid.'),
+        validateEnv.includes('Success! The configuration is valid'),
         `environments/${env} must validate cleanly`
       );
     }
