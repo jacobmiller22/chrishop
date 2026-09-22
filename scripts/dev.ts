@@ -133,14 +133,29 @@ function cleanup(): void {
 }
 
 function main(): void {
+  const args = process.argv.slice(2);
+  const profileIdx = args.indexOf('--profile');
+  const profileName =
+    profileIdx !== -1 && profileIdx + 1 < args.length
+      ? args[profileIdx + 1]
+      : process.env.MATRIX_PROFILE || 'local-offline';
+
+  process.env.MATRIX_PROFILE = profileName;
+
   runPreflight();
 
   console.log(`${colors.bold}Services Starting:${colors.reset}`);
+  console.log(`- ${colors.blue}Integration Matrix Profile${colors.reset}: ${colors.bold}${profileName}${colors.reset}`);
   console.log(`- ${colors.cyan}Next.js Storefront & Payload CMS${colors.reset}: http://localhost:3000`);
   console.log(`- ${colors.magenta}Cloudflare Miniflare Edge Worker${colors.reset}: http://localhost:8787\n`);
 
-  // Start Next.js App
-  startProcess('web', 'pnpm', ['--filter', '@chrishop/web', 'dev'], colors.cyan);
+  // Start Next.js App with active matrix profile
+  startProcess(
+    'web',
+    'pnpm',
+    ['--filter', '@chrishop/web', 'dev'],
+    colors.cyan
+  );
 
   // Start Cloudflare Wrangler dev with Miniflare emulation on port 8787
   startProcess('wrangler', 'pnpm', ['exec', 'wrangler', 'dev', '--port', '8787'], colors.magenta);

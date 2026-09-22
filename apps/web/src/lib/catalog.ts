@@ -52,6 +52,7 @@ export {
   enrichProductWithShopifyPricing,
   enrichProductsWithShopifyPricing,
 } from './shopify-pricing';
+import { createRemoteD1Client } from '@chrishop/config';
 
 export interface StorefrontVariation {
   id: string;
@@ -329,9 +330,35 @@ function extractFromNode(node: any): string {
 
 let singletonDb: D1DatabaseLike | null = null;
 
+export function setDatabase(db: D1DatabaseLike | null): void {
+  singletonDb = db;
+}
+
 export function getDatabase(): D1DatabaseLike {
   if (singletonDb) {
     return singletonDb;
+  }
+
+  // Check if an Integration Matrix profile requests remote Cloudflare D1
+  if (typeof process !== 'undefined' && process.env.MATRIX_PROFILE) {
+    const profile = process.env.MATRIX_PROFILE;
+    if (profile === 'hybrid-staging' || profile === 'prod-readonly-probe') {
+      const readOnly = profile === 'prod-readonly-probe' && process.env.ALLOW_PROD_WRITES !== 'true';
+      const databaseId =
+        profile === 'prod-readonly-probe'
+          ? (process.env.CLOUDFLARE_PROD_D1_DATABASE_ID || process.env.CLOUDFLARE_D1_DATABASE_ID || 'chrishop-prod-db')
+          : (process.env.CLOUDFLARE_STAGING_D1_DATABASE_ID || process.env.CLOUDFLARE_D1_DATABASE_ID || 'chrishop-staging-db');
+
+      if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) {
+        singletonDb = createRemoteD1Client({
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+          databaseId,
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+          readOnly,
+        });
+        return singletonDb;
+      }
+    }
   }
 
   // Check if live Cloudflare D1 binding is available
