@@ -164,37 +164,37 @@ function verifyArchitectureIntegrity() {
 
 // Stage 2: Monorepo Typecheck & Lint
 function verifyCheck() {
-  execSync('pnpm run check', { stdio: 'pipe' });
+  execSync('pnpm run check', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 3: Monorepo Unit Test Suite
 function verifyUnitTests() {
-  execSync('pnpm run test:unit', { stdio: 'pipe' });
+  execSync('pnpm run test:unit', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 4: Ephemeral Miniflare & Integration Probes (D1, KV, Shopify Client)
 function verifyIntegrationTests() {
-  execSync('pnpm run test:integration', { stdio: 'pipe' });
+  execSync('pnpm run test:integration', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 5: Multi-Viewport Storefront Responsiveness Guardrails (test:responsive)
 function verifyResponsiveness() {
-  execSync('pnpm run test:responsive', { stdio: 'pipe' });
+  execSync('pnpm run test:responsive', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 6: Dependency Security Audit Gate
 function verifySecurityAudit() {
-  execSync('pnpm audit --audit-level=high', { stdio: 'pipe' });
+  execSync('pnpm audit --audit-level=high', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 7: Production Build Validation
 function verifyBuild() {
-  execSync('pnpm run build', { stdio: 'pipe' });
+  execSync('pnpm run build', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 8: Cloudflare Worker Bundle Size Budget Gate
 function verifyBundleBudget() {
-  execSync('pnpm run check:bundle', { stdio: 'pipe' });
+  execSync('pnpm run check:bundle', { stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
 }
 
 // Stage 9: Git Hygiene & Worktree Cleanliness
