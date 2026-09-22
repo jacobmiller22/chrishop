@@ -42,6 +42,7 @@
     "sentry:verify": "tsx scripts/verify-sentry-integration.ts",
     "telemetry:verify": "tsx scripts/verify-telemetry-audit.ts",
     "dns:verify": "tsx scripts/verify-dns-caching-policy.ts",
+    "metrics:verify": "tsx scripts/verify-metrics-catalog.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
