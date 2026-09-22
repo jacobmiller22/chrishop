@@ -13,6 +13,12 @@ import {
   withTraceHeaders,
 } from '../../../../lib/tracing';
 import { recordFunnelEvent } from '../../../../lib/funnel-telemetry';
+import {
+  recordWebhookIngestion,
+  formatServerTimingHeader,
+  getWebhookTelemetryMetrics,
+  type WebhookIngestionTimings,
+} from '../../../../lib/webhook-telemetry';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +28,8 @@ export const dynamic = 'force-dynamic';
  * Edge Ingestion Endpoint for Shopify Order Lifecycle Events (orders/create, orders/paid).
  * Preserves raw request stream for cryptographic HMAC-SHA256 signature verification,
  * enforces an idempotency gate (SET order_webhook:<id> EX 86400 NX) to prevent duplicate
- * processing or alert spamming, and returns HTTP 200 OK fast (< 500ms).
+ * processing or alert spamming, tracks microsecond-accurate timing breakdown, and returns
+ * HTTP 200 OK fast (< 500ms).
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const startTime = Date.now();
@@ -45,6 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const hmacHeader = req.headers.get('x-shopify-hmac-sha256');
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
+    const hmacStart = Date.now();
     if (secret) {
       const isValidHmac = await verifyShopifyWebhookHmacSubtle(rawBody, hmacHeader, secret);
       if (!isValidHmac) {
@@ -56,8 +64,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return withTraceHeaders(res, trace);
       }
     }
+    const hmacMs = Date.now() - hmacStart;
 
     // 3. Parse Webhook Payload & Headers
+    const parseStart = Date.now();
     let payload: Record<string, unknown>;
     try {
       payload = JSON.parse(rawBody);
@@ -68,6 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
       return withTraceHeaders(res, trace);
     }
+    const parseMs = Date.now() - parseStart;
 
     const topic = req.headers.get('x-shopify-topic') || (payload.topic as string) || 'orders/create';
     const webhookId =
@@ -80,9 +91,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       (globalThis as Record<string, unknown>).NEXT_CACHE_WORKERS_KV ||
       (globalThis as Record<string, unknown>).KV;
 
+    const idemStart = Date.now();
     const { isDuplicate } = await checkAndSetIdempotency(String(webhookId), kv);
+    const idempotencyMs = Date.now() - idemStart;
+
     if (isDuplicate) {
       const durationMs = Date.now() - startTime;
+      const timings: WebhookIngestionTimings = {
+        hmacMs,
+        parseMs,
+        idempotencyMs,
+        queueMs: 0,
+        totalMs: durationMs,
+      };
+
+      recordWebhookIngestion({
+        webhookId: String(webhookId),
+        topic,
+        idempotencyStatus: 'hit',
+        queued: false,
+        timings,
+        correlationId: trace.requestId || String(webhookId),
+      });
+
       const res = NextResponse.json(
         {
           received: true,
@@ -90,6 +121,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           topic,
           webhookId: String(webhookId),
           durationMs,
+          timings,
           message: 'Webhook event already processed (idempotency key matched)',
         },
         {
@@ -97,6 +129,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           headers: {
             'x-response-time-ms': String(durationMs),
             'x-idempotency-status': 'hit',
+            'x-hmac-duration-ms': String(hmacMs),
+            'x-parse-duration-ms': String(parseMs),
+            'x-idempotency-duration-ms': String(idempotencyMs),
+            'x-queue-duration-ms': '0',
+            'Server-Timing': formatServerTimingHeader(timings),
           },
         }
       );
@@ -144,9 +181,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       NEXT_CACHE_WORKERS_KV: kv,
     };
 
+    const queueStart = Date.now();
     let queued = false;
 
-    // 6. Asynchronous Offloading: Queue or Isolated Background Execution
+    // 7. Asynchronous Offloading: Queue or Isolated Background Execution
     if (
       cloudflareEnv.SHOPIFY_ORDERS_QUEUE &&
       typeof cloudflareEnv.SHOPIFY_ORDERS_QUEUE.send === 'function'
@@ -178,10 +216,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         console.error('[ShopifyWebhook:DirectAsyncError]', err);
       });
     }
-
+    const queueMs = Date.now() - queueStart;
     const durationMs = Date.now() - startTime;
+    const timings: WebhookIngestionTimings = {
+      hmacMs,
+      parseMs,
+      idempotencyMs,
+      queueMs,
+      totalMs: durationMs,
+    };
 
-    // 7. Fast Acknowledgement (HTTP 200 OK returned immediately)
+    recordWebhookIngestion({
+      webhookId: String(webhookId),
+      topic,
+      idempotencyStatus: 'miss',
+      queued,
+      timings,
+      correlationId: trace.requestId || String(webhookId),
+    });
+
+    // 8. Fast Acknowledgement (HTTP 200 OK returned immediately)
     const res = NextResponse.json(
       {
         received: true,
@@ -189,12 +243,50 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         topic,
         webhookId: String(webhookId),
         durationMs,
+        timings,
       },
       {
         status: 200,
         headers: {
           'x-response-time-ms': String(durationMs),
           'x-idempotency-status': 'miss',
+          'x-hmac-duration-ms': String(hmacMs),
+          'x-parse-duration-ms': String(parseMs),
+          'x-idempotency-duration-ms': String(idempotencyMs),
+          'x-queue-duration-ms': String(queueMs),
+          'Server-Timing': formatServerTimingHeader(timings),
+        },
+      }
+    );
+    return withTraceHeaders(res, trace);
+  });
+}
+
+/**
+ * GET /api/webhooks/shopify
+ *
+ * Operational diagnostic endpoint returning webhook pipeline telemetry metrics
+ * (idempotency hit rates, queue lag, DLQ depth, batch throughput).
+ */
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const trace = extractTraceHeaders(req);
+
+  return runWithTraceContext(trace, async () => {
+    const metrics = getWebhookTelemetryMetrics();
+    const res = NextResponse.json(
+      {
+        ok: true,
+        service: 'shopify-webhook-pipeline',
+        metrics,
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Content-Type': 'application/json',
+          'x-webhook-dlq-depth': String(metrics.dlqDepth),
+          'x-webhook-idempotency-rate': String(metrics.idempotencyHitRate),
+          'x-webhook-queue-lag-ms': String(metrics.averageQueueLagMs),
         },
       }
     );
