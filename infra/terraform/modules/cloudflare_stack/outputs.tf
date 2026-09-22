@@ -43,3 +43,13 @@ output "access_service_token_id" {
   value       = var.enable_cloudflare_access && var.manage_shared_resources ? cloudflare_access_service_token.ci_probe[0].id : ""
 }
 
+output "waf_ruleset_id" {
+  description = "ID of the Cloudflare Custom WAF ruleset"
+  value       = var.manage_shared_resources ? cloudflare_ruleset.waf_custom[0].id : ""
+}
+
+output "rate_limit_ruleset_id" {
+  description = "ID of the Cloudflare Edge Rate Limiting ruleset"
+  value       = var.manage_shared_resources ? cloudflare_ruleset.rate_limiting[0].id : ""
+}
+
