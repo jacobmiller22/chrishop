@@ -8,6 +8,7 @@ import {
   VariationSelector,
   StockIndicator,
   AddToCartButton,
+  CountdownTimer,
   type VariationOption,
 } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
@@ -209,6 +210,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   }));
 
   // Stock status
+  const releaseDate = selectedVariation?.release_date || product.release_date;
+  const isUpcomingDrop =
+    (selectedVariation?.status === 'coming_soon' || product.status === 'coming_soon') &&
+    Boolean(releaseDate);
   const isSoldOut =
     selectedVariation?.status === 'sold_out' ||
     (selectedVariation && selectedVariation.stock_quantity <= 0);
@@ -320,6 +325,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   stockQuantity={selectedVariation?.stock_quantity}
                   isLimitedEdition={selectedVariation?.is_limited_edition}
                   totalEditionCount={selectedVariation?.total_edition_count}
+                  releaseDate={releaseDate}
                 />
               </>
             }
@@ -510,6 +516,33 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </li>
             </ul>
           </div>
+
+          {/* Scheduled Drop Launch Countdown Banner */}
+          {isUpcomingDrop && releaseDate && (
+            <div className="space-y-2">
+              <CountdownTimer
+                targetDate={releaseDate}
+                onComplete={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.reload();
+                  }
+                }}
+              />
+              <div className="flex items-center justify-between text-[11px] font-mono text-stone-400 px-1">
+                <span>✦ Scheduled Batch Drop</span>
+                <span>
+                  {new Date(releaseDate).toLocaleString('en-US', {
+                    timeZone: 'America/Denver',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    timeZoneName: 'short',
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Dynamic Price Display */}
           <div className="p-4 rounded-xl bg-[#15191E] border border-stone-800 space-y-2">

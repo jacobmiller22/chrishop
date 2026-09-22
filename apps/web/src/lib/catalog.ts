@@ -101,6 +101,7 @@ export interface StorefrontProduct {
   base_price: number;
   effective_min_price?: number;
   status: ProductStatus;
+  release_date?: string | null;
   category?: Category | null;
   shopify_product_id?: string;
   featured_image?: string | null;
@@ -240,6 +241,49 @@ export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
     hero_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
     gallery: [],
     variations: [],
+  },
+  'leadville-ultralight-wading-pack': {
+    id: 'prod-leadville-wading-pack',
+    title: 'Leadville Ultralight Wading Chest Pack',
+    slug: 'leadville-ultralight-wading-pack',
+    shopify_product_id: 'gid://shopify/Product/103',
+    description:
+      'Engineered for alpine squalls and brush navigation in the Colorado high country. Built with Challenge ULTRA 200TX and YKK AquaGuard zips.',
+    maker_field_notes:
+      'Patterned specifically for long walk-ins along the upper Arkansas River. Ultralight, waterproof, and keeps your fly boxes dry when wading deep.',
+    materials: 'Challenge ULTRA™ 200TX, 500D Cordura® Backer, YKK AquaGuard®',
+    weight: '7.8 oz (221g)',
+    fit_profile: 'Low-profile ergonomic chest & sling mount',
+    origin: "Hand-cut & sewn in small batches in Chris's workshop",
+    base_price: 185,
+    effective_price: 185,
+    status: 'coming_soon',
+    release_date: '2026-10-15T16:00:00Z',
+    category: {
+      id: 'cat-packs',
+      name: 'Packs & Carry',
+      slug: 'packs-carry',
+    },
+    featured_image: '/media/leadville-ultralight-wading-pack/hero.jpeg',
+    hero_image: '/media/leadville-ultralight-wading-pack/hero.jpeg',
+    gallery: [],
+    variations: [
+      {
+        id: 'var-pack-batch-01',
+        product_id: 'prod-leadville-wading-pack',
+        shopify_variant_id: 'gid://shopify/ProductVariant/203',
+        variation_name: 'Leadville Edition — Batch 01',
+        sku: 'LV-PACK-B01',
+        variation_type: 'micro_batch',
+        edition_badge: 'Batch of 15',
+        effective_price: 185,
+        is_limited_edition: true,
+        total_edition_count: 15,
+        status: 'coming_soon',
+        release_date: '2026-10-15T16:00:00Z',
+        stock_quantity: 15,
+      },
+    ],
   },
 };
 FALLBACK_PRODUCTS_BY_SLUG['the-bushwhack-storm-anorak'] = FALLBACK_PRODUCTS_BY_SLUG['bushwhack-storm-anorak'];
@@ -737,6 +781,7 @@ async function fetchProductBySlugDirect(
       options: productRow.options ? (typeof productRow.options === "string" ? JSON.parse(productRow.options) : productRow.options) : undefined,
       effective_min_price: effectiveMinPrice,
       status: (productRow.status as ProductStatus) || 'draft',
+      release_date: productRow.release_date ?? undefined,
       category,
       shopify_product_id: productRow.shopify_product_id ?? undefined,
       featured_image: featuredImage,
@@ -975,6 +1020,7 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
         options: r.options ? (typeof r.options === "string" ? JSON.parse(r.options) : r.options) : undefined,
         effective_min_price: effectiveMinPrice,
         status: (r.status as ProductStatus) || 'draft',
+        release_date: r.release_date ?? undefined,
         category: catId
           ? {
               id: catId,
@@ -1025,6 +1071,48 @@ export async function getFeaturedProducts(
     limit,
     db: options?.db,
   });
+}
+
+/**
+ * Retrieves all scheduled or upcoming drop products.
+ * Includes items with status === 'coming_soon' or a future release_date,
+ * or variations with status === 'coming_soon' / release_date.
+ */
+export async function getScheduledDrops(options?: { db?: DatabaseSync }): Promise<StorefrontProduct[]> {
+  const allProducts = await getProducts({
+    status: ['published', 'coming_soon' as any, 'active'],
+    db: options?.db,
+  });
+
+  return allProducts
+    .filter((p) => {
+      if (p.status === 'coming_soon') return true;
+      if (p.release_date && new Date(p.release_date).getTime() > Date.now()) return true;
+      if (p.variations?.some((v) => v.status === 'coming_soon' || (v.release_date && new Date(v.release_date).getTime() > Date.now()))) {
+        return true;
+      }
+      return false;
+    })
+    .sort((a, b) => {
+      const getEarliestTimestamp = (prod: StorefrontProduct): number => {
+        const timestamps: number[] = [];
+        if (prod.release_date) {
+          const t = new Date(prod.release_date).getTime();
+          if (!isNaN(t)) timestamps.push(t);
+        }
+        if (prod.variations) {
+          for (const v of prod.variations) {
+            if (v.release_date) {
+              const t = new Date(v.release_date).getTime();
+              if (!isNaN(t)) timestamps.push(t);
+            }
+          }
+        }
+        return timestamps.length > 0 ? Math.min(...timestamps) : Number.MAX_SAFE_INTEGER;
+      };
+
+      return getEarliestTimestamp(a) - getEarliestTimestamp(b);
+    });
 }
 
 // ============================================================================

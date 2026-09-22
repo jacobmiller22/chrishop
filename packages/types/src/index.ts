@@ -12,7 +12,7 @@ export interface Category {
   children?: Category[];
 }
 
-export type ProductStatus = 'draft' | 'published' | 'archived';
+export type ProductStatus = 'draft' | 'published' | 'archived' | 'coming_soon';
 
 export interface ProductTechnicalSpecs {
   material_preset?: string;
@@ -37,6 +37,7 @@ export interface Product {
   origin?: string;
   base_price: number;
   status: ProductStatus;
+  release_date?: string | null;
   /** High-resolution hero/banner image URL or Cloudflare R2 asset key */
   hero_image?: string;
   /** Primary catalog thumbnail / card preview image URL or Cloudflare R2 asset key */
