@@ -37,6 +37,7 @@
     "access:token": "tsx scripts/cloudflare-access.ts token",
     "uptime:verify": "tsx scripts/better-stack-uptime.ts verify",
     "uptime:sync": "tsx scripts/better-stack-uptime.ts sync",
+    "waf:verify": "tsx scripts/verify-waf-rules.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
