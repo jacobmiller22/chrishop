@@ -35,6 +35,8 @@
     "cache:verify": "tsx scripts/verify-edge-cache.ts",
     "access:verify": "tsx scripts/cloudflare-access.ts verify",
     "access:token": "tsx scripts/cloudflare-access.ts token",
+    "uptime:verify": "tsx scripts/better-stack-uptime.ts verify",
+    "uptime:sync": "tsx scripts/better-stack-uptime.ts sync",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
