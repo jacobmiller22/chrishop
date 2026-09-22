@@ -2,6 +2,7 @@ import type React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Header, Footer } from '@chrishop/ui';
 import '../globals.css';
+import { WebVitalsReporter } from '../../components/storefront/WebVitalsReporter';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </main>
+        <WebVitalsReporter />
         <Footer />
       </body>
     </html>
