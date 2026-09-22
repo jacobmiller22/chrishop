@@ -105,12 +105,13 @@ The production catalog data model follows **Paradigm 1 (Hybrid Product-First wit
    - `featured_image` (Upload relationship -> Cloudflare R2 `media`)
    - `gallery` (Array of Upload relationships -> Cloudflare R2 `media`)
    - `maker_field_notes` (Textarea: Bench and field testing notes)
-   - `artist_statement` (Textarea: Extended provenance and inspiration)
-   - `materials` (Text: Technical fabric specs and hardware)
+   - `material_preset` (Select: Controlled technical textile preset: `toray_cordura`, `stretch_cordura`, `xpac_vx21`, `cordura_eva`, `martexin_blaze`, `waxed_eva`, `dyneema_composite`, `custom`. Auto-populates `materials` when left blank)
+   - `materials` (Text: Technical fabric specs and hardware; auto-filled or custom)
    - `weight` (Text: Garment or pack weight)
-   - `fit_profile` (Text: Fit characteristics or carrying ergonomics)
+   - `fit_profile` (Select: Controlled ergonomic fit characteristics preset)
    - `origin` (Text: Default: "Hand-crafted in Chris's workshop")
    - `description` (Rich Text / Lexical: Full editorial description)
+   - *(Note: `artist_statement` is pruned from the schema; legacy data migrated to `maker_field_notes`)*
 
 4. **`product_variations` (Collection — Serialized & Limited Editions)**
    - `id` (Text, Primary Key)
@@ -118,16 +119,16 @@ The production catalog data model follows **Paradigm 1 (Hybrid Product-First wit
    - `shopify_variant_id` (Text, Unique Index: Linked Shopify ProductVariant GID)
    - `variation_name` (Text: e.g., "Obsidian Dyneema Edition")
    - `sku` (Text, Unique Index)
-   - `variation_type` (Select: `standard`, `limited_edition`, `one_off_prototype`, `numbered_run`)
-   - `edition_badge` (Text: e.g., "Only 10 Crafted", "1-of-1 Workbench Prototype")
-   - `variation_notes` (Text: Serialized bench notes)
+   - `variation_type` (Select: `standard`, `micro_batch`, `one_of_one`, `prototype`)
+   - `edition_badge` (Text: Auto-derived via `deriveEditionBadge` e.g. "Only 3 Crafted", "1-of-1 Prototype", "Archive Sample"; supports custom overrides)
+   - `variation_notes` (Textarea: Serialized bench notes)
    - `variation_images` (Array of Upload relationships -> `media`)
    - `price_override` (Number, Optional: Overrides product base price)
    - `is_limited_edition` (Boolean, Default: true)
    - `total_edition_count` (Number: Total serialized prints/casts created)
-   - `stock_quantity` (Number: Synced to Shopify inventory level)
    - `release_date` (DateTime, Optional: Controls drop countdown timers)
    - `status` (Select: `coming_soon`, `active`, `sold_out`, `archived`)
+   - *(Architectural Invariant: Live mutable inventory quantities are never stored in D1; queried dynamically from Shopify)*
 
 ### 3.3 Price Resolution Formula
 

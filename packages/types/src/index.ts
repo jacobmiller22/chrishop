@@ -15,6 +15,7 @@ export interface Category {
 export type ProductStatus = 'draft' | 'published' | 'archived';
 
 export interface ProductTechnicalSpecs {
+  material_preset?: string;
   materials?: string;
   weight?: string;
   fit_profile?: string;
@@ -29,6 +30,7 @@ export interface Product {
   maker_field_notes?: string;
   artist_statement?: string;
   technical_specs?: ProductTechnicalSpecs;
+  material_preset?: string;
   materials?: string;
   weight?: string;
   fit_profile?: string;

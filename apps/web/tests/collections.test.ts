@@ -120,10 +120,20 @@ describe('Story 2.18: Payload CMS v3 Collections & Schema Specification', () => 
       assert.ok(galleryField, 'gallery field must exist');
       assert.equal(galleryField.type, 'array');
 
-      // artist_statement & description
-      const statementField: any = fieldMap.get('artist_statement');
-      assert.ok(statementField, 'artist_statement field must exist');
-      assert.equal(statementField.type, 'textarea');
+      // maker_field_notes, material_preset, description & pruned artist_statement (Story 3.19)
+      const makerNotesField: any = fieldMap.get('maker_field_notes');
+      assert.ok(makerNotesField, 'maker_field_notes field must exist');
+      assert.equal(makerNotesField.type, 'textarea');
+
+      const presetField: any = fieldMap.get('material_preset');
+      assert.ok(presetField, 'material_preset field must exist');
+      assert.equal(presetField.type, 'select');
+
+      assert.equal(
+        fieldMap.get('artist_statement'),
+        undefined,
+        'artist_statement field must be pruned from schema (Story 3.19)'
+      );
 
       const descField: any = fieldMap.get('description');
       assert.ok(descField, 'description field must exist');
