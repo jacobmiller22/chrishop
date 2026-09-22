@@ -69,6 +69,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             ))}
             <a
               href="/cart"
+              data-testid="header-cart-button"
               className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded-lg"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
@@ -85,6 +86,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
           <div className="flex items-center gap-3 md:hidden">
             <a
               href="/cart"
+              data-testid="header-cart-button"
               className="relative flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg bg-[#15191E] border border-stone-800 text-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >

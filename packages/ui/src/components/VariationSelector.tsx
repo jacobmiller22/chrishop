@@ -64,6 +64,9 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
               key={v.id}
               type="button"
               role="radio"
+              data-testid="variation-radio"
+              data-variation-id={v.id}
+              data-variation-name={v.name}
               aria-checked={isSelected}
               onClick={() => onSelectVariation(v.id)}
               className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 min-w-0 min-h-[44px] ${

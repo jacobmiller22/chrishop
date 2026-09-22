@@ -9,6 +9,8 @@ import {
   AddToCartButton,
   CountdownTimer,
   TurnstileWidget,
+  CartDrawer,
+  type CartItem,
   type VariationOption,
 } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
@@ -154,6 +156,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const isComingSoon = selectedVariation?.status === 'coming_soon';
   const isAvailable = !isSoldOut && !isComingSoon;
 
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -161,6 +165,37 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const handleSelectVariation = (varId: string) => {
     setSelectedVariationId(varId);
     setSelectedImageIndex(0);
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedVariation || !isAvailable) return;
+    const itemPrice = selectedVariation
+      ? Number(selectedVariation.effective_price)
+      : Number(product.base_price);
+    const itemId = `${product.id}-${selectedVariation.id}`;
+
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === itemId);
+      if (existing) {
+        return prev.map((i) => (i.id === itemId ? { ...i, quantity: i.quantity + 1 } : i));
+      }
+      return [
+        ...prev,
+        {
+          id: itemId,
+          variantId:
+            selectedVariation.shopify_variant_id ||
+            `gid://shopify/ProductVariant/${selectedVariation.id}`,
+          title: product.title,
+          variantName: selectedVariation.variation_name,
+          editionBadge: selectedVariation.edition_badge,
+          price: itemPrice,
+          quantity: 1,
+          imageUrl: activeMedia?.url,
+        },
+      ];
+    });
+    setIsCartOpen(true);
   };
 
   const handleCheckout = async () => {
@@ -552,7 +587,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               status={selectedVariation?.status}
               stockQuantity={selectedVariation?.stock_quantity}
               isLoading={isCheckingOut}
-              onClick={handleCheckout}
+              onClick={handleAddToCart}
             />
 
             {checkoutError && (
@@ -610,13 +645,32 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             status={selectedVariation?.status}
             stockQuantity={selectedVariation?.stock_quantity}
             isLoading={isCheckingOut}
-            onClick={handleCheckout}
+            onClick={handleAddToCart}
+            dataTestId="mobile-deploy-gear-button"
             className="w-auto shrink-0 min-h-[44px] px-4 font-bold text-xs uppercase tracking-wider py-2"
           >
             {isCheckingOut ? 'Rolling...' : isSoldOut ? 'Depleted' : 'Deploy Gear'}
           </AddToCartButton>
         </div>
       )}
+
+      {/* Slide-over Cart Drawer */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onUpdateQuantity={(id, qty) =>
+          setCartItems((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, quantity: qty } : item))
+          )
+        }
+        onRemoveItem={(id) =>
+          setCartItems((prev) => prev.filter((item) => item.id !== id))
+        }
+        onCheckout={handleCheckout}
+        isCheckingOut={isCheckingOut}
+        checkoutError={checkoutError}
+      />
     </div>
 
   );

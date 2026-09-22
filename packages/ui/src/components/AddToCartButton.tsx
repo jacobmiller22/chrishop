@@ -10,6 +10,7 @@ export interface AddToCartButtonProps {
   onClick?: () => void | Promise<void>;
   className?: string;
   children?: React.ReactNode;
+  dataTestId?: string;
 }
 
 export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
@@ -21,6 +22,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   onClick,
   className = '',
   children,
+  dataTestId = 'deploy-gear-button',
 }) => {
   const isSoldOut = status === 'sold_out' || (stockQuantity !== undefined && stockQuantity <= 0);
   const isComingSoon = status === 'coming_soon';
@@ -45,6 +47,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     <Button
       variant="primary"
       size="lg"
+      data-testid={dataTestId}
       disabled={isDisabled}
       onClick={onClick}
       className={`w-full font-bold uppercase tracking-wider shadow-lg shadow-orange-950/40 py-3.5 text-base bg-[#E55B24] hover:bg-[#D04A15] text-white border-none min-h-[48px] ${className}`}
