@@ -43,6 +43,7 @@
     "telemetry:verify": "tsx scripts/verify-telemetry-audit.ts",
     "dns:verify": "tsx scripts/verify-dns-caching-policy.ts",
     "metrics:verify": "tsx scripts/verify-metrics-catalog.ts",
+    "dashboard:verify": "tsx scripts/verify-dashboard-architecture.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
