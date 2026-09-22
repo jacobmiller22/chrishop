@@ -69,6 +69,19 @@ jobs:
             '
           fi
 
+          # Provision or gracefully omit preview queues if unprovisioned on Cloudflare account
+          pnpm exec wrangler queues create shopify-orders-queue-preview 2>/dev/null || true
+          pnpm exec wrangler queues create shopify-orders-dlq-preview 2>/dev/null || true
+          if ! pnpm exec wrangler queues list 2>/dev/null | grep -q "shopify-orders-queue-preview"; then
+            echo "Queue shopify-orders-queue-preview not found on Cloudflare account. Omitting queues binding for preview."
+            node -e '
+              const fs = require("fs");
+              let content = fs.readFileSync("wrangler.toml", "utf-8");
+              content = content.replace(/\[\[env\.preview\.queues\.producers\]\][\s\S]*?dead_letter_queue\s*=\s*"shopify-orders-dlq-preview"/, "# Queues omitted (unprovisioned in preview)");
+              fs.writeFileSync("wrangler.toml", content);
+            '
+          fi
+
       - name: Setup Terraform
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: hashicorp/setup-terraform@v3
