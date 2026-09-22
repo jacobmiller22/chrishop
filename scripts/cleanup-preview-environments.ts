@@ -108,9 +108,10 @@ async function purgeOrphanPreviewResources(prNumber: number, accountId: string, 
   const d1Res = await cfApiRequest('GET', `/client/v4/accounts/${accountId}/d1/database?name=${encodeURIComponent(d1DbName)}`, accountId, apiToken);
   if (d1Res.success && Array.isArray(d1Res.result)) {
     for (const db of d1Res.result) {
-      if (db.name === d1DbName && db.uuid) {
-        console.log(`  🗑 Purging orphan D1 database: ${db.name} (${db.uuid})...`);
-        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/d1/database/${db.uuid}`, accountId, apiToken);
+      const dbId = db.uuid || db.id;
+      if (db.name === d1DbName && dbId) {
+        console.log(`  🗑 Purging orphan D1 database: ${db.name} (${dbId})...`);
+        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/d1/database/${dbId}`, accountId, apiToken);
         if (delRes.success) {
           console.log(`  ${colors.green}✔ D1 database ${db.name} deleted successfully.${colors.reset}`);
         } else {
@@ -125,9 +126,10 @@ async function purgeOrphanPreviewResources(prNumber: number, accountId: string, 
   const kvRes = await cfApiRequest('GET', `/client/v4/accounts/${accountId}/storage/kv/namespaces?per_page=100`, accountId, apiToken);
   if (kvRes.success && Array.isArray(kvRes.result)) {
     for (const ns of kvRes.result) {
-      if (ns.title === kvTitle && ns.id) {
-        console.log(`  🗑 Purging orphan KV namespace: ${ns.title} (${ns.id})...`);
-        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/storage/kv/namespaces/${ns.id}`, accountId, apiToken);
+      const nsId = ns.id || ns.uuid;
+      if (ns.title === kvTitle && nsId) {
+        console.log(`  🗑 Purging orphan KV namespace: ${ns.title} (${nsId})...`);
+        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/storage/kv/namespaces/${nsId}`, accountId, apiToken);
         if (delRes.success) {
           console.log(`  ${colors.green}✔ KV namespace ${ns.title} deleted successfully.${colors.reset}`);
         } else {
@@ -138,21 +140,19 @@ async function purgeOrphanPreviewResources(prNumber: number, accountId: string, 
   }
 
   // 3. Purge DNS Record
-  const zoneRes = await cfApiRequest('GET', `/client/v4/zones?name=jacobmiller22.com`, accountId, apiToken);
-  if (zoneRes.success && Array.isArray(zoneRes.result) && zoneRes.result[0]?.id) {
-    const zoneId = zoneRes.result[0].id;
-    const recordName = `pr-${prNumber}-chrishop.jacobmiller22.com`;
-    const dnsRes = await cfApiRequest('GET', `/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(recordName)}`, accountId, apiToken);
-    if (dnsRes.success && Array.isArray(dnsRes.result)) {
-      for (const rec of dnsRes.result) {
-        if (rec.id) {
-          console.log(`  🗑 Purging orphan DNS record: ${rec.name} (${rec.id})...`);
-          const delRes = await cfApiRequest('DELETE', `/client/v4/zones/${zoneId}/dns_records/${rec.id}`, accountId, apiToken);
-          if (delRes.success) {
-            console.log(`  ${colors.green}✔ DNS record ${rec.name} deleted successfully.${colors.reset}`);
-          } else {
-            console.warn(`  ${colors.yellow}Warning: Failed to delete DNS record ${rec.name}: ${delRes.errors?.[0]?.message}${colors.reset}`);
-          }
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID || '5d7e44ca52908e077d3808080930bd69';
+  const recordName = `pr-${prNumber}-chrishop.jacobmiller22.com`;
+  const dnsRes = await cfApiRequest('GET', `/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(recordName)}`, accountId, apiToken);
+  if (dnsRes.success && Array.isArray(dnsRes.result)) {
+    for (const rec of dnsRes.result) {
+      const recId = rec.id || rec.uuid;
+      if (recId) {
+        console.log(`  🗑 Purging orphan DNS record: ${rec.name} (${recId})...`);
+        const delRes = await cfApiRequest('DELETE', `/client/v4/zones/${zoneId}/dns_records/${recId}`, accountId, apiToken);
+        if (delRes.success) {
+          console.log(`  ${colors.green}✔ DNS record ${rec.name} deleted successfully.${colors.reset}`);
+        } else {
+          console.warn(`  ${colors.yellow}Warning: Failed to delete DNS record ${rec.name}: ${delRes.errors?.[0]?.message}${colors.reset}`);
         }
       }
     }

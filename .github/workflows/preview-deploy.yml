@@ -108,9 +108,15 @@ jobs:
           # Restore existing remote state from R2 if updating an active PR preview
           pnpm exec wrangler r2 object get "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" 2>/dev/null || true
 
-          # If no state file exists in R2, sweep any dangling unmanaged orphan resources from previous aborted attempts
+          # If state file is missing or does not contain primary D1 database, state is corrupted/incomplete
+          if [ -f "${STATE_FILE}" ] && ! grep -q "cloudflare_d1_database" "${STATE_FILE}"; then
+            echo "State file in R2 does not contain primary D1 database. Purging incomplete state..."
+            rm -f "${STATE_FILE}"
+            pnpm exec wrangler r2 object delete "chrishop-terraform-state/${STATE_KEY}" 2>/dev/null || true
+          fi
+
           if [ ! -f "${STATE_FILE}" ]; then
-            echo "No prior Terraform state found in R2 for PR #${PR_NUM}. Purging any unmanaged orphan resources..."
+            echo "No valid Terraform state found for PR #${PR_NUM}. Purging any dangling orphan preview resources..."
             pnpm exec tsx scripts/cleanup-preview-environments.ts --pr "${PR_NUM}" --reset-orphans || true
           fi
 
@@ -119,10 +125,20 @@ jobs:
 
           cd infra/terraform/environments/preview
           terraform init
-          terraform apply -auto-approve \
+          if ! terraform apply -auto-approve \
             -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
             -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
-            -var="pr_number=${PR_NUM}"
+            -var="pr_number=${PR_NUM}"; then
+            echo "Terraform apply failed. Sweeping orphaned preview resources and retrying with fresh state..."
+            rm -f terraform.tfstate*
+            cd ../../..
+            pnpm exec tsx scripts/cleanup-preview-environments.ts --pr "${PR_NUM}" --reset-orphans || true
+            cd infra/terraform/environments/preview
+            terraform apply -auto-approve \
+              -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
+              -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" \
+              -var="pr_number=${PR_NUM}"
+          fi
 
           # Export outputs to bridge script
           terraform output -json > /tmp/tf-preview-output.json
