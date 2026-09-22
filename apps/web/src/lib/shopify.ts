@@ -15,6 +15,7 @@
  */
 
 import { defaultShopifyMock, ShopifyStorefrontMockEngine } from './shopify-mock';
+export { defaultShopifyMock, ShopifyStorefrontMockEngine };
 
 export interface ShopifyClientConfig {
   domain?: string;
@@ -521,6 +522,65 @@ export class ShopifyStorefrontClient {
       query,
       {
         id: cartId,
+      },
+      buyerIp
+    );
+  }
+
+  /**
+   * Updates buyer identity (email, phone, countryCode/currency) on an existing cart.
+   * Ensures seamless preservation of customer locale and currency upon checkout redirection.
+   */
+  async cartBuyerIdentityUpdate(
+    cartId: string,
+    buyerIdentity: {
+      email?: string;
+      phone?: string;
+      countryCode?: string;
+      customerAccessToken?: string;
+    },
+    buyerIp?: string
+  ) {
+    const mutation = `
+      mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+        cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+          cart {
+            id
+            checkoutUrl
+            totalQuantity
+            lines(first: 25) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          userErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    return this.request(
+      mutation,
+      {
+        cartId,
+        buyerIdentity,
       },
       buyerIp
     );
