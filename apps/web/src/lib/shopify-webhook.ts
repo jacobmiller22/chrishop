@@ -1,4 +1,15 @@
-import { verifyShopifyWebhookHmac } from './order-consumer';
+import {
+  verifyShopifyWebhookHmac,
+  extractFulfillmentData,
+  formatCarrierTrackingUrl,
+  type ShopifyFulfillment,
+} from './order-consumer';
+
+export {
+  extractFulfillmentData,
+  formatCarrierTrackingUrl,
+  type ShopifyFulfillment,
+};
 
 // In-memory fallback cache for deduplication when KV binding is absent
 export const inMemoryWebhookStore = new Map<string, number>();

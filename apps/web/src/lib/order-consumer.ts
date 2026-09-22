@@ -2,12 +2,16 @@ import crypto from 'node:crypto';
 import {
   ResendNotificationProvider,
   WebhookNotificationProvider,
+  formatCarrierTrackingUrl,
   type OrderReceiptPayload,
   type OrderItemReceipt,
+  type ShippingUpdatePayload,
   type EmailDispatchResult,
   type WebhookDispatchResult,
 } from '@chrishop/notifications';
 import type { Order, ShippingAddress } from '@chrishop/types';
+
+export { formatCarrierTrackingUrl, type ShippingUpdatePayload };
 
 /**
  * Validates Shopify HMAC-SHA256 signature using timing-safe comparison.
@@ -137,6 +141,21 @@ export interface ShopifyLineItem {
   variant_id?: number | string;
 }
 
+export interface ShopifyFulfillment {
+  id?: number | string;
+  order_id?: number | string;
+  status?: string;
+  tracking_company?: string;
+  carrier?: string;
+  tracking_number?: string;
+  tracking_numbers?: string[];
+  tracking_url?: string;
+  tracking_urls?: string[];
+  line_items?: ShopifyLineItem[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ShopifyOrderWebhookPayload {
   id: number | string;
   name?: string;
@@ -183,6 +202,7 @@ export interface ShopifyOrderWebhookPayload {
   fulfillment_status?: string | null;
   shipping_status?: string;
   line_items?: ShopifyLineItem[];
+  fulfillments?: ShopifyFulfillment[];
   created_at?: string;
   shopify_order_id?: string;
   shopify_order_number?: string;
@@ -422,6 +442,147 @@ export function normalizeOrderEvent(
   };
 }
 
+/**
+ * Normalizes a Shopify fulfillment webhook event (orders/fulfilled, fulfillments/create, etc.)
+ * into a structured ShippingUpdatePayload with accurate carrier tracking URLs.
+ */
+export function extractFulfillmentData(
+  topic: string,
+  payload: any
+): ShippingUpdatePayload | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  // Detect whether the payload is an Order with fulfillments or a direct Fulfillment entity
+  const isDirectFulfillment =
+    topic.startsWith('fulfillments/') ||
+    ('tracking_company' in payload && 'order_id' in payload);
+
+  let carrier = 'USPS';
+  let trackingNumber = '';
+  let trackingUrl = '';
+  let orderNumber = '';
+  let orderId = '';
+  let customerEmail = '';
+  let customerName = 'Customer';
+  let items: Array<{ title: string; variation_name?: string; quantity: number }> = [];
+
+  if (isDirectFulfillment) {
+    // Direct fulfillment payload (fulfillments/create or fulfillments/update)
+    carrier = payload.tracking_company || payload.carrier || 'USPS';
+    trackingNumber =
+      payload.tracking_number ||
+      (Array.isArray(payload.tracking_numbers) && payload.tracking_numbers[0]) ||
+      '';
+    const rawTrackingUrl =
+      payload.tracking_url ||
+      (Array.isArray(payload.tracking_urls) && payload.tracking_urls[0]) ||
+      '';
+    trackingUrl = formatCarrierTrackingUrl(carrier, trackingNumber, rawTrackingUrl);
+
+    orderId = String(payload.order_id || payload.id || '');
+    orderNumber =
+      payload.order_name ||
+      (payload.order_number ? `#${payload.order_number}` : '') ||
+      (payload.order_id ? `#${payload.order_id}` : `#${payload.id}`);
+
+    customerEmail =
+      payload.email ||
+      payload.customer_email ||
+      payload.destination?.email ||
+      payload.customer?.email ||
+      'customer@example.com';
+
+    customerName =
+      payload.customer_name ||
+      payload.destination?.name ||
+      (payload.destination?.first_name
+        ? `${payload.destination.first_name} ${payload.destination.last_name || ''}`.trim()
+        : 'Customer');
+
+    if (Array.isArray(payload.line_items)) {
+      items = payload.line_items.map((item: any) => ({
+        title: item.title || item.name || 'Equipment Item',
+        variation_name: item.variant_title || undefined,
+        quantity: Number(item.quantity) || 1,
+      }));
+    }
+  } else {
+    // Order payload (orders/fulfilled, orders/partially_fulfilled, or orders/updated)
+    orderId = String(payload.id || '');
+    orderNumber =
+      payload.name ||
+      (payload.order_number ? `#${payload.order_number}` : '') ||
+      (payload.shopify_order_number ? `#${payload.shopify_order_number}` : '') ||
+      `#${orderId}`;
+
+    customerEmail =
+      payload.customer_email ||
+      payload.email ||
+      payload.contact_email ||
+      payload.customer?.email ||
+      'customer@example.com';
+
+    customerName =
+      payload.customer_name ||
+      payload.shipping_name ||
+      (payload.customer?.first_name
+        ? `${payload.customer.first_name} ${payload.customer.last_name || ''}`.trim()
+        : '') ||
+      payload.shipping_address?.name ||
+      'Customer';
+
+    const fulfillments = Array.isArray(payload.fulfillments) ? payload.fulfillments : [];
+    const latestFulfillment = fulfillments.length > 0 ? fulfillments[fulfillments.length - 1] : null;
+
+    if (latestFulfillment) {
+      carrier = latestFulfillment.tracking_company || latestFulfillment.carrier || 'USPS';
+      trackingNumber =
+        latestFulfillment.tracking_number ||
+        (Array.isArray(latestFulfillment.tracking_numbers) && latestFulfillment.tracking_numbers[0]) ||
+        '';
+      const rawTrackingUrl =
+        latestFulfillment.tracking_url ||
+        (Array.isArray(latestFulfillment.tracking_urls) && latestFulfillment.tracking_urls[0]) ||
+        '';
+      trackingUrl = formatCarrierTrackingUrl(carrier, trackingNumber, rawTrackingUrl);
+
+      if (Array.isArray(latestFulfillment.line_items) && latestFulfillment.line_items.length > 0) {
+        items = latestFulfillment.line_items.map((item: any) => ({
+          title: item.title || item.name || 'Equipment Item',
+          variation_name: item.variant_title || undefined,
+          quantity: Number(item.quantity) || 1,
+        }));
+      }
+    } else {
+      // Fallback if fulfillments array is empty but status was fulfilled
+      carrier = payload.carrier || payload.tracking_company || 'USPS';
+      trackingNumber = payload.tracking_number || '';
+      trackingUrl = formatCarrierTrackingUrl(carrier, trackingNumber, payload.tracking_url);
+    }
+
+    if (items.length === 0 && Array.isArray(payload.line_items)) {
+      items = payload.line_items.map((item: any) => ({
+        title: item.title || item.name || 'Equipment Item',
+        variation_name: item.variant_title || undefined,
+        quantity: Number(item.quantity) || 1,
+      }));
+    }
+  }
+
+  return {
+    order_id: orderId,
+    order_number: orderNumber,
+    customer_name: customerName,
+    customer_email: customerEmail,
+    carrier,
+    tracking_number: trackingNumber,
+    tracking_url: trackingUrl,
+    items,
+  };
+}
+
 // ============================================================================
 // 3. Low-Stock Target Discovery
 // ============================================================================
@@ -507,6 +668,7 @@ export async function processOrderEvent(
   merchantAlertSent: boolean;
   lowStockAlertsSent: number;
   opsAlertSent: boolean;
+  shippingUpdateSent?: boolean;
   errors: string[];
 }> {
   const errors: string[] = [];
@@ -533,6 +695,89 @@ export async function processOrderEvent(
   const webhookProvider =
     options.webhookProvider ||
     new WebhookNotificationProvider(webhookUrl);
+
+  const topic = messagePayload.topic || 'orders/create';
+  const isFulfillmentEvent =
+    topic === 'orders/fulfilled' ||
+    topic === 'orders/partially_fulfilled' ||
+    topic === 'fulfillments/create' ||
+    topic === 'fulfillments/update' ||
+    Boolean(
+      (messagePayload.order as any)?.fulfillments?.length &&
+        ((messagePayload.order as any)?.fulfillment_status === 'fulfilled' ||
+          (messagePayload.order as any)?.fulfillment_status === 'partial')
+    );
+
+  // --------------------------------------------------------------------------
+  // Fulfillment Pipeline: Customer Shipping Tracking Email & Discord Alert
+  // --------------------------------------------------------------------------
+  if (isFulfillmentEvent) {
+    const fulfillmentData = extractFulfillmentData(topic, messagePayload.order);
+    if (fulfillmentData) {
+      // 1. Customer Shipping Tracking Notification (Resend)
+      try {
+        const result: EmailDispatchResult =
+          await resendProvider.notifyShippingUpdate(fulfillmentData);
+        if (result.success) {
+          customerEmailSent = true;
+        } else {
+          errors.push(
+            `Customer Shipping Update Error: ${result.error || 'Failed to dispatch tracking email'}`
+          );
+        }
+      } catch (err: any) {
+        const msg = `Customer Shipping Update Exception: ${err?.message || String(err)}`;
+        console.error(`[OrderConsumer:ShippingUpdateFailure] ${msg}`);
+        errors.push(msg);
+      }
+
+      // 2. Ops / Discord Webhook Telemetry Dispatch
+      if (webhookProvider.isConfigured) {
+        try {
+          const shortOrder = fulfillmentData.order_number;
+          const carrier = fulfillmentData.carrier;
+          const tracking = fulfillmentData.tracking_number || 'N/A';
+          const trackingUrl = fulfillmentData.tracking_url;
+
+          const summaryText = `📦 Order Fulfilled: ${shortOrder} shipped via ${carrier} (Tracking: ${tracking})\n🔗 Track Package: ${trackingUrl}`;
+
+          const webhookResult: WebhookDispatchResult = await webhookProvider.sendJson({
+            event: topic,
+            order_id: fulfillmentData.order_id,
+            order_number: fulfillmentData.order_number,
+            customer_email: fulfillmentData.customer_email,
+            carrier: fulfillmentData.carrier,
+            tracking_number: fulfillmentData.tracking_number,
+            tracking_url: fulfillmentData.tracking_url,
+            items_count: fulfillmentData.items?.length || 0,
+            text: summaryText,
+            content: summaryText,
+          });
+
+          if (webhookResult.success) {
+            opsAlertSent = true;
+          } else {
+            errors.push(
+              `Ops Fulfillment Telemetry Error: ${webhookResult.error || 'Failed to dispatch'}`
+            );
+          }
+        } catch (err: any) {
+          const msg = `Ops Fulfillment Telemetry Exception: ${err?.message || String(err)}`;
+          console.error(`[OrderConsumer:OpsFulfillmentTelemetryFailure] ${msg}`);
+          errors.push(msg);
+        }
+      }
+
+      return {
+        customerEmailSent,
+        merchantAlertSent: false,
+        lowStockAlertsSent: 0,
+        opsAlertSent,
+        shippingUpdateSent: customerEmailSent,
+        errors,
+      };
+    }
+  }
 
   const { order, receipt, rawLineItems } = normalizeOrderEvent(messagePayload.order);
   const lowStockThreshold = options.lowStockThreshold ?? LOW_STOCK_THRESHOLD;
