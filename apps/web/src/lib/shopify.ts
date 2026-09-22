@@ -15,6 +15,7 @@
  */
 
 import { defaultShopifyMock, ShopifyStorefrontMockEngine } from './shopify-mock';
+import { getCurrentTraceContext } from './tracing';
 export { defaultShopifyMock, ShopifyStorefrontMockEngine };
 
 export interface ShopifyClientConfig {
@@ -180,7 +181,8 @@ export class ShopifyStorefrontClient {
   async request<T = any>(
     query: string,
     variables?: Record<string, any>,
-    buyerIp?: string
+    buyerIp?: string,
+    requestId?: string
   ): Promise<{ data: T; errors?: any[] }> {
     // Check operational kill switches / circuit breakers (ADR-001)
     const isKilled =
@@ -211,6 +213,9 @@ export class ShopifyStorefrontClient {
       }
     }
 
+    const activeTrace = getCurrentTraceContext();
+    const effectiveRequestId = requestId || activeTrace?.requestId;
+
     let attempt = 0;
     while (attempt <= this.maxRetries) {
       attempt++;
@@ -218,7 +223,12 @@ export class ShopifyStorefrontClient {
       // If mock mode is active, delegate to mock engine with rate limit backoff resilience
       if (this.isMockMode()) {
         try {
-          const json = await this.mockEngine.handleGraphQLRequest(query, variables, buyerIp);
+          const json = await this.mockEngine.handleGraphQLRequest(
+            query,
+            variables,
+            buyerIp,
+            effectiveRequestId
+          );
           if (
             json?.errors?.some(
               (e: any) =>
@@ -263,6 +273,10 @@ export class ShopifyStorefrontClient {
 
       if (buyerIp) {
         headers['Shopify-Storefront-Buyer-IP'] = buyerIp;
+      }
+
+      if (effectiveRequestId) {
+        headers['X-Request-ID'] = effectiveRequestId;
       }
 
       const response = await fetch(endpoint, {
@@ -318,7 +332,7 @@ export class ShopifyStorefrontClient {
   /**
    * Creates a new cart with the given variant and quantity.
    */
-  async createCart(variantId: string, quantity = 1, buyerIp?: string) {
+  async createCart(variantId: string, quantity = 1, buyerIp?: string, requestId?: string) {
     const mutation = `
       mutation cartCreate($input: CartInput!) {
         cartCreate(input: $input) {
@@ -361,15 +375,22 @@ export class ShopifyStorefrontClient {
           lines: [{ merchandiseId: variantId, quantity }],
         },
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
   /**
    * Adds a variant to an existing cart.
    */
-  async addToCart(cartId: string, variantId: string, quantity = 1, buyerIp?: string) {
-    return this.cartLinesAdd(cartId, [{ merchandiseId: variantId, quantity }], buyerIp);
+  async addToCart(
+    cartId: string,
+    variantId: string,
+    quantity = 1,
+    buyerIp?: string,
+    requestId?: string
+  ) {
+    return this.cartLinesAdd(cartId, [{ merchandiseId: variantId, quantity }], buyerIp, requestId);
   }
 
   /**
@@ -378,7 +399,8 @@ export class ShopifyStorefrontClient {
   async cartLinesAdd(
     cartId: string,
     lines: Array<{ merchandiseId: string; quantity: number }>,
-    buyerIp?: string
+    buyerIp?: string,
+    requestId?: string
   ) {
     const mutation = `
       mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
@@ -421,15 +443,22 @@ export class ShopifyStorefrontClient {
         cartId,
         lines,
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
   /**
    * Updates the quantity of an existing line item in a cart.
    */
-  async updateCartLine(cartId: string, lineId: string, quantity: number, buyerIp?: string) {
-    return this.cartLinesUpdate(cartId, [{ id: lineId, quantity }], buyerIp);
+  async updateCartLine(
+    cartId: string,
+    lineId: string,
+    quantity: number,
+    buyerIp?: string,
+    requestId?: string
+  ) {
+    return this.cartLinesUpdate(cartId, [{ id: lineId, quantity }], buyerIp, requestId);
   }
 
   /**
@@ -438,7 +467,8 @@ export class ShopifyStorefrontClient {
   async cartLinesUpdate(
     cartId: string,
     lines: Array<{ id: string; quantity: number }>,
-    buyerIp?: string
+    buyerIp?: string,
+    requestId?: string
   ) {
     const mutation = `
       mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
@@ -481,21 +511,27 @@ export class ShopifyStorefrontClient {
         cartId,
         lines,
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
   /**
    * Removes a single line item from a cart.
    */
-  async removeCartLine(cartId: string, lineId: string, buyerIp?: string) {
-    return this.cartLinesRemove(cartId, [lineId], buyerIp);
+  async removeCartLine(cartId: string, lineId: string, buyerIp?: string, requestId?: string) {
+    return this.cartLinesRemove(cartId, [lineId], buyerIp, requestId);
   }
 
   /**
    * Removes multiple line items from a cart by their line IDs.
    */
-  async cartLinesRemove(cartId: string, lineIds: string[], buyerIp?: string) {
+  async cartLinesRemove(
+    cartId: string,
+    lineIds: string[],
+    buyerIp?: string,
+    requestId?: string
+  ) {
     const mutation = `
       mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
         cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
@@ -537,14 +573,15 @@ export class ShopifyStorefrontClient {
         cartId,
         lineIds,
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
   /**
    * Fetches the current state of a cart by its ID.
    */
-  async getCart(cartId: string, buyerIp?: string) {
+  async getCart(cartId: string, buyerIp?: string, requestId?: string) {
     const query = `
       query getCart($id: ID!) {
         cart(id: $id) {
@@ -578,7 +615,8 @@ export class ShopifyStorefrontClient {
       {
         id: cartId,
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
@@ -594,7 +632,8 @@ export class ShopifyStorefrontClient {
       countryCode?: string;
       customerAccessToken?: string;
     },
-    buyerIp?: string
+    buyerIp?: string,
+    requestId?: string
   ) {
     const mutation = `
       mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
@@ -637,14 +676,19 @@ export class ShopifyStorefrontClient {
         cartId,
         buyerIdentity,
       },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 
   /**
    * Fetches real-time price and stock availability for a product by its Shopify Product GID.
    */
-  async getProductPriceAndAvailability(shopifyProductId: string, buyerIp?: string) {
+  async getProductPriceAndAvailability(
+    shopifyProductId: string,
+    buyerIp?: string,
+    requestId?: string
+  ) {
     const query = `
       query getProductPriceAndAvailability($id: ID!) {
         product(id: $id) {
@@ -683,7 +727,8 @@ export class ShopifyStorefrontClient {
     return this.request<{ product: ShopifyProductPricing | null }>(
       query,
       { id: shopifyProductId },
-      buyerIp
+      buyerIp,
+      requestId
     );
   }
 

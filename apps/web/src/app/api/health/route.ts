@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { performHealthCheck } from '../../../lib/health-monitoring';
+import { extractTraceHeaders, withTraceHeaders } from '../../../lib/tracing';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<NextResponse>;
 export async function GET(): Promise<NextResponse>;
 export async function GET(request?: Request): Promise<NextResponse> {
+  const trace = extractTraceHeaders(request);
+
   // Support simulated outage for testing and on-call drills (Story 4.7)
   const url = request ? new URL(request.url) : null;
   const simulateParam = url?.searchParams.get('simulate');
@@ -42,7 +45,7 @@ export async function GET(request?: Request): Promise<NextResponse> {
       },
     };
 
-    return NextResponse.json(errorPayload, {
+    const res = NextResponse.json(errorPayload, {
       status: 500,
       headers: {
         'content-type': 'application/json; charset=utf-8',
@@ -51,11 +54,12 @@ export async function GET(request?: Request): Promise<NextResponse> {
         'x-simulated-outage': 'true',
       },
     });
+    return withTraceHeaders(res, trace);
   }
 
   const { payload, httpStatus } = await performHealthCheck();
 
-  return NextResponse.json(payload, {
+  const res = NextResponse.json(payload, {
     status: httpStatus,
     headers: {
       'content-type': 'application/json; charset=utf-8',
@@ -65,4 +69,5 @@ export async function GET(request?: Request): Promise<NextResponse> {
       'x-chrishop-commit-sha': payload.commitSha || 'dev-local',
     },
   });
+  return withTraceHeaders(res, trace);
 }

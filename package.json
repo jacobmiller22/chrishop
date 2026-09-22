@@ -49,6 +49,7 @@
     "preview:verify": "tsx scripts/verify-preview-smoke.ts",
     "demo": "tsx scripts/demo-crawler.ts",
     "demo:verify": "tsx scripts/verify-demo-crawler.ts",
+    "tracing:verify": "tsx scripts/verify-distributed-tracing.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
