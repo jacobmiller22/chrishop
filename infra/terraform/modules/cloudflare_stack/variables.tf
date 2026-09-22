@@ -49,3 +49,16 @@ variable "pr_number" {
   type        = string
   default     = ""
 }
+
+variable "use_apex_domain" {
+  description = "Whether the primary storefront route binds directly to the zone apex domain (@)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_media_cname" {
+  description = "Whether to provision a public CNAME record for R2 media custom domain (media.<zone_name>)"
+  type        = bool
+  default     = false
+}
+

@@ -5,8 +5,11 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
-# Production Custom Domain Routes
+# Production Custom Domain Routes (Dual-routing for zero-downtime cutover)
 routes = [
+  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
+  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" },
+  { pattern = "shop.chrishop.com/*", zone_name = "chrishop.com" },
   { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
@@ -72,6 +75,7 @@ CLOUDFLARE_TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
 name = "chrishop-staging"
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 routes = [
+  { pattern = "staging.chrishop.com/*", zone_name = "chrishop.com" },
   { pattern = "staging-chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "staging-shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]
@@ -133,6 +137,9 @@ CLOUDFLARE_TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
 name = "chrishop"
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 routes = [
+  { pattern = "chrishop.com/*", zone_name = "chrishop.com" },
+  { pattern = "www.chrishop.com/*", zone_name = "chrishop.com" },
+  { pattern = "shop.chrishop.com/*", zone_name = "chrishop.com" },
   { pattern = "chrishop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" },
   { pattern = "shop.jacobmiller22.com/*", zone_name = "jacobmiller22.com" }
 ]

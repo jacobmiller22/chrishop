@@ -31,7 +31,17 @@ resource "cloudflare_workers_domain" "custom_domain" {
   count       = var.environment == "preview" ? 0 : 1
   account_id  = var.cloudflare_account_id
   zone_id     = local.zone_id
-  hostname    = "${local.primary_record_name}.${var.zone_name}"
+  hostname    = local.primary_hostname
   service     = local.service_name
   environment = "production"
+}
+
+resource "cloudflare_record" "media" {
+  count   = var.enable_media_cname ? 1 : 0
+  zone_id = local.zone_id
+  name    = "media"
+  content = "${var.environment == "production" ? "chrishop-media-prod" : "chrishop-media-${var.environment}"}.r2.cloudflarestorage.com"
+  type    = "CNAME"
+  proxied = true
+  comment = "Managed by Terraform - ChrisShop ${var.environment} media R2 CNAME"
 }
