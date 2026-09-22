@@ -124,6 +124,7 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
       assert.equal(parsed.FLAG_VIP_EARLY_ACCESS, false);
       assert.equal(parsed.FLAG_VERBOSE_DEBUG_HEADERS, false);
       assert.equal(parsed.FLAG_PHASE_6_CANARY_PERCENT, 0);
+      assert.equal(parsed.FLAG_HOMEPAGE_HERO_POC, false);
     });
 
     it('should verify production tier defaults strictly enforce hardened features', () => {
@@ -136,6 +137,7 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
       assert.equal(prodDefaults.FLAG_VIP_EARLY_ACCESS, false);
       assert.equal(prodDefaults.FLAG_VERBOSE_DEBUG_HEADERS, false);
       assert.equal(prodDefaults.FLAG_PHASE_6_CANARY_PERCENT, 0);
+      assert.equal(prodDefaults.FLAG_HOMEPAGE_HERO_POC, false);
     });
 
     it('should verify ephemeral PR preview tier defaults enable mocks, debug headers, and active drop testing', () => {
@@ -146,6 +148,7 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
       assert.equal(previewDefaults.FLAG_VIP_EARLY_ACCESS, true);
       assert.equal(previewDefaults.FLAG_PHASE_6_CANARY_PERCENT, 100);
       assert.equal(previewDefaults.FLAG_EMERGENCY_KILL_SWITCH, false);
+      assert.equal(previewDefaults.FLAG_HOMEPAGE_HERO_POC, true);
     });
 
     it('should verify staging tier defaults enable drop testing against live staging Shopify without WireMock', () => {
@@ -154,6 +157,7 @@ describe('Story 2.45: Cloudflare Flagship Architecture & Evaluation', () => {
       assert.equal(stagingDefaults.FLAG_ENABLE_WIREMOCK, false, 'Staging must test live sandbox Shopify API');
       assert.equal(stagingDefaults.FLAG_VERBOSE_DEBUG_HEADERS, true);
       assert.equal(stagingDefaults.FLAG_PHASE_6_CANARY_PERCENT, 50);
+      assert.equal(stagingDefaults.FLAG_HOMEPAGE_HERO_POC, true);
     });
 
     it('should resolve environment tiers accurately from process.env and context', () => {

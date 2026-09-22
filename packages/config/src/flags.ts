@@ -30,6 +30,8 @@ export const flagSchema = z.object({
   FLAG_VERBOSE_DEBUG_HEADERS: z.boolean().default(false),
   /** Percentage (0-100) of visitor sessions bucketed into Phase 6 canary features */
   FLAG_PHASE_6_CANARY_PERCENT: z.number().min(0).max(100).default(0),
+  /** Story 1.18: POC Storefront Hero Banner & Dynamic Homepage Feature Switch */
+  FLAG_HOMEPAGE_HERO_POC: z.boolean().default(false),
 });
 
 export type FeatureFlags = z.infer<typeof flagSchema>;
@@ -51,6 +53,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 100,
+    FLAG_HOMEPAGE_HERO_POC: true,
   },
   staging: {
     FLAG_IS_DROP_ACTIVE: true,
@@ -61,6 +64,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 50,
+    FLAG_HOMEPAGE_HERO_POC: true,
   },
   production: {
     FLAG_IS_DROP_ACTIVE: false,
@@ -71,6 +75,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: false,
     FLAG_VERBOSE_DEBUG_HEADERS: false,
     FLAG_PHASE_6_CANARY_PERCENT: 0,
+    FLAG_HOMEPAGE_HERO_POC: false,
   },
   development: {
     FLAG_IS_DROP_ACTIVE: true,
@@ -81,6 +86,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: true,
     FLAG_VERBOSE_DEBUG_HEADERS: true,
     FLAG_PHASE_6_CANARY_PERCENT: 100,
+    FLAG_HOMEPAGE_HERO_POC: true,
   },
   test: {
     FLAG_IS_DROP_ACTIVE: false,
@@ -91,6 +97,7 @@ export const ENVIRONMENT_FLAG_DEFAULTS: Record<EnvironmentTier, FeatureFlags> = 
     FLAG_VIP_EARLY_ACCESS: false,
     FLAG_VERBOSE_DEBUG_HEADERS: false,
     FLAG_PHASE_6_CANARY_PERCENT: 0,
+    FLAG_HOMEPAGE_HERO_POC: false,
   },
 };
 
@@ -320,6 +327,7 @@ export function generateFlagDebugHeaders(
     'X-ChrisShop-Flag-Maintenance': String(flags.FLAG_MAINTENANCE_MODE),
     'X-ChrisShop-Flag-KillSwitch': String(flags.FLAG_EMERGENCY_KILL_SWITCH),
     'X-ChrisShop-Flag-CanaryPercent': String(flags.FLAG_PHASE_6_CANARY_PERCENT),
+    'X-ChrisShop-Flag-HeroPoc': String(flags.FLAG_HOMEPAGE_HERO_POC),
   };
   if (context?.sessionFlags && Object.keys(context.sessionFlags).length > 0) {
     headers['X-ChrisShop-Flag-ReviewerOverride'] = 'true';
