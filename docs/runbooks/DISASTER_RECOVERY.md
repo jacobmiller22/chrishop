@@ -32,18 +32,26 @@ gh workflow run rollback.yml -f environment=production
 
 ### Scenario B: Database Corruption or Accidental D1 Deletion
 
-Cloudflare D1 provides automated time-travel and point-in-time recovery (PITR) allowing rollback to any minute within the retention window:
+Cloudflare D1 provides automated time-travel and point-in-time recovery (PITR) allowing rollback to any minute within the retention window (up to 30 days):
 
 ```bash
 # 1. Retrieve current D1 database state and time bookmark
-pnpm exec wrangler d1 info chrishop-db-prod
+pnpm exec wrangler d1 info chrishop-prod-db
 
-# 2. Restore D1 database to a specific point-in-time timestamp
-pnpm exec wrangler d1 time-travel restore chrishop-db-prod --timestamp="2026-09-11T12:00:00Z"
+# 2. Restore D1 database to a specific point-in-time timestamp (ISO 8601)
+pnpm exec wrangler d1 time-travel restore chrishop-prod-db --timestamp="2026-09-22T13:00:00Z"
 
-# 3. Or restore from a designated SQL backup snapshot
-pnpm exec wrangler d1 execute chrishop-db-prod --file=./backups/backup-snapshot.sql
+# 3. Or restore using a specific commit bookmark
+pnpm exec wrangler d1 time-travel restore chrishop-prod-db --bookmark="<bookmark-hash>"
+
+# 4. Or restore from a designated SQL backup snapshot
+pnpm exec wrangler d1 execute chrishop-prod-db --file=./backups/backup-snapshot.sql
+
+# 5. Display quick PITR instructions via CLI
+pnpm run d1:rollback:info
 ```
+
+See [docs/runbooks/D1_MIGRATIONS.md](file:///Users/jacobmiller22/projects/chrishop/docs/runbooks/D1_MIGRATIONS.md) for full additive migration guidelines and disaster recovery procedures.
 
 ### Scenario C: Accidental R2 Media Deletion
 
