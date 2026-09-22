@@ -41,6 +41,20 @@ The unified `pnpm dev` command is an orchestrator that concurrently starts every
 4. **Process Management**:
    - Captures `SIGINT` (Ctrl+C) and `SIGTERM` to cleanly terminate both process trees without leaving orphaned background `workerd` isolates.
 
+### 1.4 Dynamic Integration Matrix Profiles
+ChrisShop supports composable infrastructure tiers via `--profile` or `MATRIX_PROFILE` (see [`docs/runbooks/INTEGRATION_MATRIX.md`](docs/runbooks/INTEGRATION_MATRIX.md)):
+
+```bash
+# Default hermetic local environment (100% offline & mock services)
+pnpm dev
+
+# Connect local storefront to remote Cloudflare staging D1/KV/R2 & Shopify dev store
+pnpm dev --profile hybrid-staging
+
+# Read-only probe against live production Cloudflare D1 (write-protected)
+pnpm dev --profile prod-readonly-probe
+```
+
 ---
 
 ## 2. Monorepo Script Taxonomy
