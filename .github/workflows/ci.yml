@@ -92,6 +92,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Storefront Responsiveness Guardrails
+        run: pnpm run test:responsive
+
       - name: Check Worker Bundle Size Budget Gate
         run: pnpm run check:bundle
 

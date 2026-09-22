@@ -3,6 +3,7 @@ import { withPayload } from '@payloadcms/next/withPayload';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   transpilePackages: ['@chrishop/ui', '@chrishop/types', '@chrishop/notifications'],
   serverExternalPackages: ['@libsql/client', 'drizzle-orm'],
   images: {

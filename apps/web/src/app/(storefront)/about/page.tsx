@@ -13,8 +13,8 @@ export default function AboutPage() {
   return (
     <div className="space-y-16 max-w-5xl mx-auto py-4">
       {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-xs font-mono text-stone-400 uppercase tracking-wider">
-        <Link href="/" className="hover:text-[#E55B24] transition-colors">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-stone-400 uppercase tracking-wider flex-wrap">
+        <Link href="/" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
           Home
         </Link>
         <span>/</span>

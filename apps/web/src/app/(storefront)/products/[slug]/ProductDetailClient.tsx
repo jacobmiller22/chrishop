@@ -35,7 +35,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedVariationId, setSelectedVariationId] = useState<string>(variations[0]?.id || '');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const [isStickyVisible, setIsStickyVisible] = useState<boolean>(false);
+  const [isStickyVisible, setIsStickyVisible] = useState<boolean>(true);
   const buyButtonRef = useRef<HTMLDivElement | null>(null);
 
   const markImageLoaded = useCallback((url: string) => {
@@ -171,8 +171,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // When main purchase block is scrolled past (above viewport), show sticky bar
-        setIsStickyVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+        // When main purchase block is scrolled out of view, show sticky bar
+        setIsStickyVisible(!entry.isIntersecting);
       },
       { threshold: 0.1 }
     );
@@ -251,12 +251,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-xs font-mono text-stone-400 uppercase tracking-wider">
-        <Link href="/" className="hover:text-[#E55B24] transition-colors">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-stone-400 uppercase tracking-wider flex-wrap">
+        <Link href="/" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
           Home
         </Link>
         <span>/</span>
-        <Link href="/products" className="hover:text-[#E55B24] transition-colors">
+        <Link href="/products" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
           Catalog
         </Link>
         <span>/</span>
@@ -264,7 +264,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <>
             <Link
               href={`/products?category=${product.category.slug}`}
-              className="hover:text-[#E55B24] transition-colors"
+              className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center"
             >
               {product.category.name}
             </Link>
@@ -343,7 +343,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               {product.category && (
                 <Link
                   href={`/products?category=${product.category.slug}`}
-                  className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md transition-colors"
+                  className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-xs font-mono uppercase tracking-wider px-3 py-2.5 rounded-lg backdrop-blur-md transition-colors min-h-[44px] inline-flex items-center"
                 >
                   {product.category.name}
                 </Link>
@@ -657,14 +657,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       role="radio"
                       aria-checked={isSelected}
                       onClick={() => handleSelectVariation(v.id)}
-                      className={`w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-4 ${
+                      className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 min-w-0 ${
                         isSelected
                           ? 'border-[#E55B24] bg-[#E55B24]/10 shadow-md shadow-orange-500/10'
                           : 'border-stone-800 bg-[#15191E]/60 hover:border-stone-700 hover:bg-[#15191E]'
                       }`}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2.5">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2.5 flex-wrap">
                           <span
                             className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
                               isSelected
@@ -674,16 +674,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                           >
                             {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />}
                           </span>
-                          <span className="text-sm font-semibold text-stone-100">
+                          <span className="text-sm font-semibold text-stone-100 break-words">
                             {v.variation_name}
                           </span>
                           {v.edition_badge && (
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#2C362B] text-emerald-300 border border-[#3F4F3D] px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#2C362B] text-emerald-300 border border-[#3F4F3D] px-1.5 py-0.5 rounded shrink-0">
                               {v.edition_badge}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-6">
+                        <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-6 flex-wrap">
                           <span>{v.sku}</span>
                           {v.variation_type && (
                             <>
@@ -702,7 +702,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         </div>
                       </div>
 
-                      <div className="text-right flex flex-col items-end gap-1">
+                      <div className="text-right flex flex-col items-end gap-1 shrink-0">
                         <span className="text-base font-bold text-[#E55B24]">
                           ${Number(v.effective_price).toFixed(2)}
                         </span>

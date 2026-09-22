@@ -47,13 +47,13 @@ export default async function ProductsPage(props: ProductsPageProps) {
     <div className="space-y-10">
       {/* Page Header */}
       <div className="border-b border-stone-800/80 pb-8 space-y-4">
-        <div className="flex items-center gap-2 text-xs font-mono text-stone-400">
-          <Link href="/" className="hover:text-[#E55B24] transition-colors">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-stone-400 flex-wrap">
+          <Link href="/" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
             Home
           </Link>
           <span>/</span>
           {activeCategoryObj ? (
-            <Link href="/products" className="hover:text-[#E55B24] transition-colors">
+            <Link href="/products" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
               Equipment Catalog
             </Link>
           ) : (
@@ -65,7 +65,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
               <span className="text-[#E55B24] font-semibold">{activeCategoryObj.name}</span>
             </>
           )}
-        </div>
+        </nav>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -90,7 +90,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/products"
-              className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
+              className={`min-h-[44px] inline-flex items-center px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                 !activeCategory
                   ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
                   : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
@@ -106,7 +106,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
                 <Link
                   key={cat.id}
                   href={`/products?category=${cat.slug}`}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                     isSelected
                       ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
                       : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
@@ -130,7 +130,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
                   <Link
                     key={cat.id}
                     href={`/products?category=${cat.slug}`}
-                    className={`px-3 py-1 rounded-full text-[11px] font-mono transition-all ${
+                    className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono transition-all ${
                       isSelected
                         ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
                         : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'

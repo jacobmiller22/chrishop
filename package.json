@@ -17,7 +17,8 @@
     "test": "turbo run test",
     "test:unit": "turbo run test",
     "test:integration": "tsx --test --test-concurrency=1 tests/integration/**/*.test.ts",
-    "test:all": "pnpm run test:unit && pnpm run test:integration",
+    "test:responsive": "playwright test",
+    "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:responsive",
     "verify:images": "tsx scripts/verify-image-pipeline.ts",
     "verify:local": "tsx scripts/verify-local.ts",
     "lint": "turbo run check",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@chrishop/config": "workspace:*",
     "@cloudflare/workers-types": "^4.20240923.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.11.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",

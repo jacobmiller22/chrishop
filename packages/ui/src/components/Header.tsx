@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
             <a
               key={item.label}
               href={item.href}
-              className="text-sm font-medium text-stone-300 hover:text-[#E55B24] transition-colors py-2"
+              className="text-sm font-medium text-stone-300 hover:text-[#E55B24] transition-colors py-2 min-h-[44px] flex items-center"
             >
               {item.label}
             </a>

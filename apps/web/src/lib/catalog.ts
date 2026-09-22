@@ -111,6 +111,91 @@ export interface GetProductsOptions {
   bypassSingleFlight?: boolean;
 }
 
+export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
+  'bushwhack-storm-anorak': {
+    id: 'prod-bushwhack-anorak',
+    title: 'The Bushwhack Storm Anorak',
+    slug: 'bushwhack-storm-anorak',
+    description:
+      'Patagonia-grade 3-layer waterproof storm shell with 500D Cordura reinforced forearms and oversized kangaroo tackle pouch. Built to crawl through thorns, stay dry in torrential downpours, and cast all day.',
+    maker_field_notes:
+      'Designed for bushwhacking through dense alder thickets to find unpressured cutthroat runs. The 500D Cordura panels on the forearms take the beating so your membrane does not shred on thorny bank scrambles.',
+    materials: '3-Layer DWR Toray Ripstop (20,000mm/20,000g), 500D Cordura® Panels, YKK AquaGuard®',
+    weight: '21.4 oz (606g)',
+    fit_profile: 'Relaxed Athletic (Engineered for layering and overhead casting mobility)',
+    origin: "Hand-cut & sewn in small batches in Chris's workshop",
+    base_price: 340,
+    effective_price: 340,
+    status: 'published',
+    category: {
+      id: 'cat-storm-shells',
+      name: 'Waterproof Storm Shells',
+      slug: 'storm-shells',
+    },
+    featured_image: '/media/bushwhack-storm-anorak/hero.jpeg',
+    hero_image: '/media/bushwhack-storm-anorak/hero.jpeg',
+    gallery: [
+      '/media/bushwhack-storm-anorak/field-action.jpeg',
+      '/media/bushwhack-storm-anorak/workbench-detail.jpeg',
+      '/media/bushwhack-storm-anorak/camo-variation.jpeg',
+    ],
+    variations: [
+      {
+        id: 'var-anorak-olive',
+        product_id: 'prod-bushwhack-anorak',
+        variation_name: 'Field Olive — Standard Run',
+        sku: 'BWK-ANRK-OLV-STD',
+        variation_type: 'standard',
+        edition_badge: 'Standard Production',
+        effective_price: 340,
+        is_limited_edition: false,
+        status: 'active',
+        stock_quantity: 12,
+      },
+      {
+        id: 'var-anorak-camo-micro',
+        product_id: 'prod-bushwhack-anorak',
+        variation_name: 'Deadstock Duck Camo Pocket Edition',
+        sku: 'BWK-ANRK-CAMO-LTD',
+        variation_type: 'micro_batch',
+        edition_badge: 'Only 3 Crafted',
+        price_override: 385,
+        effective_price: 385,
+        is_limited_edition: true,
+        total_edition_count: 3,
+        status: 'active',
+        stock_quantity: 3,
+      },
+    ],
+  },
+  'bramble-buster-technical-guide-pant': {
+    id: 'prod-bramble-buster-pant',
+    title: 'Bramble-Buster Technical Guide Pant',
+    slug: 'bramble-buster-technical-guide-pant',
+    description:
+      'Heavyweight stretch ripstop guide pants fortified with 1000D Cordura scuff guards on knees and ankles.',
+    maker_field_notes:
+      'Standard fishing waders get shredded by briars on the walk-in. These pants wear over thermal tights or wet-wading socks.',
+    materials: 'Heavyweight 4-Way Stretch DWR Ripstop, 1000D Cordura® Knee & Ankle Panels',
+    weight: '17.8 oz (505g)',
+    fit_profile: 'Technical Straight (Articulated knees, gusseted seat for steep cut-bank scrambles)',
+    origin: "Hand-cut & sewn in small batches in Chris's workshop",
+    base_price: 215,
+    effective_price: 215,
+    status: 'published',
+    category: {
+      id: 'cat-brush-pants',
+      name: 'Brush & Guide Pants',
+      slug: 'brush-pants',
+    },
+    featured_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
+    hero_image: '/media/bramble-buster-technical-guide-pant/hero.jpeg',
+    gallery: [],
+    variations: [],
+  },
+};
+FALLBACK_PRODUCTS_BY_SLUG['the-bushwhack-storm-anorak'] = FALLBACK_PRODUCTS_BY_SLUG['bushwhack-storm-anorak'];
+
 // ============================================================================
 // Lexical RichText Serializer & Text Extractor
 // ============================================================================
@@ -422,8 +507,18 @@ async function fetchProductBySlugDirect(
   try {
     const db = options?.db || getDatabase();
 
-    const productRow = (await db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug)) as any;
-    if (!productRow) return null;
+    let productRow: any = null;
+    try {
+      productRow = await db.prepare(`SELECT * FROM products WHERE slug = ?;`).get(slug);
+    } catch {
+      // D1 query failed or table absent
+    }
+
+    if (!productRow) {
+      const fallback = FALLBACK_PRODUCTS_BY_SLUG[slug];
+      if (fallback) return fallback;
+      return null;
+    }
 
     const categoryId = productRow.category_id_id || productRow.category_id;
     let category: Category | null = null;
