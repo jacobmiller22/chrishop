@@ -24,6 +24,7 @@ import {
   annotateSqlQueryWithTrace,
   generateRequestId,
   generateSyntheticCfRay,
+  traceStorage,
 } from '../apps/web/src/lib/tracing';
 import { shopify, defaultShopifyMock } from '../apps/web/src/lib/shopify';
 import { captureException } from '../apps/web/src/lib/sentry';

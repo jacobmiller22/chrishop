@@ -11,8 +11,6 @@
  * 5. D1 SQLite query correlation annotation (/* req:<id> ray:<ray> *\/)
  */
 
-import * as asyncHooks from 'async_hooks';
-
 export interface TraceContext {
   requestId: string;
   cfRay: string;
@@ -43,11 +41,39 @@ class FallbackAsyncLocalStorage<T> implements TraceStorage<T> {
   }
 }
 
-const StorageClass =
-  asyncHooks && typeof (asyncHooks as any).AsyncLocalStorage === 'function'
-    ? (asyncHooks as any).AsyncLocalStorage
-    : FallbackAsyncLocalStorage;
+function resolveStorageClass<T>(): new () => TraceStorage<T> {
+  if (typeof window === 'undefined') {
+    try {
+      // 1. Modern Node.js (20.16+, 22+, 24+) built-in accessor without static imports
+      // This avoids bundling Node's async_hooks into browser bundles under Webpack and Turbopack
+      if (typeof process !== 'undefined' && typeof (process as any).getBuiltinModule === 'function') {
+        const asyncHooks =
+          (process as any).getBuiltinModule('node:async_hooks') ||
+          (process as any).getBuiltinModule('async_hooks');
+        if (asyncHooks && typeof asyncHooks.AsyncLocalStorage === 'function') {
+          return asyncHooks.AsyncLocalStorage;
+        }
+      }
+      // 2. Global AsyncLocalStorage if bound in workerd/edge
+      if (typeof (globalThis as any).AsyncLocalStorage === 'function') {
+        return (globalThis as any).AsyncLocalStorage;
+      }
+      // 3. Fallback to CommonJS require if available
+      if (typeof require === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const asyncHooks = require('async_hooks');
+        if (asyncHooks && typeof asyncHooks.AsyncLocalStorage === 'function') {
+          return asyncHooks.AsyncLocalStorage;
+        }
+      }
+    } catch {
+      // Edge / browser runtime fallback
+    }
+  }
+  return FallbackAsyncLocalStorage;
+}
 
+const StorageClass = resolveStorageClass<TraceContext>();
 export const traceStorage: TraceStorage<TraceContext> = new StorageClass();
 
 /**
