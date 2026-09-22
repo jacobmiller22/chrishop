@@ -136,6 +136,20 @@ export function captureMessage(
 }
 
 /**
+ * Records a breadcrumb in Sentry for runtime diagnostics and slow query tracking.
+ */
+export function addBreadcrumb(breadcrumb: {
+  category?: string;
+  message?: string;
+  level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
+  data?: Record<string, any>;
+}): void {
+  if (isSentryConfigured()) {
+    Sentry.addBreadcrumb(breadcrumb);
+  }
+}
+
+/**
  * Formats a Sentry error incident into a high-visibility Discord embed for #dev-alerts.
  */
 export function formatSentryDiscordAlert(

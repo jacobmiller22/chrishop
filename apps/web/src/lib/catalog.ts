@@ -35,6 +35,7 @@ import { getEffectivePrice } from '@chrishop/types';
 import { catalogSingleFlight } from './singleflight';
 import { getAssetUrl } from './assets';
 import { annotateSqlQueryWithTrace } from './tracing';
+import { withD1Telemetry } from './d1-telemetry';
 
 export type {
   Category,
@@ -53,6 +54,18 @@ export {
   enrichProductWithShopifyPricing,
   enrichProductsWithShopifyPricing,
 } from './shopify-pricing';
+export {
+  withD1Telemetry,
+  getD1TelemetryMetrics,
+  resetD1TelemetryMetrics,
+  setSlowQueryThreshold,
+  getSlowQueryThreshold,
+  getRequestD1Metrics,
+  onSlowQuery,
+  type D1TelemetryMetrics,
+  type SlowQueryRecord,
+  type RequestD1Metrics,
+} from './d1-telemetry';
 import { createRemoteD1Client } from '@chrishop/config';
 
 export interface StorefrontVariation {
@@ -332,7 +345,7 @@ function extractFromNode(node: any): string {
 let singletonDb: D1DatabaseLike | null = null;
 
 export function setDatabase(db: D1DatabaseLike | null): void {
-  singletonDb = db;
+  singletonDb = db ? withD1Telemetry(db) : null;
 }
 
 export function getDatabase(): D1DatabaseLike {
@@ -351,12 +364,12 @@ export function getDatabase(): D1DatabaseLike {
           : (process.env.CLOUDFLARE_STAGING_D1_DATABASE_ID || process.env.CLOUDFLARE_D1_DATABASE_ID || 'chrishop-staging-db');
 
       if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) {
-        singletonDb = createRemoteD1Client({
+        singletonDb = withD1Telemetry(createRemoteD1Client({
           accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
           databaseId,
           apiToken: process.env.CLOUDFLARE_API_TOKEN,
           readOnly,
-        });
+        }));
         return singletonDb;
       }
     }
@@ -390,8 +403,8 @@ export function getDatabase(): D1DatabaseLike {
       },
       exec: async (sql: string) => d1.exec(sql),
     };
-    singletonDb = d1Wrapper;
-    return d1Wrapper;
+    singletonDb = withD1Telemetry(d1Wrapper);
+    return singletonDb;
   }
 
   // Pure edge / mock stub when no D1 binding is attached (e.g. static pre-render)
@@ -404,7 +417,7 @@ export function getDatabase(): D1DatabaseLike {
       run: async () => ({ changes: 0 }),
     }),
   };
-  return stubDb;
+  return withD1Telemetry(stubDb);
 }
 
 export function resetDatabase(): void {
@@ -430,7 +443,7 @@ function resolveMediaUrl(m?: { url?: string; filename?: string } | null): string
 
 export async function getProductLines(options?: { db?: DatabaseSync }): Promise<StorefrontProductLine[]> {
   try {
-    const db = options?.db || getDatabase();
+    const db = options?.db ? withD1Telemetry(options.db) : getDatabase();
     const raw = await db.prepare("SELECT * FROM product_lines ORDER BY title ASC;").all();
     const rows = (Array.isArray(raw) ? raw : (raw as any)?.results || []) as any[];
     return rows.map((r) => ({
@@ -448,7 +461,7 @@ export async function getProductLines(options?: { db?: DatabaseSync }): Promise<
 
 export async function getCategories(options?: { db?: DatabaseSync }): Promise<Category[]> {
   try {
-    const db = options?.db || getDatabase();
+    const db = options?.db ? withD1Telemetry(options.db) : getDatabase();
     let rows: any[] = [];
     try {
       const rawRows = await db
@@ -630,7 +643,7 @@ async function fetchProductBySlugDirect(
   options?: { db?: DatabaseSync }
 ): Promise<StorefrontProduct | null> {
   try {
-    const db = options?.db || getDatabase();
+    const db = options?.db ? withD1Telemetry(options.db) : getDatabase();
 
     let productRow: any = null;
     try {
@@ -838,7 +851,7 @@ export async function getProducts(options?: GetProductsOptions): Promise<Storefr
 
 async function fetchProductsDirect(options?: GetProductsOptions): Promise<StorefrontProduct[]> {
   try {
-    const db = options?.db || getDatabase();
+    const db = options?.db ? withD1Telemetry(options.db) : getDatabase();
 
     const requestedStatuses =
       options?.status && options.status.length > 0 ? options.status : ['published', 'active'];

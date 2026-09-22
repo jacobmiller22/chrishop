@@ -7,11 +7,13 @@
  */
 
 import { shopify } from './shopify';
+import { getD1TelemetryMetrics, withD1Telemetry, type D1TelemetryMetrics } from './d1-telemetry';
 
 export interface HealthProbeDetail {
   status: 'healthy' | 'unhealthy' | 'skipped';
   latencyMs?: number;
   error?: string;
+  telemetry?: D1TelemetryMetrics;
   [key: string]: unknown;
 }
 
@@ -39,6 +41,7 @@ export interface HealthResponsePayload {
     shopify: HealthProbeDetail;
     r2: HealthProbeDetail;
   };
+  d1Telemetry?: D1TelemetryMetrics;
   uptime?: {
     processUptimeSec: number;
   };
@@ -120,9 +123,10 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
   // 2. Probe D1 Database (SELECT 1)
   let d1Probe: HealthProbeDetail = { status: 'skipped' };
   if (d1Binding && typeof (d1Binding as any).prepare === 'function') {
+    const d1Instrumented = withD1Telemetry(d1Binding as any);
     const d1Start = Date.now();
     try {
-      const statement = (d1Binding as any).prepare('SELECT 1 as healthy');
+      const statement = d1Instrumented.prepare('SELECT 1 as healthy');
       const result = typeof statement.first === 'function' ? await statement.first() : await statement.all();
       const d1Latency = Date.now() - d1Start;
       const isOk =
@@ -133,6 +137,7 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
         status: isOk ? 'healthy' : 'unhealthy',
         latencyMs: d1Latency,
         query: 'SELECT 1 as healthy',
+        telemetry: getD1TelemetryMetrics(),
       };
     } catch (err: any) {
       d1Probe = {
@@ -140,10 +145,11 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
         latencyMs: Date.now() - d1Start,
         query: 'SELECT 1 as healthy',
         error: err?.message || String(err),
+        telemetry: getD1TelemetryMetrics(),
       };
     }
   } else if (d1Binding) {
-    d1Probe = { status: 'healthy', latencyMs: 0, query: 'SELECT 1 (mocked)' };
+    d1Probe = { status: 'healthy', latencyMs: 0, query: 'SELECT 1 (mocked)', telemetry: getD1TelemetryMetrics() };
   }
 
   // 3. Probe Cloudflare Workers KV Cache (read/write probe with 60s TTL)
@@ -284,6 +290,7 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
       shopify: shopifyProbe,
       r2: r2Probe,
     },
+    d1Telemetry: getD1TelemetryMetrics(),
     uptime: {
       processUptimeSec: typeof process.uptime === 'function' ? Math.floor(process.uptime()) : 0,
     },
