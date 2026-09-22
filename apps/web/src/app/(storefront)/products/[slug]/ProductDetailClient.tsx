@@ -2,7 +2,14 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { Badge, Button } from '@chrishop/ui';
+import {
+  Button,
+  ImageGallery,
+  VariationSelector,
+  StockIndicator,
+  AddToCartButton,
+  type VariationOption,
+} from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/assets';
 import { shopify } from '@/lib/shopify';
@@ -186,6 +193,21 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const currentPrice = selectedVariation ? selectedVariation.effective_price : product.base_price;
   const isOverride = selectedVariation?.price_override != null;
 
+  const variationOptions: VariationOption[] = variations.map((v) => ({
+    id: v.id,
+    name: v.variation_name,
+    sku: v.sku,
+    price: v.effective_price,
+    basePrice: product.base_price,
+    priceOverride: v.price_override,
+    isLimitedEdition: v.is_limited_edition,
+    totalEditionCount: v.total_edition_count,
+    editionBadge: v.edition_badge,
+    variationType: v.variation_type,
+    status: v.status,
+    stockQuantity: v.stock_quantity,
+  }));
+
   // Stock status
   const isSoldOut =
     selectedVariation?.status === 'sold_out' ||
@@ -278,8 +300,30 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Left Column: Media & Gallery Section */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-square w-full rounded-2xl bg-[#15191E] border border-stone-800 overflow-hidden flex items-center justify-center shadow-2xl">
-            {activeMedia ? (
+          <ImageGallery
+            images={mediaList}
+            selectedIndex={selectedImageIndex}
+            onSelectIndex={setSelectedImageIndex}
+            fallbackIcon={categoryIcon}
+            topBadges={
+              <>
+                {product.category && (
+                  <Link
+                    href={`/products?category=${product.category.slug}`}
+                    className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-xs font-mono uppercase tracking-wider px-3 py-2.5 rounded-lg backdrop-blur-md transition-colors min-h-[44px] inline-flex items-center"
+                  >
+                    {product.category.name}
+                  </Link>
+                )}
+                <StockIndicator
+                  status={selectedVariation?.status}
+                  stockQuantity={selectedVariation?.stock_quantity}
+                  isLimitedEdition={selectedVariation?.is_limited_edition}
+                  totalEditionCount={selectedVariation?.total_edition_count}
+                />
+              </>
+            }
+            renderHero={(activeMedia) => (
               <div className="relative w-full h-full">
                 {/* Instant Low-Quality Blurred Placeholder (0ms paint, eliminates scanlines) */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -326,106 +370,62 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   }`}
                 />
               </div>
-            ) : (
-              <div className="text-center p-8 space-y-4">
-                <span className="text-8xl select-none inline-block filter drop-shadow-lg">
-                  {categoryIcon}
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-mono text-[#E55B24]">Workbench Silhouette Preview</p>
-                  <p className="text-xs text-stone-500">Field documentation in progress</p>
-                </div>
-              </div>
             )}
+            renderThumbnail={(m, idx, isSelected) => {
+              const isCachedHighRes = loadedImages.has(m.url);
+              const thumbUrl = isCachedHighRes
+                ? buildCloudflareImageUrl(m.url, {
+                    width: 1024,
+                    quality: 80,
+                    format: 'auto',
+                    onerror: 'redirect',
+                  })
+                : buildCloudflareImageUrl(m.url, {
+                    width: 160,
+                    quality: 75,
+                    format: 'auto',
+                    fit: 'cover',
+                    onerror: 'redirect',
+                  });
 
-            {/* Top Badges overlay */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-              {product.category && (
-                <Link
-                  href={`/products?category=${product.category.slug}`}
-                  className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-xs font-mono uppercase tracking-wider px-3 py-2.5 rounded-lg backdrop-blur-md transition-colors min-h-[44px] inline-flex items-center"
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-label={m.label}
+                  onClick={() => {
+                    setSelectedImageIndex(idx);
+                    prefetchFullImage(m.url);
+                  }}
+                  onMouseEnter={() => prefetchFullImage(m.url)}
+                  onTouchStart={() => prefetchFullImage(m.url)}
+                  className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 min-h-[44px] min-w-[44px] ${
+                    isSelected
+                      ? 'border-[#E55B24] shadow-md shadow-orange-500/20'
+                      : 'border-stone-800 opacity-60 hover:opacity-100 hover:border-stone-600'
+                  }`}
                 >
-                  {product.category.name}
-                </Link>
-              )}
-              {isSoldOut ? (
-                <span className="bg-rose-950/90 text-rose-300 border border-rose-800/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md font-bold">
-                  Batch Depleted
-                </span>
-              ) : isComingSoon ? (
-                <span className="bg-stone-900/90 text-stone-400 border border-stone-700/80 text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md">
-                  In Production
-                </span>
-              ) : (
-                <span className="bg-[#2C362B]/90 text-emerald-300 border border-[#3F4F3D] text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded backdrop-blur-md font-bold">
-                  In Stock ({selectedVariation?.stock_quantity ?? 'Ready to Ship'})
-                </span>
-              )}
-            </div>
-
-            {/* Bottom Tag overlay */}
-            {activeMedia?.tag && (
-              <div className="absolute bottom-4 left-4">
-                <span className="bg-[#15191E]/90 text-stone-300 border border-stone-700/80 text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded backdrop-blur-md">
-                  {activeMedia.tag}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Gallery Thumbnails */}
-          {mediaList.length > 1 && (
-            <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              {mediaList.map((m, idx) => {
-                const isCachedHighRes = loadedImages.has(m.url);
-                const thumbUrl = isCachedHighRes
-                  ? buildCloudflareImageUrl(m.url, {
-                      width: 1024,
-                      quality: 80,
-                      format: 'auto',
-                      onerror: 'redirect',
-                    })
-                  : buildCloudflareImageUrl(m.url, {
-                      width: 160,
-                      quality: 75,
-                      format: 'auto',
-                      fit: 'cover',
-                      onerror: 'redirect',
-                    });
-
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      setSelectedImageIndex(idx);
-                      prefetchFullImage(m.url);
-                    }}
-                    onMouseEnter={() => prefetchFullImage(m.url)}
-                    onTouchStart={() => prefetchFullImage(m.url)}
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                      selectedImageIndex === idx
-                        ? 'border-[#E55B24] shadow-md shadow-orange-500/20'
-                        : 'border-stone-800 opacity-60 hover:opacity-100 hover:border-stone-600'
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={thumbUrl}
-                      alt={m.label}
-                      width={80}
-                      height={80}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                    />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={thumbUrl}
+                    alt={m.label}
+                    width={80}
+                    height={80}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                  {m.tag && (
                     <span className="absolute bottom-0 inset-x-0 bg-stone-950/80 text-[9px] font-mono text-stone-300 truncate px-1 text-center">
                       {m.tag}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  )}
+                </button>
+              );
+            }}
+          />
 
           {/* Workshop Crafting Note */}
           <div className="rounded-xl border border-stone-800 bg-[#15191E]/60 p-4 text-xs text-stone-400 space-y-2">
@@ -512,16 +512,22 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           </div>
 
           {/* Dynamic Price Display */}
-          <div className="p-4 rounded-xl bg-[#15191E] border border-stone-800 space-y-1">
-
-            <div className="flex items-baseline justify-between">
+          <div className="p-4 rounded-xl bg-[#15191E] border border-stone-800 space-y-2">
+            <div className="flex items-baseline justify-between flex-wrap gap-2">
               <div>
                 <span className="text-xs text-stone-400 font-mono uppercase tracking-wider block">
                   Batch Price
                 </span>
-                <span className="text-4xl font-black text-[#E55B24]">
-                  ${Number(currentPrice).toFixed(2)}
-                </span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-4xl font-black text-[#E55B24]">
+                    ${Number(currentPrice).toFixed(2)}
+                  </span>
+                  {isOverride && product.base_price !== undefined && (
+                    <span className="text-lg line-through text-stone-500 font-mono">
+                      ${Number(product.base_price).toFixed(2)}
+                    </span>
+                  )}
+                </div>
               </div>
               {selectedVariation?.sku && (
                 <div className="text-right">
@@ -532,6 +538,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               )}
             </div>
+
+            {selectedVariation?.is_limited_edition && selectedVariation?.total_edition_count ? (
+              <p className="text-xs text-emerald-400 font-mono">
+                ✦ Limited Edition — {selectedVariation.stock_quantity ?? 0} of {selectedVariation.total_edition_count} remaining
+              </p>
+            ) : null}
 
             {isOverride ? (
               <p className="text-xs text-orange-400/90 font-mono">
@@ -627,123 +639,22 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
           {/* Batch / Variation Selector */}
           {variations.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-stone-200">
-                  Select Batch / Variation ({variations.length})
-                </label>
-                <span className="text-xs text-stone-400 font-mono">
-                  {selectedVariation?.variation_type === 'one_of_one'
-                    ? '1-of-1 Workshop Prototype'
-                    : selectedVariation?.variation_type === 'micro_batch'
-                      ? 'Micro-Batch Run'
-                      : selectedVariation?.is_limited_edition &&
-                          selectedVariation.total_edition_count
-                        ? `Batch of ${selectedVariation.total_edition_count}`
-                        : 'Standard Production'}
-                </span>
-              </div>
-
-              <div className="space-y-2" role="radiogroup" aria-label="Select batch or variation">
-                {variations.map((v) => {
-                  const isSelected = v.id === selectedVariationId;
-                  const variationSoldOut = v.status === 'sold_out' || v.stock_quantity <= 0;
-                  const variationComingSoon = v.status === 'coming_soon';
-
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => handleSelectVariation(v.id)}
-                      className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 min-w-0 ${
-                        isSelected
-                          ? 'border-[#E55B24] bg-[#E55B24]/10 shadow-md shadow-orange-500/10'
-                          : 'border-stone-800 bg-[#15191E]/60 hover:border-stone-700 hover:bg-[#15191E]'
-                      }`}
-                    >
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <span
-                            className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
-                              isSelected
-                                ? 'border-[#E55B24] bg-[#E55B24]'
-                                : 'border-stone-500 bg-transparent hover:border-stone-400'
-                            }`}
-                          >
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />}
-                          </span>
-                          <span className="text-sm font-semibold text-stone-100 break-words">
-                            {v.variation_name}
-                          </span>
-                          {v.edition_badge && (
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#2C362B] text-emerald-300 border border-[#3F4F3D] px-1.5 py-0.5 rounded shrink-0">
-                              {v.edition_badge}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-6 flex-wrap">
-                          <span>{v.sku}</span>
-                          {v.variation_type && (
-                            <>
-                              <span>•</span>
-                              <span className="capitalize">
-                                {v.variation_type.replace('_', ' ')}
-                              </span>
-                            </>
-                          )}
-                          {v.is_limited_edition && v.total_edition_count && (
-                            <>
-                              <span>•</span>
-                              <span>Run: {v.total_edition_count}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-right flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-base font-bold text-[#E55B24]">
-                          ${Number(v.effective_price).toFixed(2)}
-                        </span>
-                        {variationSoldOut ? (
-                          <Badge variant="danger" className="text-[10px] py-0 px-1.5">
-                            Depleted
-                          </Badge>
-                        ) : variationComingSoon ? (
-                          <Badge variant="neutral" className="text-[10px] py-0 px-1.5">
-                            Soon
-                          </Badge>
-                        ) : (
-                          <span className="text-[11px] text-emerald-400 font-mono">
-                            {v.stock_quantity} left
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <VariationSelector
+              variations={variationOptions}
+              selectedVariationId={selectedVariationId}
+              onSelectVariation={handleSelectVariation}
+            />
           )}
 
           {/* Purchase Actions */}
           <div className="space-y-3 pt-2" ref={buyButtonRef}>
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full font-bold uppercase tracking-wider shadow-lg shadow-orange-950/40 py-3.5 text-base bg-[#E55B24] hover:bg-[#D04A15] text-white border-none min-h-[48px]"
-              disabled={!isAvailable || isCheckingOut}
+            <AddToCartButton
+              price={currentPrice}
+              status={selectedVariation?.status}
+              stockQuantity={selectedVariation?.stock_quantity}
+              isLoading={isCheckingOut}
               onClick={handleCheckout}
-            >
-              {isCheckingOut
-                ? 'Preparing Gear Roll...'
-                : isSoldOut
-                  ? 'Batch Depleted'
-                  : isComingSoon
-                    ? 'Releases Soon'
-                    : `Deploy Gear • $${Number(currentPrice).toFixed(2)}`}
-            </Button>
+            />
 
             {checkoutError && (
               <p className="text-xs text-rose-400 font-mono text-center">{checkoutError}</p>
@@ -795,15 +706,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
             </div>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!isAvailable || isCheckingOut}
+          <AddToCartButton
+            price={currentPrice}
+            status={selectedVariation?.status}
+            stockQuantity={selectedVariation?.stock_quantity}
+            isLoading={isCheckingOut}
             onClick={handleCheckout}
-            className="shrink-0 min-h-[44px] px-4 font-bold text-xs uppercase tracking-wider"
+            className="w-auto shrink-0 min-h-[44px] px-4 font-bold text-xs uppercase tracking-wider py-2"
           >
             {isCheckingOut ? 'Rolling...' : isSoldOut ? 'Depleted' : 'Deploy Gear'}
-          </Button>
+          </AddToCartButton>
         </div>
       )}
     </div>
