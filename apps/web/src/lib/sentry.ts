@@ -8,6 +8,7 @@
  */
 
 import * as Sentry from '@sentry/nextjs';
+import { getCurrentTraceContext } from './tracing';
 
 export interface SentryErrorContext {
   tags?: Record<string, string>;
@@ -64,13 +65,27 @@ export function captureException(
   error: unknown,
   context?: SentryErrorContext
 ): string {
+  const currentTrace = getCurrentTraceContext();
+  const correlationId =
+    context?.tags?.correlation_id ||
+    context?.tags?.['x-request-id'] ||
+    currentTrace?.requestId;
+  const cfRay =
+    context?.tags?.cf_ray ||
+    context?.tags?.['cf-ray'] ||
+    currentTrace?.cfRay;
+
+  const enrichedTags: Record<string, string> = {
+    runtime: typeof (globalThis as any).WebSocketPair !== 'undefined' ? 'cloudflare-worker' : 'node',
+    service: 'chrishop-storefront',
+    ...(correlationId ? { correlation_id: correlationId } : {}),
+    ...(cfRay ? { cf_ray: cfRay } : {}),
+    ...context?.tags,
+  };
+
   const eventId = isSentryConfigured()
     ? Sentry.captureException(error, {
-        tags: {
-          runtime: typeof (globalThis as any).WebSocketPair !== 'undefined' ? 'cloudflare-worker' : 'node',
-          service: 'chrishop-storefront',
-          ...context?.tags,
-        },
+        tags: enrichedTags,
         extra: context?.extra,
         level: context?.level || 'error',
         user: context?.user,
@@ -90,7 +105,7 @@ export function captureException(
       environment: process.env.APP_ENV || process.env.NODE_ENV || 'production',
       runtime: typeof (globalThis as any).WebSocketPair !== 'undefined' ? 'cloudflare-worker' : 'node',
       timestamp: new Date().toISOString(),
-      tags: context?.tags,
+      tags: enrichedTags,
     };
 
     // Asynchronously dispatch to avoid blocking the request path

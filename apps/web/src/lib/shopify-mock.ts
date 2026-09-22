@@ -36,7 +36,8 @@ export class ShopifyStorefrontMockEngine {
   private rateLimitOptions: { retryAfterSec?: number; errorType?: '429' | 'THROTTLED' } = {};
   public throttledRequestsCount = 0;
   public lastBuyerIp: string | null = null;
-  public requestHistory: Array<{ query: string; variables: any; buyerIp?: string }> = [];
+  public lastRequestId: string | null = null;
+  public requestHistory: Array<{ query: string; variables: any; buyerIp?: string; requestId?: string }> = [];
 
   constructor(public domain: string = 'chrishop-dev.myshopify.com') {}
 
@@ -51,6 +52,7 @@ export class ShopifyStorefrontMockEngine {
     this.rateLimitOptions = {};
     this.throttledRequestsCount = 0;
     this.lastBuyerIp = null;
+    this.lastRequestId = null;
     this.requestHistory = [];
   }
 
@@ -281,9 +283,15 @@ export class ShopifyStorefrontMockEngine {
     return { cart, userErrors: [] };
   }
 
-  async handleGraphQLRequest(query: string, variables: any = {}, buyerIp?: string): Promise<any> {
+  async handleGraphQLRequest(
+    query: string,
+    variables: any = {},
+    buyerIp?: string,
+    requestId?: string
+  ): Promise<any> {
     this.lastBuyerIp = buyerIp || null;
-    this.requestHistory.push({ query, variables, buyerIp });
+    this.lastRequestId = requestId || null;
+    this.requestHistory.push({ query, variables, buyerIp, requestId });
 
     if (this.rateLimitRemainingAttempts > 0) {
       this.rateLimitRemainingAttempts--;

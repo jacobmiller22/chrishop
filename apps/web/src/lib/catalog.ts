@@ -34,6 +34,7 @@ import type {
 import { getEffectivePrice } from '@chrishop/types';
 import { catalogSingleFlight } from './singleflight';
 import { getAssetUrl } from './assets';
+import { annotateSqlQueryWithTrace } from './tracing';
 
 export type {
   Category,
@@ -370,18 +371,19 @@ export function getDatabase(): D1DatabaseLike {
   if (d1) {
     const d1Wrapper: D1DatabaseLike = {
       prepare(sql: string) {
+        const tracedSql = annotateSqlQueryWithTrace(sql);
         return {
-          bind: (...params: any[]) => d1.prepare(sql).bind(...params),
+          bind: (...params: any[]) => d1.prepare(tracedSql).bind(...params),
           all: (...params: any[]) => {
-            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            const stmt = params.length > 0 ? d1.prepare(tracedSql).bind(...params) : d1.prepare(tracedSql);
             return stmt.all().then((res: any) => res?.results || []);
           },
           get: (...params: any[]) => {
-            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            const stmt = params.length > 0 ? d1.prepare(tracedSql).bind(...params) : d1.prepare(tracedSql);
             return stmt.first();
           },
           run: (...params: any[]) => {
-            const stmt = params.length > 0 ? d1.prepare(sql).bind(...params) : d1.prepare(sql);
+            const stmt = params.length > 0 ? d1.prepare(tracedSql).bind(...params) : d1.prepare(tracedSql);
             return stmt.run();
           },
         };
