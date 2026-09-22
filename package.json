@@ -50,6 +50,8 @@
     "d1:migrate:staging": "tsx scripts/d1-migrate.ts --remote --env staging",
     "d1:migrate:prod": "tsx scripts/d1-migrate.ts --remote --env production",
     "d1:rollback:info": "tsx scripts/d1-migrate.ts --pitr-info",
+    "d1:backup": "tsx scripts/d1-backup.ts",
+    "d1:backup:prod": "tsx scripts/d1-backup.ts --remote --env production",
     "rollback": "tsx scripts/rollback-worker.ts",
     "db:migrate:local": "wrangler d1 migrations apply chrishop-prod-db --local",
     "db:seed": "tsx scripts/seed-db.ts",

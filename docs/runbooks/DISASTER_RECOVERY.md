@@ -76,25 +76,41 @@ pnpm exec wrangler rollback <deployment-id> --env production
 
 ---
 
-### Scenario B: Database Corruption or Accidental D1 Deletion (PITR)
+### Scenario B: Database Corruption or Accidental D1 Deletion (PITR & R2 Snapshots)
 
-Cloudflare D1 provides automated time-travel and Point-in-Time Recovery (PITR) allowing restoration to any minute within the retention window (up to 30 days):
+Cloudflare D1 provides automated time-travel and Point-in-Time Recovery (PITR) allowing restoration to any second within the retention window (up to 30 days continuous WAL replication). Additionally, ChrisShop runs automated daily SQL snapshot exports to Cloudflare R2 (`chrishop-backups`) via `.github/workflows/d1-backup.yml`.
 
+#### 1. Point-in-Time Recovery (PITR) Time-Travel Restoration (RTO < 5m, RPO < 1m)
 ```bash
 # 1. Inspect current D1 database state and latest commit bookmark
 pnpm exec wrangler d1 info chrishop-prod-db
 
-# 2. Restore D1 database to a specific point-in-time timestamp (ISO 8601)
+# 2. View continuous 30-day PITR restoration window boundary
+pnpm run d1:backup --verify-pitr
+
+# 3. Restore D1 database to a specific point-in-time timestamp (ISO 8601)
 pnpm exec wrangler d1 time-travel restore chrishop-prod-db --timestamp="2026-09-22T13:00:00Z"
 
-# 3. Or restore using a specific commit bookmark hash
+# 4. Or restore using a specific commit bookmark hash
 pnpm exec wrangler d1 time-travel restore chrishop-prod-db --bookmark="00000001-0000-0000-0000-000000000000"
-
-# 4. Or restore from a designated SQL backup snapshot
-pnpm exec wrangler d1 execute chrishop-prod-db --file=./backups/backup-snapshot.sql
 
 # 5. Display quick PITR instructions via CLI
 pnpm run d1:rollback:info
+```
+
+#### 2. Cold SQL Snapshot Export & R2 Storage
+```bash
+# Generate on-demand local snapshot
+pnpm run d1:backup
+
+# Generate production snapshot dump and sync to Cloudflare R2
+pnpm run d1:backup:prod --upload-r2
+
+# Trigger scheduled daily backup workflow manually via GitHub CLI
+gh workflow run d1-backup.yml -f environment=production -f upload_r2=true
+
+# Restore from a cold SQL backup snapshot
+pnpm exec wrangler d1 execute chrishop-prod-db --file=./backups/chrishop-prod-db-snapshot-202609221200.sql
 ```
 
 > [!IMPORTANT]
