@@ -12,8 +12,17 @@ resource "cloudflare_zone_settings_override" "settings" {
     early_hints              = "on"
     http3                    = "on"
     zero_rtt                 = "on"
+    tls_1_3                  = "on"
     min_tls_version          = "1.2"
     ssl                      = "strict"
+
+    security_header {
+      enabled            = true
+      max_age            = 31536000
+      include_subdomains = true
+      preload            = true
+      nosniff            = true
+    }
   }
 }
 
