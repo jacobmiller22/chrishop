@@ -81,3 +81,8 @@ export async function updateBuyerIdentity(
 ) {
   return shopify.cartBuyerIdentityUpdate(cartId, buyerIdentity, buyerIp);
 }
+
+export async function getShopInfo(buyerIp?: string) {
+  return shopify.getShopInfo(buyerIp);
+}
+

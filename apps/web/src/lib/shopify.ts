@@ -660,6 +660,45 @@ export class ShopifyStorefrontClient {
       buyerIp
     );
   }
+
+  /**
+   * Fetches shop metadata (name, description, currency, primary domain) via Storefront API.
+   */
+  async getShopInfo(buyerIp?: string) {
+    const query = `
+      query getShopInfo {
+        shop {
+          name
+          description
+          primaryDomain {
+            host
+            url
+          }
+          paymentSettings {
+            currencyCode
+            countryCode
+          }
+        }
+      }
+    `;
+
+    return this.request<{ shop: ShopifyShopInfo | null }>(query, {}, buyerIp);
+  }
+}
+
+export interface ShopifyShopInfo {
+  name: string;
+  description?: string;
+  primaryDomain: {
+    host: string;
+    url: string;
+  };
+  paymentSettings: {
+    currencyCode: string;
+    countryCode: string;
+    supportedCardBrands?: string[];
+  };
+  shipsToCountries?: string[];
 }
 
 export interface ShopifyProductPriceRange {
@@ -696,3 +735,5 @@ export const removeCartLine = shopify.removeCartLine.bind(shopify);
 export const getCart = shopify.getCart.bind(shopify);
 export const getProductPriceAndAvailability = shopify.getProductPriceAndAvailability.bind(shopify);
 export const getVariantStock = shopify.getVariantStock.bind(shopify);
+export const getShopInfo = shopify.getShopInfo.bind(shopify);
+

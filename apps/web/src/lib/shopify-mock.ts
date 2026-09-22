@@ -475,6 +475,29 @@ export class ShopifyStorefrontMockEngine {
       };
     }
 
+    // 9. Shop info query
+    if (query.includes('shop') && !query.includes('Product')) {
+      return {
+        data: {
+          shop: {
+            id: 'gid://shopify/Shop/8291029384',
+            name: 'ChrisShop Leadville Workshop',
+            description: 'Handcrafted alpine angling gear and fine art',
+            primaryDomain: {
+              host: this.domain,
+              url: `https://${this.domain}`,
+            },
+            paymentSettings: {
+              currencyCode: 'USD',
+              countryCode: 'US',
+              supportedCardBrands: ['VISA', 'MASTERCARD', 'AMERICAN_EXPRESS'],
+            },
+            shipsToCountries: ['US', 'CA', 'GB', 'DE', 'FR', 'JP', 'AU'],
+          },
+        },
+      };
+    }
+
     return { data: {} };
   }
 }
