@@ -102,6 +102,10 @@ Upon push to `production`:
      - Wrangler executes `deploy --env production` to deploy the application bundle to Cloudflare Workers.
 5. **Job 5 (`verify-production`)**:
    - Probes `https://chrishop.jacobmiller22.com/api/health` and confirms HTTP 200 with all bindings active.
+6. **Job 6 (`notify-deployment`)**:
+   - Executes unconditionally (`if: always()`) upon pipeline completion to catch both successes and regressions.
+   - Formats a rich Discord embed and dispatches status notification to `#dev-alerts` via incoming webhook (`DISCORD_WEBHOOK_DEV_ALERTS`).
+   - Reports environment, status (SUCCESS or FAILURE), git ref & commit hash, deployment actor, edge endpoint URL, and health probe URL.
 
 ---
 

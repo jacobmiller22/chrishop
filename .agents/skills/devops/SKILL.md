@@ -39,7 +39,8 @@ ChrisShop enforces a strict two-stage git promotion pipeline:
         ├─► 2. Deploy to Cloudflare Workers Staging Edge (deploy-staging)
         ├─► 3. Probe Staging Edge Health (/api/health) (test-staging) (MUST PASS)
         ├─► 4. ✋ Await Human Reviewer Approval (GitHub Actions Environment Gate: jacobmiller22)
-        └─► 5. Deploy to Production Edge (https://chrishop.jacobmiller22.com) & Verify (deploy-production)
+        ├─► 5. Deploy to Production Edge (https://chrishop.jacobmiller22.com) & Verify (deploy-production)
+        └─► 6. Dispatch Discord #dev-alerts Status Alert (notify-deployment)
 ```
 
 ### Key Security & Integrity Guarantees
@@ -49,6 +50,7 @@ ChrisShop enforces a strict two-stage git promotion pipeline:
 3. **Automated Staging Gate**: Production deployments automatically re-deploy and verify the health of the staging edge (`https://staging-chrishop.jacobmiller22.com/api/health`) before requesting human approval.
 4. **Human Reviewer Gate**: Production deployments pause at the GitHub Actions `production` environment, requiring explicit sign-off from designated reviewers (`jacobmiller22`).
 5. **Post-Deployment Health Probe**: Once deployed, the edge health endpoint (`https://chrishop.jacobmiller22.com/api/health`) is probed up to 12 times to confirm live operational status.
+6. **Automated Discord Alerts**: Dispatches rich embedded operational status notifications to `#dev-alerts` via incoming webhook on both successful deployments and regressions.
 
 ---
 
