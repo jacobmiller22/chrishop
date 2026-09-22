@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Card, Badge, Button } from '@chrishop/ui';
+import { Card, Badge, Button, CountdownTimer } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl, enrichProductsWithShopifyPricing } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 import { ProductFilters } from './ProductFilters';
@@ -173,6 +173,12 @@ export default async function ProductsPage(props: ProductsPageProps) {
             const hasMicroBatch = product.variations?.some(
               (v) => v.variation_type === 'micro_batch' || v.variation_type === 'one_of_one' || v.is_limited_edition
             );
+            const releaseDate =
+              product.release_date || product.variations?.find((v) => v.release_date)?.release_date;
+            const isUpcoming =
+              (product.status === 'coming_soon' ||
+                product.variations?.some((v) => v.status === 'coming_soon')) &&
+              Boolean(releaseDate);
 
             return (
               <Card
@@ -210,13 +216,15 @@ export default async function ProductsPage(props: ProductsPageProps) {
                   )}
 
                   {/* Top Badges */}
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none gap-2">
                     {product.category?.name && (
                       <Badge variant="olive" className="bg-[#2C362B]/95 backdrop-blur-md text-[11px] font-mono">
                         {product.category.name}
                       </Badge>
                     )}
-                    {hasMicroBatch ? (
+                    {isUpcoming && releaseDate ? (
+                      <CountdownTimer targetDate={releaseDate} compact />
+                    ) : hasMicroBatch ? (
                       <Badge variant="warning" className="bg-orange-950/95 backdrop-blur-md text-[11px] font-mono">
                         Micro-Batch
                       </Badge>
@@ -266,8 +274,8 @@ export default async function ProductsPage(props: ProductsPageProps) {
                     </div>
 
                     <Link href={`/products/${product.slug}`}>
-                      <Button variant="primary" size="sm" className="font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] px-4">
-                        Inspect Gear →
+                      <Button variant={isUpcoming ? 'outline' : 'primary'} size="sm" className="font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] px-4">
+                        {isUpcoming ? 'Inspect Drop →' : 'Inspect Gear →'}
                       </Button>
                     </Link>
                   </div>

@@ -6,6 +6,7 @@ export interface StockIndicatorProps {
   stockQuantity?: number;
   isLimitedEdition?: boolean;
   totalEditionCount?: number | null;
+  releaseDate?: string | null;
   className?: string;
 }
 
@@ -14,6 +15,7 @@ export const StockIndicator: React.FC<StockIndicatorProps> = ({
   stockQuantity,
   isLimitedEdition = false,
   totalEditionCount,
+  releaseDate,
   className = '',
 }) => {
   const isSoldOut = status === 'sold_out' || (stockQuantity !== undefined && stockQuantity <= 0);
@@ -28,9 +30,10 @@ export const StockIndicator: React.FC<StockIndicatorProps> = ({
   }
 
   if (isComingSoon) {
+    const isFuture = releaseDate && new Date(releaseDate).getTime() > Date.now();
     return (
       <Badge variant="neutral" className={`font-mono uppercase tracking-wider ${className}`}>
-        In Production
+        {isFuture ? 'Upcoming Drop' : 'In Production'}
       </Badge>
     );
   }
