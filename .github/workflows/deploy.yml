@@ -284,3 +284,68 @@ jobs:
             echo "❌ Production edge health probe failed after $MAX_ATTEMPTS attempts."
             exit 1
           fi
+
+  notify-deployment:
+    name: Dispatch Deployment Alert to Discord
+    runs-on: ubuntu-latest
+    needs: [build-and-validate, deploy-staging, test-staging, deploy-production, verify-production]
+    if: always()
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_DEV_ALERTS || secrets.DISCORD_WEBHOOK_ALERTS || secrets.DISCORD_WEBHOOK_URL }}
+    steps:
+      - name: Dispatch Discord Deployment Notification
+        if: env.DISCORD_WEBHOOK != ''
+        run: |
+          TARGET_ENV="staging"
+          if [ "${{ github.ref }}" = "refs/heads/production" ] || [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            TARGET_ENV="production"
+          fi
+
+          IS_SUCCESS=true
+          if [ "$TARGET_ENV" = "production" ]; then
+            if [ "${{ needs.deploy-production.result }}" != "success" ] || [ "${{ needs.verify-production.result }}" != "success" ]; then
+              IS_SUCCESS=false
+            fi
+          else
+            if [ "${{ needs.build-and-validate.result }}" != "success" ] || [ "${{ needs.deploy-staging.result }}" != "success" ] || [ "${{ needs.test-staging.result }}" != "success" ]; then
+              IS_SUCCESS=false
+            fi
+          fi
+
+          STATUS="SUCCESS"
+          COLOR=65280
+          ICON="🚀"
+          if [ "$IS_SUCCESS" != "true" ]; then
+            STATUS="FAILURE"
+            COLOR=16711680
+            ICON="🚨"
+          fi
+
+          TITLE="${ICON} ChrisShop CD Deployment ${STATUS}: ${TARGET_ENV}"
+          PROD_URL="https://chrishop.jacobmiller22.com"
+          STAGING_URL="https://staging-chrishop.jacobmiller22.com"
+          TARGET_URL="${PROD_URL}"
+          if [ "$TARGET_ENV" = "staging" ]; then
+            TARGET_URL="${STAGING_URL}"
+          fi
+
+          BODY="**ChrisShop Edge Continuous Deployment**\n\n• **Environment**: \`${TARGET_ENV}\`\n• **Status**: \`${STATUS}\`\n• **Ref**: \`${{ github.ref_name }}\` (\`${{ github.sha }}\`)\n• **Triggered by**: @${{ github.actor }}\n• **Edge Target**: ${TARGET_URL}\n• **Health Probe**: ${TARGET_URL}/api/health\n• **GitHub Run**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PAYLOAD=$(cat <<JSON
+          {
+            "content": "${ICON} **[CD Deployment]** ${TARGET_ENV} deployment ${STATUS}",
+            "embeds": [
+              {
+                "title": "${TITLE}",
+                "description": "${BODY}",
+                "color": ${COLOR},
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              }
+            ]
+          }
+          JSON
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" \
+            -d "${PAYLOAD}" \
+            "${DISCORD_WEBHOOK}" || true
