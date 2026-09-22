@@ -150,6 +150,41 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Pre-Test Staging Edge Commit Hash Assertion
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          STAGING_URL="https://staging-chrishop.jacobmiller22.com"
+          EXPECTED_SHA="${{ github.sha }}"
+          echo "Verifying staging edge commit hash matches candidate commit ${EXPECTED_SHA} before integration tests..."
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          MATCHED=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Staging hash verification attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            RES_DATA=$(curl -s -f -H "cache-control: no-store" "${STAGING_URL}/api/health" || true)
+            EDGE_SHA=$(echo "$RES_DATA" | jq -r '.commitSha // empty' 2>/dev/null || true)
+            if [ -z "$EDGE_SHA" ]; then
+              EDGE_SHA=$(curl -s -I -H "cache-control: no-store" "${STAGING_URL}/api/health" | grep -i "x-chrishop-commit-sha" | awk -F': ' '{print $2}' | tr -d '\r\n' || true)
+            fi
+
+            echo "Staging Edge Live SHA: ${EDGE_SHA:-unknown} (Expected: ${EXPECTED_SHA})"
+            if [ -n "$EDGE_SHA" ] && ([ "$EDGE_SHA" = "$EXPECTED_SHA" ] || [ "${EDGE_SHA:0:7}" = "${EXPECTED_SHA:0:7}" ]); then
+              echo "✅ Pre-test staging commit hash assertion passed: ${EDGE_SHA}"
+              MATCHED=1
+              break
+            fi
+
+            echo "Waiting 5 seconds for edge propagation..."
+            sleep 5
+          done
+
+          if [ $MATCHED -ne 1 ]; then
+            echo "❌ Staging edge SHA did not match candidate commit ${EXPECTED_SHA}. Aborting deployment."
+            exit 1
+          fi
+
       - name: Staging Environment Parity Loop
         run: |
           STAGING_URL="https://staging-chrishop.jacobmiller22.com"
@@ -177,6 +212,25 @@ jobs:
             exit 1
           fi
 
+      - name: Post-Test Staging SHA Integrity Check
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          STAGING_URL="https://staging-chrishop.jacobmiller22.com"
+          EXPECTED_SHA="${{ github.sha }}"
+          echo "Re-verifying staging edge commit hash post-test to detect interleaving mutations..."
+          RES_DATA=$(curl -s -f -H "cache-control: no-store" "${STAGING_URL}/api/health" || true)
+          POST_SHA=$(echo "$RES_DATA" | jq -r '.commitSha // empty' 2>/dev/null || true)
+          if [ -z "$POST_SHA" ]; then
+            POST_SHA=$(curl -s -I -H "cache-control: no-store" "${STAGING_URL}/api/health" | grep -i "x-chrishop-commit-sha" | awk -F': ' '{print $2}' | tr -d '\r\n' || true)
+          fi
+
+          echo "Post-Test Staging Edge Live SHA: ${POST_SHA:-unknown}"
+          if [ -n "$POST_SHA" ] && [ "$POST_SHA" != "$EXPECTED_SHA" ] && [ "${POST_SHA:0:7}" != "${EXPECTED_SHA:0:7}" ]; then
+            echo "🚨 Mid-test staging mutation detected! Edge SHA changed from ${EXPECTED_SHA} to ${POST_SHA} during test execution. Failing promotion."
+            exit 1
+          fi
+          echo "✅ Staging SHA integrity confirmed post-test (no race condition detected)."
+
   deploy-production:
     name: Deploy to Production Edge (Gated)
     runs-on: ubuntu-latest
@@ -190,6 +244,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Pre-Approval Production Target Commit Validation
+        run: |
+          EXPECTED_SHA="${{ github.sha }}"
+          echo "Verifying deployment artifact commit SHA matches release target commit ${EXPECTED_SHA}..."
+          CURRENT_HEAD=$(git rev-parse HEAD)
+          if [ "$CURRENT_HEAD" != "$EXPECTED_SHA" ]; then
+            echo "❌ Current checkout HEAD (${CURRENT_HEAD}) does not match trigger SHA (${EXPECTED_SHA})."
+            exit 1
+          fi
+          echo "✅ Release candidate SHA ${EXPECTED_SHA} validated."
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

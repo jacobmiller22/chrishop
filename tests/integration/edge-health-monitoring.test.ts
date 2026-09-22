@@ -77,6 +77,9 @@ describe('Story 4.2: Cloudflare Workers Edge Health Checks & Synthetic Monitorin
       assert.equal(res.headers.get('cache-control'), 'no-store');
       assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
       assert.ok(res.headers.get('x-response-time-ms'));
+      assert.ok(body.commitSha, 'Must return commitSha');
+      assert.ok(body.shortSha, 'Must return shortSha');
+      assert.equal(res.headers.get('x-chrishop-commit-sha'), body.commitSha);
     });
   });
 
