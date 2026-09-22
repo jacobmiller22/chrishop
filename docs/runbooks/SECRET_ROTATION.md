@@ -53,6 +53,23 @@ Before performing any secret rotation:
    curl -s -f https://staging-chrishop.jacobmiller22.com/api/health | jq .
    ```
 
+4. **Automated Rollover via CLI Tool (`scripts/rotate-secrets.ts`)**:
+   ChrisShop provides an automated, dry-run-capable CLI tool to execute edge secret rotation with pre- and post-flight health verification:
+   ```bash
+   # 1. Preview rotation (dry-run simulation)
+   pnpm run secrets:rotate --secret PAYLOAD_SECRET --dry-run
+
+   # 2. Rotate PAYLOAD_SECRET with auto-generated 256-bit cryptographic key
+   pnpm run secrets:rotate --secret PAYLOAD_SECRET --generate --env staging
+   pnpm run secrets:rotate --secret PAYLOAD_SECRET --generate --env production
+
+   # 3. Rotate third-party API tokens with explicit values
+   pnpm run secrets:rotate --secret RESEND_API_KEY --value "re_..." --env staging
+
+   # 4. List supported secrets and default cadences
+   pnpm run secrets:rotate --list
+   ```
+
 ---
 
 ## 3. Step-by-Step Secret Rotation Procedures
