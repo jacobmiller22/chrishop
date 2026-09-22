@@ -516,12 +516,18 @@ export class WebhookNotificationProvider implements NotificationProvider {
     const initialDelay = this.options.initialRetryDelayMs ?? 100;
     let attempt = 0;
 
+    const payload = {
+      ...data,
+      ...(data.text && !data.content ? { content: data.text } : {}),
+      ...(data.content && !data.text ? { text: data.content } : {}),
+    };
+
     while (attempt <= maxRetries) {
       try {
         const response = await fetch(this.webhookUrl, {
           method: 'POST',
           headers,
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
 
         if (response.ok) {
