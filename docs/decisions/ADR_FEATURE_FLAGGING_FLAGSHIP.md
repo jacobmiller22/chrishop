@@ -94,9 +94,18 @@ flowchart TD
     end
 ```
 
-#### Rationale & Key Advantages:
-1. **Strict Blast Radius Isolation**: A toggle or experiment tested in staging physically cannot leak into or compromise `chrishop-production`. During high-stakes drops, operational safety is absolute.
-2. **Zero Cross-PR Contamination in Previews (Story 2.47)**: Sharing a single preview Flagship app across multiple concurrent PRs would cause cross-PR mutation (PR #1 toggling a flag on would break PR #2's review). Previews instead isolate flag overrides via PR branch variables (`[env.preview.vars]`) and reviewer session query params, cascading safely to the Staging Flagship app.
+#### 4.1 Resolution Precedence Matrix across Tiers
+
+| Precedence Rank | Preview Tier (`preview`) | Staging Tier (`staging`) | Production Tier (`production`) | Local Dev / Test |
+| :--- | :--- | :--- | :--- | :--- |
+| **1 (Highest)** | **Reviewer Session Override** (`?flag:KEY=val` or cookie `chrishop_flags_override`) | N/A *(Ignored for stability)* | ❌ **STRICTLY IGNORED** *(Security boundary)* | **Session Override** (if provided in request) |
+| **2** | **PR Worker Var Override** (`wrangler.toml [env.preview.vars]`) | N/A | N/A | **Environment Variable** (`process.env.FLAG_*` / `.dev.vars`) |
+| **3** | **Staging Flagship Binding** (`env.FLAGS` fallback) | **Flagship Binding** (`env.FLAGS`) | **Flagship Binding** (`env.FLAGS`) | N/A |
+| **4 (Lowest)** | **Staging Defaults** (`ENVIRONMENT_FLAG_DEFAULTS.staging`) | **Staging Defaults** | **Production Defaults** | **Tier Defaults** |
+
+#### 4.2 Security & Isolation Guardrails
+1. **Production Immunity**: Reviewer session query parameters (`?flag:KEY=val`) and cookies (`chrishop_flags_override`) are strictly guarded in both `extractEvaluationContext()` and `evaluateFlag()`. In `production`, session overrides are dropped unconditionally.
+2. **Zero Cross-PR Contamination**: Feature branch authors only declare the specific flags their PR modifies in `[env.preview.vars]`. Unspecified flags inherit the staging baseline automatically.
 3. **App-Scoped RBAC & Token Security**:
    - Staging automated tests and QA can be granted write access to `chrishop-staging`.
    - Production (`chrishop-production`) write permissions are restricted strictly to authorized release managers and incident response automation.
@@ -115,6 +124,9 @@ flowchart TD
    app_id = "<PRODUCTION_FLAGSHIP_APP_ID>"
 
    # Ephemeral PR Previews: Decoupled via [env.preview.vars] with fallback to Staging Flagship
+   # [[env.preview.flagship]]
+   # binding = "FLAGS"
+   # app_id = "<STAGING_FLAGSHIP_APP_ID>"
    ```
 
 ---

@@ -105,6 +105,7 @@ export interface EvaluationContext {
   customerTags?: string[];
   ipAddress?: string;
   environmentTier?: EnvironmentTier;
+  sessionFlags?: Record<string, boolean | string | number>;
   [key: string]: unknown;
 }
 
@@ -152,10 +153,17 @@ export function resolveEnvironmentTier(
 }
 
 /**
- * Core 2-Tier Feature Flag Evaluator
+ * Core Multi-Tier Feature Flag Evaluator (Story 2.47 & ADR-001)
  *
- * Tier 1: Cloudflare Flagship Native Binding (when running in deployed Worker)
- * Tier 2: Direct Environment Variable (when running in local dev / Miniflare offline / unit tests)
+ * Precedence in Preview Environments:
+ * 1. Reviewer Session Override (URL query ?flag:KEY=val or cookie chrishop_flags_override) - Preview & Dev only!
+ * 2. PR Worker Var Override (declared in wrangler.toml [env.preview.vars] or process.env)
+ * 3. Staging Flagship Binding (env.FLAGS from Staging Flagship app)
+ * 4. Staging Default Fallback (ENVIRONMENT_FLAG_DEFAULTS.staging)
+ *
+ * Precedence in Production Environments:
+ * - Reviewer session overrides are STRICTLY IGNORED.
+ * - Authoritative evaluation via Cloudflare Flagship (env.FLAGS) or production vars/defaults.
  */
 export async function evaluateFlag<T extends boolean | string | number>(
   key: string,
@@ -165,48 +173,75 @@ export async function evaluateFlag<T extends boolean | string | number>(
 ): Promise<T> {
   const g = typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>) : {};
   const flagship = (env?.FLAGS || g.FLAGS) as CloudflareFlagshipBinding | undefined;
+  const tier = resolveEnvironmentTier(
+    typeof process !== 'undefined' ? process.env : {},
+    context
+  );
 
-  // Tier 1: Cloudflare Flagship Binding
+  // Helper to coerce value to expected type
+  const coerce = (val: unknown): T => {
+    if (typeof defaultValue === 'boolean') {
+      if (typeof val === 'boolean') return val as T;
+      if (typeof val === 'string') return (val === 'true' || val === '1') as T;
+      if (typeof val === 'number') return (val !== 0) as T;
+    }
+    if (typeof defaultValue === 'number') {
+      const num = Number(val);
+      return (isNaN(num) ? defaultValue : num) as T;
+    }
+    return String(val) as T;
+  };
+
+  // Precedence Step 1: Reviewer Session Override (PREVIEW, DEV, TEST only; STRICTLY IGNORED in production)
+  if (tier !== 'production' && context?.sessionFlags && key in context.sessionFlags) {
+    return coerce(context.sessionFlags[key]);
+  }
+
+  // Precedence Step 2: PR Worker Var Override (env[key] or process.env[key])
+  // In preview or local dev/test, PR branch worker vars take precedence over Staging Flagship
+  const envVal =
+    (typeof env?.[key] !== 'undefined' ? env[key] : undefined) ??
+    (typeof process !== 'undefined' ? process.env?.[key] : undefined);
+
+  if (tier === 'preview' || tier === 'development' || tier === 'test') {
+    if (envVal !== undefined && envVal !== null) {
+      return coerce(envVal);
+    }
+  }
+
+  // Compute tier default fallback (in preview, cascade to staging defaults)
+  const effectiveTier = tier === 'preview' ? 'staging' : tier;
+  const rawTierDefault =
+    ENVIRONMENT_FLAG_DEFAULTS[effectiveTier]?.[key as FlagKey] ??
+    ENVIRONMENT_FLAG_DEFAULTS[tier]?.[key as FlagKey];
+  const tierDefault = (rawTierDefault !== undefined ? rawTierDefault : defaultValue) as T;
+
+  // Precedence Step 3: Cloudflare Flagship Binding (Staging Flagship or Production Flagship)
   if (flagship) {
     const evalContext = context as Record<string, unknown> | undefined;
     if (typeof defaultValue === 'boolean' && typeof flagship.getBooleanValue === 'function') {
-      return (await flagship.getBooleanValue(key, defaultValue, evalContext)) as T;
+      return (await flagship.getBooleanValue(key, tierDefault as boolean, evalContext)) as T;
     }
     if (typeof defaultValue === 'string' && typeof flagship.getStringValue === 'function') {
-      return (await flagship.getStringValue(key, defaultValue, evalContext)) as T;
+      return (await flagship.getStringValue(key, tierDefault as string, evalContext)) as T;
     }
     if (typeof defaultValue === 'number' && typeof flagship.getNumberValue === 'function') {
-      return (await flagship.getNumberValue(key, defaultValue, evalContext)) as T;
+      return (await flagship.getNumberValue(key, tierDefault as number, evalContext)) as T;
     }
     if (typeof flagship.getObjectValue === 'function') {
-      return (await flagship.getObjectValue(key, defaultValue, evalContext)) as T;
+      return (await flagship.getObjectValue(key, tierDefault, evalContext)) as T;
     }
   }
 
-  // Tier 2: Direct Environment Variable (Local dev, .dev.vars, unit tests)
-  const envVal =
-    (typeof process !== 'undefined' ? process.env?.[key] : undefined) ??
-    (typeof env?.[key] === 'string' ? (env[key] as string) : undefined);
-
-  if (envVal !== undefined) {
-    if (typeof defaultValue === 'boolean') {
-      return (envVal === 'true' || envVal === '1') as T;
+  // In production or staging, if Flagship binding was absent, use direct envVal
+  if (tier === 'production' || tier === 'staging') {
+    if (envVal !== undefined && envVal !== null) {
+      return coerce(envVal);
     }
-    if (typeof defaultValue === 'number') {
-      const num = Number(envVal);
-      return (isNaN(num) ? defaultValue : num) as T;
-    }
-    return envVal as T;
   }
 
-  // Static tier fallback if environment variable is unset
-  const tier = resolveEnvironmentTier(typeof process !== 'undefined' ? process.env : {}, context);
-  const tierDefault = ENVIRONMENT_FLAG_DEFAULTS[tier]?.[key as FlagKey];
-  if (tierDefault !== undefined) {
-    return tierDefault as T;
-  }
-
-  return defaultValue;
+  // Precedence Step 4: Environment Tier Default Fallback
+  return tierDefault;
 }
 
 /**
@@ -218,7 +253,8 @@ export async function isFeatureEnabled(
   env?: Record<string, unknown>
 ): Promise<boolean> {
   const tier = resolveEnvironmentTier(typeof process !== 'undefined' ? process.env : {}, context);
-  const defaultVal = ENVIRONMENT_FLAG_DEFAULTS[tier]?.[key] ?? false;
+  const effectiveTier = tier === 'preview' ? 'staging' : tier;
+  const defaultVal = ENVIRONMENT_FLAG_DEFAULTS[effectiveTier]?.[key] ?? false;
   return evaluateFlag(key, Boolean(defaultVal), context, env);
 }
 
@@ -231,7 +267,8 @@ export async function getFeatureFlag<K extends FlagKey>(
   env?: Record<string, unknown>
 ): Promise<FeatureFlags[K]> {
   const tier = resolveEnvironmentTier(typeof process !== 'undefined' ? process.env : {}, context);
-  const defaultVal = ENVIRONMENT_FLAG_DEFAULTS[tier]?.[key];
+  const effectiveTier = tier === 'preview' ? 'staging' : tier;
+  const defaultVal = ENVIRONMENT_FLAG_DEFAULTS[effectiveTier]?.[key];
   return evaluateFlag(key, defaultVal as FeatureFlags[K], context, env);
 }
 
@@ -272,9 +309,10 @@ export function evaluateVipAccess(
  */
 export function generateFlagDebugHeaders(
   flags: FeatureFlags,
-  tier: EnvironmentTier
+  tier: EnvironmentTier,
+  context?: EvaluationContext
 ): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'X-ChrisShop-Flags-Evaluated': 'true',
     'X-ChrisShop-Tier': tier,
     'X-ChrisShop-Flag-DropActive': String(flags.FLAG_IS_DROP_ACTIVE),
@@ -283,4 +321,8 @@ export function generateFlagDebugHeaders(
     'X-ChrisShop-Flag-KillSwitch': String(flags.FLAG_EMERGENCY_KILL_SWITCH),
     'X-ChrisShop-Flag-CanaryPercent': String(flags.FLAG_PHASE_6_CANARY_PERCENT),
   };
+  if (context?.sessionFlags && Object.keys(context.sessionFlags).length > 0) {
+    headers['X-ChrisShop-Flag-ReviewerOverride'] = 'true';
+  }
+  return headers;
 }
