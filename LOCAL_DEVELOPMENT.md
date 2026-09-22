@@ -242,21 +242,28 @@ pnpm run test:integration
 # 4. Multi-Viewport Storefront Responsiveness Guardrails (Playwright)
 pnpm run test:responsive
 
-# 5. Environment Parity Verification (D1 Schema & Edge Runtime Probes)
+# 5. Playwright UI & Integration Test Suites
+pnpm run test:ui              # Run headless Playwright UI tests
+pnpm run test:ui:interactive  # Open interactive Playwright UI mode with time-travel debugger
+pnpm run test:ui:headed       # Run headed browser tests
+pnpm run test:ui:mobile       # Target mobile viewports (iPhone 14, iPhone SE, Pixel 7)
+pnpm run test:ui:report       # Open HTML test execution report
+
+# 6. Environment Parity Verification (D1 Schema & Edge Runtime Probes)
 pnpm run test:parity --mock
 pnpm run test:parity --target staging --dry-run
 
-# 6. Run All Tests
+# 7. Run All Tests
 pnpm run test:all
 
-# 7. Production Build Validation (All Workspaces & Cloudflare Worker)
+# 8. Production Build Validation (All Workspaces & Cloudflare Worker)
 pnpm run build
 # Or explicitly build only apps or only worker bundle:
 pnpm run build:apps
 pnpm run build:worker
 pnpm run build:prod
 
-# 8. Turnkey Pre-PR Verification Pipeline (All 9 Stages)
+# 9. Turnkey Pre-PR Verification Pipeline (All 9 Stages)
 pnpm run verify:local
 ```
 
@@ -287,4 +294,32 @@ The guardrail suite tests all core storefront routes (`/`, `/products`, `/produc
 5. **Mobile PDP Sticky CTA**: Ensures fixed bottom-0 action bar remains docked in the ergonomic thumb zone throughout mobile browsing.
 6. **iOS Safari Auto-Zoom Prevention**: Enforces `font-size >= 16px` on form inputs.
 7. **Actionable Pinpoint Diagnostics**: Injects intentional defects during test runs to verify that failures immediately output CSS selectors and computed bounding boxes.
+
+---
+
+## 7.2 Playwright UI & Integration Test Suite (`test:ui`)
+
+ChrisShop standardizes on `test:ui` to validate interactive customer journeys and CMS administration across modern multi-device profiles.
+
+### Supported Test Scenarios
+- **Storefront Critical Paths (`tests/ui/storefront-journey.spec.ts`)**:
+  - Hero drop countdown timer with authentic BankBeaters badge & ticking intervals
+  - Product catalog navigation and PDP inspection
+  - Edition variation selection dynamically updating price and SKU badge
+  - Accessible slide-over cart drawer opening and line items
+  - Checkout redirect API route intercept
+- **Payload CMS Admin (`tests/ui/payload-admin.spec.ts`)**:
+  - Unauthenticated `/admin` redirection to authentication screen
+  - Accessibility attributes and keyboard interaction on email/password inputs
+  - Form validation on empty or malformed credentials
+
+### Worktree Collision-Free Port Isolation
+When developing across multiple `wt` (worktrunk) branches simultaneously, use `PLAYWRIGHT_PORT` to bind Playwright's Next.js webserver to a dedicated non-conflicting port:
+
+```bash
+PLAYWRIGHT_PORT=3012 pnpm run test:ui
+```
+
+### GitHub Actions Intelligent Binary Caching
+CI (`.github/workflows/ci.yml`) caches Playwright browser binaries in `~/.cache/ms-playwright` keyed by lockfile hash (`${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}`), achieving setup times under 20 seconds.
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Button, Card, Badge } from '@chrishop/ui';
+import { Button, Card, Badge, DropCountdown } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 import { isHomepageHeroPocEnabled } from '@/lib/flags';
@@ -40,6 +40,10 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-20">
+      <div className="flex justify-center pt-4">
+        <DropCountdown title="Workshop Drop Countdown" />
+      </div>
+
       {/* Dynamic Hero Experience: Immersive Hero Banner (POC) vs Legacy Text Hero */}
       {isHeroPoc ? (
         <HeroBanner productsCount={products.length} featuredProduct={featuredProduct} />

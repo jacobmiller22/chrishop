@@ -68,10 +68,12 @@ export interface Config {
   blocks: {};
   collections: {
     categories: Category;
+    product_lines: ProductLine;
     products: Product;
     product_variations: ProductVariation;
     media: Media;
     users: User;
+    pages: Page;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,10 +82,12 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    product_lines: ProductLinesSelect<false> | ProductLinesSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     product_variations: ProductVariationsSelect<false> | ProductVariationsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -93,8 +97,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    themeSettings: ThemeSetting;
+  };
+  globalsSelect: {
+    themeSettings: ThemeSettingsSelect<false> | ThemeSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -166,9 +174,29 @@ export interface Media {
    */
   alt: string;
   /**
-   * Optional visible caption displayed beneath the image in galleries
+   * Optional visible caption displayed beneath the media item in galleries
    */
   caption?: string | null;
+  /**
+   * Discriminator for rendering still photography, HTML5 video, or animated GIFs.
+   */
+  media_type?: ('image' | 'video' | 'gif') | null;
+  /**
+   * Poster frame image shown before video playback or on low-bandwidth connections.
+   */
+  poster?: (number | null) | Media;
+  /**
+   * Direct URL or path to fallback poster frame image.
+   */
+  poster_url?: string | null;
+  /**
+   * Continuously loop video playback.
+   */
+  loop?: boolean | null;
+  /**
+   * Automatically play muted video when entering viewport.
+   */
+  auto_play?: boolean | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -183,76 +211,168 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product_lines".
+ */
+export interface ProductLine {
+  /**
+   * Unique product line identifier (e.g. line-alpine-chest-rig)
+   */
+  id: string;
+  /**
+   * Narrative line or capsule title (e.g. Alpine Chest Rig System)
+   */
+  title: string;
+  /**
+   * URL-friendly slug for capsule lookbooks and series landing pages
+   */
+  slug: string;
+  /**
+   * Shared narrative story, design philosophy, and field testing background
+   */
+  story?: string | null;
+  /**
+   * Optional default base price in USD. Inherited by child products that do not specify an override price.
+   */
+  default_price?: number | null;
+  /**
+   * Capsule hero banner image
+   */
+  hero_image?: (number | null) | Media;
+  /**
+   * Atmospheric field lookbook photography for the entire product line
+   */
+  lookbook_gallery?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products".
  */
 export interface Product {
   /**
-   * Unique product identifier (e.g. prod-bushwhack-anorak)
+   * Unique product identifier (e.g. prod-rig-minimalist)
    */
   id: string;
   /**
-   * Product or artwork title
+   * Product title
    */
   title: string;
   /**
-   * URL-friendly product slug for storefront page routing
+   * URL-friendly slug for storefront product detail page routing
    */
   slug: string;
   /**
-   * Linked Shopify Product GID (e.g. gid://shopify/Product/1234567890)
+   * Direct 1:1 linked Shopify Product GID
    */
   shopify_product_id?: string | null;
   /**
-   * Base price in USD. Synchronized to default Shopify variant.
+   * Base price in USD. If product line is specified, can be inherited from line default.
    */
   base_price: number;
   /**
-   * Lifecycle state of the artwork
+   * Optional price override. If omitted, falls back to base_price or line default_price.
    */
-  status: 'draft' | 'scheduled' | 'active' | 'archived';
+  price?: number | null;
   /**
-   * Primary product category taxonomy reference
+   * Unique Stock Keeping Unit (SKU)
+   */
+  sku?: string | null;
+  /**
+   * Optional parent product line or drop capsule for shared narrative & default price inheritance
+   */
+  product_line_id?: (string | null) | ProductLine;
+  /**
+   * Legacy category relationship for backward compatibility
    */
   category_id?: (string | null) | Category;
+  /**
+   * Controlled category dropdown (fast authoring directly on product record)
+   */
+  category?: ('apparel' | 'packs' | 'accessories') | null;
+  /**
+   * Colorways, sizing, or material editions available for this product
+   */
+  options?:
+    | {
+        name: string;
+        value: string;
+        sku_suffix?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Lifecycle state of the product
+   */
+  status: 'draft' | 'scheduled' | 'active' | 'archived';
   /**
    * Primary hero image for catalog grids and detail pages
    */
   featured_image?: (number | null) | Media;
   /**
-   * Supporting high-resolution artwork photographs and angle shots
+   * Supporting workbench and field photographs
    */
   gallery?:
     | {
         image: number | Media;
+        caption?: string | null;
         id?: string | null;
       }[]
     | null;
   /**
-   * Chris’s bench and field notes on design, construction, and bank-testing conditions
+   * Chris's bench and field testing notes
    */
   maker_field_notes?: string | null;
   /**
-   * Legacy artist statement field (mapped to maker_field_notes)
+   * Standard BankBeaters technical textile preset. Auto-populates Materials field when left blank.
    */
-  artist_statement?: string | null;
+  material_preset?:
+    | (
+        | 'toray_cordura'
+        | 'stretch_cordura'
+        | 'xpac_vx21'
+        | 'cordura_eva'
+        | 'martexin_blaze'
+        | 'waxed_eva'
+        | 'dyneema_composite'
+        | 'custom'
+      )
+    | null;
   /**
-   * Technical fabric specs and hardware (e.g. 3-Layer DWR Ripstop, 500D Cordura®, YKK AquaGuard®)
+   * Technical fabric specs and hardware. Auto-filled from Material Preset or customizable.
    */
   materials?: string | null;
   /**
-   * Total garment/pack weight (e.g. 21.4 oz / 606g)
+   * Garment or pack weight (e.g. 21.4 oz (606g))
    */
   weight?: string | null;
   /**
-   * Fit characteristics (e.g. Relaxed Athletic with articulated elbows)
+   * Controlled fit characteristics or carrying ergonomics preset
    */
-  fit_profile?: string | null;
+  fit_profile?:
+    | (
+        | 'Technical Straight (Articulated knees, gusseted seat for steep cut-bank scrambles)'
+        | 'Relaxed Athletic (Engineered for layering and overhead casting mobility)'
+        | 'Low-Profile 4-Point Harness (Rides high above deep wading lines)'
+        | 'Ambidextrous Sling / Lumbar Switchable with Breathable 3D Spacer Mesh'
+        | 'Tri-Fold Compact (Fits into any thigh pocket or pack exterior sleeve)'
+        | 'Low Crown 5-Panel with Nylon Webbing Quick-Release Adjuster'
+        | 'Standard True-to-Size Workshop Spec'
+        | 'Custom Spec / Workbench Fit'
+      )
+    | null;
   /**
    * Workshop production provenance
    */
   origin?: string | null;
   /**
-   * Full rich text editorial description rendered via Lexical editor
+   * Full editorial description
    */
   description?: {
     root: {
@@ -369,6 +489,141 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  /**
+   * Internal page title (e.g. "Homepage", "About The Maker", "Spring 2026 Drop").
+   */
+  title: string;
+  /**
+   * URL slug (e.g. "homepage", "about", "drops").
+   */
+  slug: string;
+  status?: ('draft' | 'published') | null;
+  /**
+   * Drag and drop blocks to customize the layout and section order of this page.
+   */
+  layout: (
+    | {
+        /**
+         * Choose hero composition: full-bleed photographic overlay, split workshop editorial, or direct catalog header.
+         */
+        layoutPreset: 'minimalist_overlay' | 'field_workshop' | 'catalog_direct';
+        /**
+         * Primary hero headline.
+         */
+        headline: string;
+        /**
+         * Top tracking eyebrow or subheadline.
+         */
+        subheadline?: string | null;
+        /**
+         * Core ethos or craft statement.
+         */
+        ethosStatement?: string | null;
+        /**
+         * Path or URL to high-resolution photographic background (Cloudflare R2).
+         */
+        backdropImage?: string | null;
+        /**
+         * Optional Payload Media asset reference for backdrop.
+         */
+        backdropMedia?: (number | null) | Media;
+        /**
+         * Prominent badge label.
+         */
+        badgeText?: string | null;
+        /**
+         * Craftsmanship provenance callout footer.
+         */
+        provenanceCallout?: string | null;
+        ctaButtons?:
+          | {
+              label: string;
+              href: string;
+              variant?: ('primary' | 'outline' | 'ghost') | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'hero';
+      }
+    | {
+        title: string;
+        subtitle?: string | null;
+        /**
+         * Scheduled release timestamp for countdown timer.
+         */
+        targetDate?: string | null;
+        ctaText?: string | null;
+        ctaHref?: string | null;
+        teaserNotes?: string | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'dropCountdown';
+      }
+    | {
+        title: string;
+        subtitle?: string | null;
+        categoryFilter?: ('all' | 'outerwear' | 'packs-carry' | 'field-accessories') | null;
+        /**
+         * Maximum number of items to display.
+         */
+        limit?: number | null;
+        /**
+         * Display "Starting at $X.XX" badge.
+         */
+        showStartingPrice?: boolean | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'featuredCollection';
+      }
+    | {
+        eyebrow?: string | null;
+        headline: string;
+        storyText?: string | null;
+        pillars?:
+          | {
+              icon?: string | null;
+              title: string;
+              description: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'craftsmanshipStory';
+      }
+    | {
+        eyebrow?: string | null;
+        headline: string;
+        materials?:
+          | {
+              name: string;
+              spec: string;
+              badge?: string | null;
+              description: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'materialProvenance';
+      }
+  )[];
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    image?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -396,6 +651,10 @@ export interface PayloadLockedDocument {
         value: string | Category;
       } | null)
     | ({
+        relationTo: 'product_lines';
+        value: string | ProductLine;
+      } | null)
+    | ({
         relationTo: 'products';
         value: string | Product;
       } | null)
@@ -410,6 +669,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -469,6 +732,27 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product_lines_select".
+ */
+export interface ProductLinesSelect<T extends boolean = true> {
+  id?: T;
+  title?: T;
+  slug?: T;
+  story?: T;
+  default_price?: T;
+  hero_image?: T;
+  lookbook_gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products_select".
  */
 export interface ProductsSelect<T extends boolean = true> {
@@ -477,17 +761,30 @@ export interface ProductsSelect<T extends boolean = true> {
   slug?: T;
   shopify_product_id?: T;
   base_price?: T;
-  status?: T;
+  price?: T;
+  sku?: T;
+  product_line_id?: T;
   category_id?: T;
+  category?: T;
+  options?:
+    | T
+    | {
+        name?: T;
+        value?: T;
+        sku_suffix?: T;
+        id?: T;
+      };
+  status?: T;
   featured_image?: T;
   gallery?:
     | T
     | {
         image?: T;
+        caption?: T;
         id?: T;
       };
   maker_field_notes?: T;
-  artist_statement?: T;
+  material_preset?: T;
   materials?: T;
   weight?: T;
   fit_profile?: T;
@@ -531,6 +828,11 @@ export interface ProductVariationsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
+  media_type?: T;
+  poster?: T;
+  poster_url?: T;
+  loop?: T;
+  auto_play?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -564,6 +866,107 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  status?: T;
+  layout?:
+    | T
+    | {
+        hero?:
+          | T
+          | {
+              layoutPreset?: T;
+              headline?: T;
+              subheadline?: T;
+              ethosStatement?: T;
+              backdropImage?: T;
+              backdropMedia?: T;
+              badgeText?: T;
+              provenanceCallout?: T;
+              ctaButtons?:
+                | T
+                | {
+                    label?: T;
+                    href?: T;
+                    variant?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        dropCountdown?:
+          | T
+          | {
+              title?: T;
+              subtitle?: T;
+              targetDate?: T;
+              ctaText?: T;
+              ctaHref?: T;
+              teaserNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        featuredCollection?:
+          | T
+          | {
+              title?: T;
+              subtitle?: T;
+              categoryFilter?: T;
+              limit?: T;
+              showStartingPrice?: T;
+              id?: T;
+              blockName?: T;
+            };
+        craftsmanshipStory?:
+          | T
+          | {
+              eyebrow?: T;
+              headline?: T;
+              storyText?: T;
+              pillars?:
+                | T
+                | {
+                    icon?: T;
+                    title?: T;
+                    description?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        materialProvenance?:
+          | T
+          | {
+              eyebrow?: T;
+              headline?: T;
+              materials?:
+                | T
+                | {
+                    name?: T;
+                    spec?: T;
+                    badge?: T;
+                    description?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+      };
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -604,6 +1007,44 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "themeSettings".
+ */
+export interface ThemeSetting {
+  id: number;
+  /**
+   * Choose typography pairings for display headlines and body text.
+   */
+  fontPreset: 'shippori_jakarta' | 'space_plex' | 'fraunces_inter';
+  /**
+   * Primary storefront canvas background color.
+   */
+  surfaceCanvas: '#0F1215' | '#0B0E11' | '#15191E';
+  /**
+   * Brand accent color (default: Signal Hazard Orange #E55B24).
+   */
+  accentColor: string;
+  /**
+   * Border contrast intensity across cards and section dividers.
+   */
+  hairlineBorder?: ('subtle' | 'defined' | 'blaze') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "themeSettings_select".
+ */
+export interface ThemeSettingsSelect<T extends boolean = true> {
+  fontPreset?: T;
+  surfaceCanvas?: T;
+  accentColor?: T;
+  hairlineBorder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
