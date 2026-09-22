@@ -7,9 +7,14 @@
  * Enforces Cloudflare Edge buyer IP forwarding via `Shopify-Storefront-Buyer-IP`
  * using Cloudflare's `CF-Connecting-IP` or `X-Forwarded-For` to prevent global IP rate-limiting
  * by Shopify during flash drop traffic rushes.
+ *
+ * Supports intelligent dual-mode fallback:
+ * - When valid live credentials exist and mock mode is not forced, executes authentic GraphQL requests.
+ * - When credentials are absent/placeholders or when FLAG_ENABLE_WIREMOCK/SHOPIFY_USE_MOCK is set,
+ *   delegates seamlessly to the in-process WireMock engine (shopify-mock.ts).
  */
 
-import { defaultShopifyMock } from './shopify-mock';
+import { defaultShopifyMock, ShopifyStorefrontMockEngine } from './shopify-mock';
 
 export interface ShopifyClientConfig {
   domain?: string;
@@ -17,6 +22,7 @@ export interface ShopifyClientConfig {
   apiVersion?: string;
   maxRetries?: number;
   baseDelayMs?: number;
+  useMock?: boolean;
 }
 
 /**
@@ -88,15 +94,19 @@ export class ShopifyStorefrontClient {
   public apiVersion: string;
   public maxRetries: number;
   public baseDelayMs: number;
+  private configUseMock?: boolean;
+  private static hasLoggedMockNotice = false;
+  public mockEngine: ShopifyStorefrontMockEngine;
 
   constructor(config?: ShopifyClientConfig) {
     this.domain =
       config?.domain || process.env.SHOPIFY_STORE_DOMAIN || 'chrishop-dev.myshopify.com';
-    this.token =
-      config?.token || process.env.SHOPIFY_STOREFRONT_TOKEN || 'mock_storefront_token';
+    this.token = config?.token || process.env.SHOPIFY_STOREFRONT_TOKEN || 'mock_storefront_token';
     this.apiVersion = config?.apiVersion || '2025-01';
     this.maxRetries = config?.maxRetries ?? 3;
     this.baseDelayMs = config?.baseDelayMs ?? 100;
+    this.configUseMock = config?.useMock;
+    this.mockEngine = defaultShopifyMock;
   }
 
   /**
@@ -106,6 +116,53 @@ export class ShopifyStorefrontClient {
     requestOrHeaders?: Request | Headers | Record<string, string | string[] | undefined>
   ): string | undefined {
     return extractBuyerIp(requestOrHeaders);
+  }
+
+  /**
+   * Evaluates whether the client should operate in mock mode vs. live Storefront API mode.
+   */
+  public isMockMode(): boolean {
+    if (this.configUseMock !== undefined) {
+      return this.configUseMock;
+    }
+
+    const isWireMock =
+      process.env.FLAG_ENABLE_WIREMOCK === 'true' ||
+      process.env.FLAG_ENABLE_WIREMOCK === '1' ||
+      process.env.SHOPIFY_USE_MOCK === 'true' ||
+      process.env.SHOPIFY_USE_MOCK === '1';
+
+    if (isWireMock) {
+      return true;
+    }
+
+    const hasValidDomain =
+      Boolean(this.domain) && !this.domain.includes('mock') && this.domain !== 'placeholder';
+
+    const hasValidToken =
+      Boolean(this.token) &&
+      !this.token.includes('mock') &&
+      this.token !== 'placeholder' &&
+      this.token !== 'mock_storefront_token' &&
+      this.token.length >= 10;
+
+    const isTest = process.env.NODE_ENV === 'test';
+
+    if (!hasValidDomain || !hasValidToken || isTest) {
+      this.logMockNoticeIfNeeded();
+      return true;
+    }
+
+    return false;
+  }
+
+  private logMockNoticeIfNeeded() {
+    if (!ShopifyStorefrontClient.hasLoggedMockNotice && process.env.NODE_ENV !== 'test') {
+      ShopifyStorefrontClient.hasLoggedMockNotice = true;
+      console.info(
+        '[Shopify Storefront Client] No live credentials configured; delegating to in-process WireMock engine.'
+      );
+    }
   }
 
   async request<T = any>(
@@ -118,40 +175,33 @@ export class ShopifyStorefrontClient {
       process.env.FLAG_EMERGENCY_KILL_SWITCH === 'true' ||
       process.env.FLAG_EMERGENCY_KILL_SWITCH === '1';
     const isCheckoutDisabled =
-      process.env.FLAG_DISABLE_CHECKOUT === 'true' ||
-      process.env.FLAG_DISABLE_CHECKOUT === '1';
+      process.env.FLAG_DISABLE_CHECKOUT === 'true' || process.env.FLAG_DISABLE_CHECKOUT === '1';
 
-    if ((isKilled || isCheckoutDisabled) && (query.includes('cartCreate') || query.includes('checkout'))) {
+    if (
+      (isKilled || isCheckoutDisabled) &&
+      (query.includes('cartCreate') || query.includes('cartLines') || query.includes('checkout'))
+    ) {
       return {
         data: null as any,
         errors: [
           {
             message:
-              'Checkout and cart creation are temporarily disabled by operational circuit breaker (FLAG_EMERGENCY_KILL_SWITCH).',
+              'Checkout and cart operations are temporarily disabled by operational circuit breaker (FLAG_EMERGENCY_KILL_SWITCH / FLAG_DISABLE_CHECKOUT).',
             code: 'CIRCUIT_BREAKER_ACTIVE',
           },
         ],
       };
     }
 
-    // If running in development, test, or if FLAG_ENABLE_WIREMOCK is active, route through mock engine
-    const isWireMock =
-      process.env.FLAG_ENABLE_WIREMOCK === 'true' ||
-      process.env.FLAG_ENABLE_WIREMOCK === '1';
-
-    const isMock =
-      isWireMock ||
-      !process.env.SHOPIFY_STOREFRONT_TOKEN ||
-      process.env.SHOPIFY_STOREFRONT_TOKEN.includes('mock') ||
-      process.env.NODE_ENV === 'test';
-
-    if (isMock) {
-      if (buyerIp) {
-        if (!isValidBuyerIp(buyerIp)) {
-          throw new Error(`Invalid Shopify-Storefront-Buyer-IP format: "${buyerIp}"`);
-        }
+    if (buyerIp) {
+      if (!isValidBuyerIp(buyerIp)) {
+        throw new Error(`Invalid Shopify-Storefront-Buyer-IP format: "${buyerIp}"`);
       }
-      return defaultShopifyMock.handleGraphQLRequest(query, variables, buyerIp);
+    }
+
+    // If mock mode is active, delegate to mock engine
+    if (this.isMockMode()) {
+      return this.mockEngine.handleGraphQLRequest(query, variables, buyerIp);
     }
 
     const endpoint = `https://${this.domain}/api/${this.apiVersion}/graphql.json`;
@@ -161,9 +211,6 @@ export class ShopifyStorefrontClient {
     };
 
     if (buyerIp) {
-      if (!isValidBuyerIp(buyerIp)) {
-        throw new Error(`Invalid Shopify-Storefront-Buyer-IP format: "${buyerIp}"`);
-      }
       headers['Shopify-Storefront-Buyer-IP'] = buyerIp;
     }
 
@@ -196,6 +243,9 @@ export class ShopifyStorefrontClient {
     throw new Error(`Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`);
   }
 
+  /**
+   * Creates a new cart with the given variant and quantity.
+   */
   async createCart(variantId: string, quantity = 1, buyerIp?: string) {
     const mutation = `
       mutation cartCreate($input: CartInput!) {
@@ -204,6 +254,24 @@ export class ShopifyStorefrontClient {
             id
             checkoutUrl
             totalQuantity
+            lines(first: 25) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
           userErrors {
             code
@@ -225,6 +293,16 @@ export class ShopifyStorefrontClient {
     );
   }
 
+  /**
+   * Adds a variant to an existing cart.
+   */
+  async addToCart(cartId: string, variantId: string, quantity = 1, buyerIp?: string) {
+    return this.cartLinesAdd(cartId, [{ merchandiseId: variantId, quantity }], buyerIp);
+  }
+
+  /**
+   * Appends line items to an existing cart.
+   */
   async cartLinesAdd(
     cartId: string,
     lines: Array<{ merchandiseId: string; quantity: number }>,
@@ -237,6 +315,24 @@ export class ShopifyStorefrontClient {
             id
             checkoutUrl
             totalQuantity
+            lines(first: 25) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
           userErrors {
             code
@@ -256,6 +352,170 @@ export class ShopifyStorefrontClient {
       buyerIp
     );
   }
+
+  /**
+   * Updates the quantity of an existing line item in a cart.
+   */
+  async updateCartLine(cartId: string, lineId: string, quantity: number, buyerIp?: string) {
+    return this.cartLinesUpdate(cartId, [{ id: lineId, quantity }], buyerIp);
+  }
+
+  /**
+   * Updates multiple cart lines in bulk.
+   */
+  async cartLinesUpdate(
+    cartId: string,
+    lines: Array<{ id: string; quantity: number }>,
+    buyerIp?: string
+  ) {
+    const mutation = `
+      mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+        cartLinesUpdate(cartId: $cartId, lines: $lines) {
+          cart {
+            id
+            checkoutUrl
+            totalQuantity
+            lines(first: 25) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          userErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    return this.request(
+      mutation,
+      {
+        cartId,
+        lines,
+      },
+      buyerIp
+    );
+  }
+
+  /**
+   * Removes a single line item from a cart.
+   */
+  async removeCartLine(cartId: string, lineId: string, buyerIp?: string) {
+    return this.cartLinesRemove(cartId, [lineId], buyerIp);
+  }
+
+  /**
+   * Removes multiple line items from a cart by their line IDs.
+   */
+  async cartLinesRemove(cartId: string, lineIds: string[], buyerIp?: string) {
+    const mutation = `
+      mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+        cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+          cart {
+            id
+            checkoutUrl
+            totalQuantity
+            lines(first: 25) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          userErrors {
+            code
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    return this.request(
+      mutation,
+      {
+        cartId,
+        lineIds,
+      },
+      buyerIp
+    );
+  }
+
+  /**
+   * Fetches the current state of a cart by its ID.
+   */
+  async getCart(cartId: string, buyerIp?: string) {
+    const query = `
+      query getCart($id: ID!) {
+        cart(id: $id) {
+          id
+          checkoutUrl
+          totalQuantity
+          lines(first: 25) {
+            edges {
+              node {
+                id
+                quantity
+                merchandise {
+                  ... on ProductVariant {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    return this.request(
+      query,
+      {
+        id: cartId,
+      },
+      buyerIp
+    );
+  }
 }
 
 export const shopify = new ShopifyStorefrontClient();
+
+// Convenience functional exports bound to singleton instance
+export const createCart = shopify.createCart.bind(shopify);
+export const addToCart = shopify.addToCart.bind(shopify);
+export const updateCartLine = shopify.updateCartLine.bind(shopify);
+export const removeCartLine = shopify.removeCartLine.bind(shopify);
+export const getCart = shopify.getCart.bind(shopify);
