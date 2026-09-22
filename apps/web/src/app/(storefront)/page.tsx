@@ -2,10 +2,13 @@ import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
+import { isHomepageHeroPocEnabled } from '@/lib/flags';
+import { HeroBanner } from '@/components/storefront/HeroBanner';
 
 export const revalidate = 60;
 
 export default async function HomePage() {
+  const isHeroPoc = await isHomepageHeroPocEnabled();
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;
 
@@ -32,53 +35,57 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-20">
-      {/* Hero Banner with BankBeaters Manifesto */}
-      <section className="text-center py-16 space-y-6 max-w-4xl mx-auto">
-        <div className="flex flex-wrap items-center justify-center gap-2.5">
-          <Badge variant="warning" className="uppercase tracking-wider font-mono text-[11px]">
-            ⚡ Small-Batch Drop Live
-          </Badge>
-          <Badge variant="olive" className="uppercase tracking-wider font-mono text-[11px]">
-            Hand-Sewn Workshop Origin
-          </Badge>
-          <Badge variant="neutral" className="uppercase tracking-wider font-mono text-[11px]">
-            Lifetime Repair Guarantee
-          </Badge>
-        </div>
+      {/* Dynamic Hero Experience: Immersive Hero Banner (POC) vs Legacy Text Hero */}
+      {isHeroPoc ? (
+        <HeroBanner productsCount={products.length} featuredProduct={featuredProduct} />
+      ) : (
+        <section className="text-center py-16 space-y-6 max-w-4xl mx-auto">
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <Badge variant="warning" className="uppercase tracking-wider font-mono text-[11px]">
+              ⚡ Small-Batch Drop Live
+            </Badge>
+            <Badge variant="olive" className="uppercase tracking-wider font-mono text-[11px]">
+              Hand-Sewn Workshop Origin
+            </Badge>
+            <Badge variant="neutral" className="uppercase tracking-wider font-mono text-[11px]">
+              Lifetime Repair Guarantee
+            </Badge>
+          </div>
 
-        <div className="space-y-3">
-          <span className="text-sm font-mono tracking-widest text-[#E55B24] uppercase font-bold block">
-            BankBeaters Adventure Gear
-          </span>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-100 uppercase font-mono">
-            Curiosity &gt; Fear.
-          </h1>
-        </div>
+          <div className="space-y-3">
+            <span className="text-sm font-mono tracking-widest text-[#E55B24] uppercase font-bold block">
+              BankBeaters Adventure Gear
+            </span>
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-100 uppercase font-mono">
+              Curiosity &gt; Fear.
+            </h1>
+          </div>
 
-        <p className="max-w-2xl mx-auto text-base sm:text-lg text-stone-300 leading-relaxed">
-          Patagonia-grade technical outerwear, convertible carry rigs, and field accessories hand-sewn
-          by Chris for anglers and bushwhackers who work the bank on foot.
-        </p>
+          <p className="max-w-2xl mx-auto text-base sm:text-lg text-stone-300 leading-relaxed">
+            Patagonia-grade technical outerwear, convertible carry rigs, and field accessories hand-sewn
+            by Chris for anglers and bushwhackers who work the bank on foot.
+          </p>
 
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
-          <Link href="/products">
-            <Button
-              variant="primary"
-              size="lg"
-              className="font-bold uppercase tracking-wider text-sm shadow-lg shadow-orange-950/40 px-8 py-3.5"
-            >
-              Explore Gear Roster ({products.length})
-            </Button>
-          </Link>
-          {featuredProduct && (
-            <Link href={`/products/${featuredProduct.slug}`}>
-              <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm">
-                Inspect The Anorak
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
+            <Link href="/products">
+              <Button
+                variant="primary"
+                size="lg"
+                className="font-bold uppercase tracking-wider text-sm shadow-lg shadow-orange-950/40 px-8 py-3.5"
+              >
+                Explore Gear Roster ({products.length})
               </Button>
             </Link>
-          )}
-        </div>
-      </section>
+            {featuredProduct && (
+              <Link href={`/products/${featuredProduct.slug}`}>
+                <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm">
+                  Inspect The Anorak
+                </Button>
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Flagship Product Showcase (The Bushwhack Storm Anorak) */}
       {featuredProduct && (

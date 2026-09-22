@@ -80,6 +80,13 @@ export function extractEvaluationContext(request?: Request): EvaluationContext {
       FLAG_VIP: 'FLAG_VIP_EARLY_ACCESS',
       CANARY: 'FLAG_PHASE_6_CANARY_PERCENT',
       FLAG_CANARY: 'FLAG_PHASE_6_CANARY_PERCENT',
+      HERO: 'FLAG_HOMEPAGE_HERO_POC',
+      FLAG_HERO: 'FLAG_HOMEPAGE_HERO_POC',
+      HERO_POC: 'FLAG_HOMEPAGE_HERO_POC',
+      FLAG_HERO_POC: 'FLAG_HOMEPAGE_HERO_POC',
+      HOMEPAGE_HERO: 'FLAG_HOMEPAGE_HERO_POC',
+      FLAG_HOMEPAGE_HERO: 'FLAG_HOMEPAGE_HERO_POC',
+      FLAG_HOMEPAGE_HERO_POC: 'FLAG_HOMEPAGE_HERO_POC',
     };
     if (aliasMap[upper]) return aliasMap[upper];
     if (!upper.startsWith('FLAG_')) return 'FLAG_' + upper;
@@ -151,6 +158,16 @@ export async function isDropActive(
   env?: Record<string, unknown>
 ): Promise<boolean> {
   return isFeatureEnabled('FLAG_IS_DROP_ACTIVE', context, env);
+}
+
+/**
+ * Story 1.18: Checks if the POC Homepage Hero Banner layout is enabled.
+ */
+export async function isHomepageHeroPocEnabled(
+  context?: EvaluationContext,
+  env?: Record<string, unknown>
+): Promise<boolean> {
+  return isFeatureEnabled('FLAG_HOMEPAGE_HERO_POC', context, env);
 }
 
 /**
