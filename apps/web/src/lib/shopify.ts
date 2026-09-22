@@ -166,6 +166,17 @@ export class ShopifyStorefrontClient {
     }
   }
 
+  /**
+   * Calculates exponential backoff delay with full jitter for rate limit retries.
+   */
+  public calculateBackoffDelay(attempt: number, retryAfterSec?: number): number {
+    const jitter = Math.random() * 50;
+    if (retryAfterSec !== undefined && !isNaN(Number(retryAfterSec))) {
+      return Number(retryAfterSec) * 1000 + jitter;
+    }
+    return this.baseDelayMs * Math.pow(2, attempt - 1) + jitter;
+  }
+
   async request<T = any>(
     query: string,
     variables?: Record<string, any>,
@@ -200,24 +211,60 @@ export class ShopifyStorefrontClient {
       }
     }
 
-    // If mock mode is active, delegate to mock engine
-    if (this.isMockMode()) {
-      return this.mockEngine.handleGraphQLRequest(query, variables, buyerIp);
-    }
-
-    const endpoint = `https://${this.domain}/api/${this.apiVersion}/graphql.json`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': this.token,
-    };
-
-    if (buyerIp) {
-      headers['Shopify-Storefront-Buyer-IP'] = buyerIp;
-    }
-
     let attempt = 0;
     while (attempt <= this.maxRetries) {
       attempt++;
+
+      // If mock mode is active, delegate to mock engine with rate limit backoff resilience
+      if (this.isMockMode()) {
+        try {
+          const json = await this.mockEngine.handleGraphQLRequest(query, variables, buyerIp);
+          if (
+            json?.errors?.some(
+              (e: any) =>
+                e.extensions?.code === 'THROTTLED' ||
+                (typeof e.message === 'string' && e.message.toLowerCase().includes('throttled'))
+            )
+          ) {
+            if (attempt <= this.maxRetries) {
+              const delayMs = this.calculateBackoffDelay(attempt);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              continue;
+            }
+            throw new Error(
+              `Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`
+            );
+          }
+          return json;
+        } catch (err: any) {
+          if ((err?.status === 429 || err?.message?.includes('429')) && attempt <= this.maxRetries) {
+            const retryAfterSec = err?.headers?.['Retry-After'];
+            const delayMs = this.calculateBackoffDelay(
+              attempt,
+              retryAfterSec ? Number(retryAfterSec) : undefined
+            );
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            continue;
+          }
+          if (err?.status === 429 || err?.message?.includes('429')) {
+            throw new Error(
+              `Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`
+            );
+          }
+          throw err;
+        }
+      }
+
+      const endpoint = `https://${this.domain}/api/${this.apiVersion}/graphql.json`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Shopify-Storefront-Access-Token': this.token,
+      };
+
+      if (buyerIp) {
+        headers['Shopify-Storefront-Buyer-IP'] = buyerIp;
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
@@ -227,15 +274,20 @@ export class ShopifyStorefrontClient {
       if ((response.status === 429 || response.status === 503) && attempt <= this.maxRetries) {
         // Leaky bucket rate limit backoff with jitter
         const retryAfterSec = response.headers.get('Retry-After');
-        const jitter = Math.random() * 50;
-        const delayMs = retryAfterSec
-          ? Number(retryAfterSec) * 1000 + jitter
-          : this.baseDelayMs * Math.pow(2, attempt - 1) + jitter;
+        const delayMs = this.calculateBackoffDelay(
+          attempt,
+          retryAfterSec ? Number(retryAfterSec) : undefined
+        );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
 
       if (!response.ok) {
+        if (response.status === 429 || response.status === 503) {
+          throw new Error(
+            `Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`
+          );
+        }
         throw new Error(`Shopify Storefront API error: ${response.status} ${response.statusText}`);
       }
 
@@ -245,13 +297,16 @@ export class ShopifyStorefrontClient {
           (e: any) =>
             e.extensions?.code === 'THROTTLED' ||
             (typeof e.message === 'string' && e.message.toLowerCase().includes('throttled'))
-        ) &&
-        attempt <= this.maxRetries
+        )
       ) {
-        const jitter = Math.random() * 50;
-        const delayMs = this.baseDelayMs * Math.pow(2, attempt - 1) + jitter;
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        continue;
+        if (attempt <= this.maxRetries) {
+          const delayMs = this.calculateBackoffDelay(attempt);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+        throw new Error(
+          `Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`
+        );
       }
 
       return json;

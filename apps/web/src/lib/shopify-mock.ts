@@ -32,6 +32,9 @@ export class ShopifyStorefrontMockEngine {
   private carts = new Map<string, MockCart>();
   private inventory = new Map<string, number>();
   private outOfStockVariants = new Set<string>();
+  private rateLimitRemainingAttempts = 0;
+  private rateLimitOptions: { retryAfterSec?: number; errorType?: '429' | 'THROTTLED' } = {};
+  public throttledRequestsCount = 0;
   public lastBuyerIp: string | null = null;
   public requestHistory: Array<{ query: string; variables: any; buyerIp?: string }> = [];
 
@@ -44,6 +47,9 @@ export class ShopifyStorefrontMockEngine {
     this.carts.clear();
     this.inventory.clear();
     this.outOfStockVariants.clear();
+    this.rateLimitRemainingAttempts = 0;
+    this.rateLimitOptions = {};
+    this.throttledRequestsCount = 0;
     this.lastBuyerIp = null;
     this.requestHistory = [];
   }
@@ -74,6 +80,24 @@ export class ShopifyStorefrontMockEngine {
 
   setVariantSoldOut(variantId: string): void {
     this.simulateOutOfStock(variantId);
+  }
+
+  /**
+   * Configures the mock engine to simulate rate limiting / throttling for the next N requests.
+   */
+  simulateRateLimit(
+    attempts: number = 1,
+    options: { retryAfterSec?: number; errorType?: '429' | 'THROTTLED' } = {}
+  ): void {
+    this.rateLimitRemainingAttempts = attempts;
+    this.rateLimitOptions = {
+      retryAfterSec: options.retryAfterSec ?? 1,
+      errorType: options.errorType ?? 'THROTTLED',
+    };
+  }
+
+  getThrottledRequestsCount(): number {
+    return this.throttledRequestsCount;
   }
 
   /**
@@ -260,6 +284,31 @@ export class ShopifyStorefrontMockEngine {
   async handleGraphQLRequest(query: string, variables: any = {}, buyerIp?: string): Promise<any> {
     this.lastBuyerIp = buyerIp || null;
     this.requestHistory.push({ query, variables, buyerIp });
+
+    if (this.rateLimitRemainingAttempts > 0) {
+      this.rateLimitRemainingAttempts--;
+      this.throttledRequestsCount++;
+      if (this.rateLimitOptions.errorType === '429') {
+        const err: any = new Error('Shopify Storefront API error: 429 Too Many Requests');
+        err.status = 429;
+        err.headers = {
+          'Retry-After': String(this.rateLimitOptions.retryAfterSec ?? 1),
+        };
+        throw err;
+      }
+      return {
+        data: null,
+        errors: [
+          {
+            message: 'Throttled by Shopify Storefront API rate limiter (leaky bucket bucket exhausted)',
+            extensions: {
+              code: 'THROTTLED',
+              documentation: 'https://shopify.dev/docs/api/usage/rate-limits',
+            },
+          },
+        ],
+      };
+    }
 
     // 1. cartCreate mutation
     if (query.includes('cartCreate')) {
