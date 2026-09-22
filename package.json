@@ -40,6 +40,7 @@
     "waf:verify": "tsx scripts/verify-waf-rules.ts",
     "security:verify": "tsx scripts/verify-cloudflare-edge-security.ts",
     "sentry:verify": "tsx scripts/verify-sentry-integration.ts",
+    "telemetry:verify": "tsx scripts/verify-telemetry-audit.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
