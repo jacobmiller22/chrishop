@@ -174,8 +174,12 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     );
     assert.ok(content.includes('/api/health'), 'test-staging job must probe /api/health');
 
-    // Production environment human gate
+    // Production environment human gate and D1 migrations
     assert.ok(content.includes('environment: production'), 'deploy-production must declare environment: production');
+    assert.ok(
+      content.includes('wrangler d1 migrations apply chrishop-prod-db --remote'),
+      'deploy-production must apply D1 migrations to chrishop-prod-db'
+    );
     assert.ok(content.includes('deploy --env production'), 'deploy-production must deploy with --env production');
 
     // Production post-deployment verification

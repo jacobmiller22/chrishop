@@ -192,6 +192,12 @@ jobs:
             -var="cloudflare_account_id=${{ env.CLOUDFLARE_ACCOUNT_ID }}" \
             -var="cloudflare_api_token=${{ env.CLOUDFLARE_API_TOKEN }}" || true
 
+      - name: Apply D1 Migrations to Production Database
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          echo "Applying D1 migrations to chrishop-prod-db..."
+          pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote || true
+
       - name: Deploy to Cloudflare Workers (Production)
         uses: cloudflare/wrangler-action@v3
         with:
