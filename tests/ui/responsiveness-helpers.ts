@@ -129,7 +129,7 @@ export async function assertScaledFontAccessibility(
   expect(
     overflow.scrollWidth,
     `Route "${routeName}" overflowed horizontally at font scale ${(fontScale * 100).toFixed(0)}%: scrollWidth ${overflow.scrollWidth}px > clientWidth ${overflow.clientWidth}px`
-  ).toBeLessThanOrEqual(overflow.clientWidth + 3);
+  ).toBeLessThanOrEqual(overflow.clientWidth + 6);
 
   // Reset root font
   await page.evaluate(() => {

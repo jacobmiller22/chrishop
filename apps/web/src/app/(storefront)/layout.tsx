@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen flex flex-col bg-[#0F1215] text-[#E7E4DC] antialiased selection:bg-[#E55B24] selection:text-white">
+      <body className="min-h-screen flex flex-col bg-[#0F1215] text-[#E7E4DC] antialiased selection:bg-[#E55B24] selection:text-white overflow-x-hidden">
         <Header
           title="BankBeaters"
           subtitle="Adventure Gear · Curiosity > Fear"

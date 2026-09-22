@@ -46,6 +46,12 @@ export type {
   ProductTechnicalSpecs,
 };
 export { catalogSingleFlight };
+export {
+  mergeProductWithShopifyPricing,
+  mergeVariationWithShopifyPricing,
+  enrichProductWithShopifyPricing,
+  enrichProductsWithShopifyPricing,
+} from './shopify-pricing';
 
 export interface StorefrontVariation {
   id: string;
@@ -111,11 +117,50 @@ export interface GetProductsOptions {
   bypassSingleFlight?: boolean;
 }
 
+export const FALLBACK_CATEGORIES: Category[] = [
+  {
+    id: 'cat-apparel',
+    name: 'Apparel & Outerwear',
+    slug: 'apparel',
+    parent_id: null,
+    description: 'Technical outerwear, waterproof shells, and puncture-resistant guide pants.',
+  },
+  {
+    id: 'cat-packs',
+    name: 'Packs & Carry',
+    slug: 'packs-carry',
+    parent_id: null,
+    description: 'Modular chest rigs, waterproof roll-top bags, and technical sling carry.',
+  },
+  {
+    id: 'cat-accessories',
+    name: 'Field Accessories',
+    slug: 'field-accessories',
+    parent_id: null,
+    description: 'Artisanal tool rolls, heavy-duty wading belts, and workshop accessories.',
+  },
+  {
+    id: 'cat-storm-shells',
+    name: 'Waterproof Storm Shells',
+    slug: 'storm-shells',
+    parent_id: 'cat-apparel',
+    description: '3-layer waterproof ripstop storm shells built for torrential conditions.',
+  },
+  {
+    id: 'cat-brush-pants',
+    name: 'Brush & Guide Pants',
+    slug: 'brush-pants',
+    parent_id: 'cat-apparel',
+    description: 'Cordura-reinforced technical wading and scrambling pants.',
+  },
+];
+
 export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
   'bushwhack-storm-anorak': {
     id: 'prod-bushwhack-anorak',
     title: 'The Bushwhack Storm Anorak',
     slug: 'bushwhack-storm-anorak',
+    shopify_product_id: 'gid://shopify/Product/101',
     description:
       'Patagonia-grade 3-layer waterproof storm shell with 500D Cordura reinforced forearms and oversized kangaroo tackle pouch. Built to crawl through thorns, stay dry in torrential downpours, and cast all day.',
     maker_field_notes:
@@ -143,6 +188,7 @@ export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
       {
         id: 'var-anorak-olive',
         product_id: 'prod-bushwhack-anorak',
+        shopify_variant_id: 'gid://shopify/ProductVariant/201',
         variation_name: 'Field Olive — Standard Run',
         sku: 'BWK-ANRK-OLV-STD',
         variation_type: 'standard',
@@ -155,6 +201,7 @@ export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
       {
         id: 'var-anorak-camo-micro',
         product_id: 'prod-bushwhack-anorak',
+        shopify_variant_id: 'gid://shopify/ProductVariant/202',
         variation_name: 'Deadstock Duck Camo Pocket Edition',
         sku: 'BWK-ANRK-CAMO-LTD',
         variation_type: 'micro_batch',
@@ -172,6 +219,7 @@ export const FALLBACK_PRODUCTS_BY_SLUG: Record<string, StorefrontProduct> = {
     id: 'prod-bramble-buster-pant',
     title: 'Bramble-Buster Technical Guide Pant',
     slug: 'bramble-buster-technical-guide-pant',
+    shopify_product_id: 'gid://shopify/Product/102',
     description:
       'Heavyweight stretch ripstop guide pants fortified with 1000D Cordura scuff guards on knees and ankles.',
     maker_field_notes:
@@ -342,6 +390,10 @@ export async function getCategories(options?: { db?: DatabaseSync }): Promise<Ca
     } catch {
       const rawRows = await db.prepare(`SELECT * FROM categories ORDER BY name ASC;`).all();
       rows = (Array.isArray(rawRows) ? rawRows : ((rawRows as any)?.results || [])) as any[];
+    }
+
+    if (rows.length === 0 && !options?.db) {
+      return FALLBACK_CATEGORIES;
     }
 
     return rows.map((r) => {
@@ -939,6 +991,22 @@ async function fetchProductsDirect(options?: GetProductsOptions): Promise<Storef
         gallery,
         variations,
       });
+    }
+
+    if (products.length === 0 && !options?.db) {
+      const fallbackList = Object.values(FALLBACK_PRODUCTS_BY_SLUG).filter(
+        (p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx
+      );
+      if (options?.category) {
+        return fallbackList.filter(
+          (p) =>
+            p.category?.slug === options.category ||
+            p.category?.id === options.category ||
+            (options.category === 'apparel' &&
+              (p.category?.slug === 'storm-shells' || p.category?.slug === 'brush-pants'))
+        );
+      }
+      return fallbackList;
     }
 
     return products;

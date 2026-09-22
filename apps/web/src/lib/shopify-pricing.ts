@@ -12,7 +12,12 @@
  */
 
 import type { StorefrontProduct, StorefrontVariation } from './catalog';
-import type { ShopifyProductPricing, ShopifyVariantNode } from './shopify';
+import {
+  ShopifyStorefrontClient,
+  shopify,
+  type ShopifyProductPricing,
+  type ShopifyVariantNode,
+} from './shopify';
 
 /**
  * Reconciles a single variation against a matched Shopify variant node.
@@ -102,5 +107,64 @@ export function mergeProductWithShopifyPricing(
     });
   }
 
+  // 3. Authoritative Minimum Price Resolution
+  const prices =
+    merged.variations && merged.variations.length > 0
+      ? merged.variations.map((v) => v.effective_price)
+      : [merged.base_price];
+  merged.effective_min_price = Math.min(...prices);
+  merged.effective_price = merged.base_price;
+
   return merged;
+}
+
+/**
+ * Enriches a single StorefrontProduct with live pricing and availability from Shopify Storefront API.
+ * If the product has no shopify_product_id or if the query fails, returns the product unmodified.
+ */
+export async function enrichProductWithShopifyPricing(
+  product: StorefrontProduct,
+  shopifyClient: ShopifyStorefrontClient = shopify,
+  buyerIp?: string
+): Promise<StorefrontProduct> {
+  if (!product.shopify_product_id) {
+    return product;
+  }
+
+  try {
+    const result = await shopifyClient.getProductPriceAndAvailability(
+      product.shopify_product_id,
+      buyerIp
+    );
+
+    if (result.data?.product) {
+      return mergeProductWithShopifyPricing(product, result.data.product);
+    }
+  } catch (error) {
+    console.warn(
+      `[enrichProductWithShopifyPricing] Failed to fetch Shopify pricing for product ${product.id} (${product.shopify_product_id}):`,
+      error
+    );
+  }
+
+  return product;
+}
+
+/**
+ * Enriches an array of StorefrontProducts with live pricing and availability from Shopify Storefront API.
+ */
+export async function enrichProductsWithShopifyPricing(
+  products: StorefrontProduct[],
+  shopifyClient: ShopifyStorefrontClient = shopify,
+  buyerIp?: string
+): Promise<StorefrontProduct[]> {
+  if (!products || products.length === 0) {
+    return [];
+  }
+
+  const enriched = await Promise.all(
+    products.map((product) => enrichProductWithShopifyPricing(product, shopifyClient, buyerIp))
+  );
+
+  return enriched;
 }
