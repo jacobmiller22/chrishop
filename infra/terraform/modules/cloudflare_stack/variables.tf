@@ -80,3 +80,27 @@ variable "custom_page_1000_url" {
   default     = ""
 }
 
+variable "enable_cloudflare_access" {
+  description = "Whether to provision Cloudflare Access Zero Trust perimeter policies for admin and staging"
+  type        = bool
+  default     = true
+}
+
+variable "access_team_name" {
+  description = "Cloudflare Zero Trust organization team name"
+  type        = string
+  default     = "chrishop"
+}
+
+variable "access_allowed_emails" {
+  description = "List of authorized administrator email addresses for Cloudflare Access"
+  type        = list(string)
+  default     = ["maker@bankbeaters.example", "admin@chrishop.com"]
+}
+
+variable "access_allowed_domains" {
+  description = "List of authorized email domains for Cloudflare Access"
+  type        = list(string)
+  default     = ["bankbeaters.example", "chrishop.com"]
+}
+
