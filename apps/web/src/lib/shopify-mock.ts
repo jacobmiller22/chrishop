@@ -323,7 +323,83 @@ export class ShopifyStorefrontMockEngine {
       };
     }
 
-    // 6. Products query
+    // 6. Product price and availability query
+    if (
+      query.includes('getProductPriceAndAvailability') ||
+      (query.includes('product(') &&
+        (query.includes('priceRange') || query.includes('availableForSale')))
+    ) {
+      const productId = variables?.id || 'gid://shopify/Product/101';
+      const variant1Stock = this.outOfStockVariants.has('gid://shopify/ProductVariant/201')
+        ? 0
+        : (this.inventory.get('gid://shopify/ProductVariant/201') ?? 12);
+      const variant2Stock = this.outOfStockVariants.has('gid://shopify/ProductVariant/202')
+        ? 0
+        : (this.inventory.get('gid://shopify/ProductVariant/202') ?? 3);
+
+      return {
+        data: {
+          product: {
+            id: productId,
+            title: 'The Bushwhack Storm Anorak',
+            availableForSale: variant1Stock > 0 || variant2Stock > 0,
+            priceRange: {
+              minVariantPrice: { amount: '340.00', currencyCode: 'USD' },
+              maxVariantPrice: { amount: '385.00', currencyCode: 'USD' },
+            },
+            variants: {
+              edges: [
+                {
+                  node: {
+                    id: 'gid://shopify/ProductVariant/201',
+                    title: 'Field Olive — Standard Run',
+                    sku: 'BB-ANO-OLV-001',
+                    availableForSale: variant1Stock > 0,
+                    quantityAvailable: variant1Stock,
+                    price: { amount: '340.00', currencyCode: 'USD' },
+                  },
+                },
+                {
+                  node: {
+                    id: 'gid://shopify/ProductVariant/202',
+                    title: 'Deadstock Duck Camo Pocket Edition',
+                    sku: 'BB-ANO-CAM-002',
+                    availableForSale: variant2Stock > 0,
+                    quantityAvailable: variant2Stock,
+                    price: { amount: '385.00', currencyCode: 'USD' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      };
+    }
+
+    // 7. Variant stock / Node query
+    if (
+      query.includes('getVariantStock') ||
+      (query.includes('node(') && query.includes('ProductVariant'))
+    ) {
+      const variantId = variables?.id || 'gid://shopify/ProductVariant/201';
+      const isOutOfStock = this.outOfStockVariants.has(variantId);
+      const qty = isOutOfStock ? 0 : (this.inventory.get(variantId) ?? 10);
+
+      return {
+        data: {
+          node: {
+            id: variantId,
+            title: 'Field Olive — Standard Run',
+            sku: 'BB-ANO-OLV-001',
+            availableForSale: !isOutOfStock && qty > 0,
+            quantityAvailable: qty,
+            price: { amount: '340.00', currencyCode: 'USD' },
+          },
+        },
+      };
+    }
+
+    // 8. Products query
     if (query.includes('products')) {
       return {
         data: {

@@ -223,12 +223,13 @@ export class ShopifyStorefrontClient {
         body: JSON.stringify({ query, variables }),
       });
 
-      if (response.status === 429 && attempt <= this.maxRetries) {
-        // Leaky bucket rate limit backoff
+      if ((response.status === 429 || response.status === 503) && attempt <= this.maxRetries) {
+        // Leaky bucket rate limit backoff with jitter
         const retryAfterSec = response.headers.get('Retry-After');
+        const jitter = Math.random() * 50;
         const delayMs = retryAfterSec
-          ? Number(retryAfterSec) * 1000
-          : this.baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 50;
+          ? Number(retryAfterSec) * 1000 + jitter
+          : this.baseDelayMs * Math.pow(2, attempt - 1) + jitter;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }
@@ -237,7 +238,22 @@ export class ShopifyStorefrontClient {
         throw new Error(`Shopify Storefront API error: ${response.status} ${response.statusText}`);
       }
 
-      return response.json();
+      const json = await response.json();
+      if (
+        json.errors?.some(
+          (e: any) =>
+            e.extensions?.code === 'THROTTLED' ||
+            (typeof e.message === 'string' && e.message.toLowerCase().includes('throttled'))
+        ) &&
+        attempt <= this.maxRetries
+      ) {
+        const jitter = Math.random() * 50;
+        const delayMs = this.baseDelayMs * Math.pow(2, attempt - 1) + jitter;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      return json;
     }
 
     throw new Error(`Shopify Storefront API rate limit exceeded after ${this.maxRetries} retries`);
@@ -509,6 +525,105 @@ export class ShopifyStorefrontClient {
       buyerIp
     );
   }
+
+  /**
+   * Fetches real-time price and stock availability for a product by its Shopify Product GID.
+   */
+  async getProductPriceAndAvailability(shopifyProductId: string, buyerIp?: string) {
+    const query = `
+      query getProductPriceAndAvailability($id: ID!) {
+        product(id: $id) {
+          id
+          title
+          availableForSale
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+            maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 50) {
+            edges {
+              node {
+                id
+                title
+                sku
+                availableForSale
+                quantityAvailable
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    return this.request<{ product: ShopifyProductPricing | null }>(
+      query,
+      { id: shopifyProductId },
+      buyerIp
+    );
+  }
+
+  /**
+   * Fetches real-time stock and price for a specific variant by its Shopify Variant GID.
+   */
+  async getVariantStock(shopifyVariantId: string, buyerIp?: string) {
+    const query = `
+      query getVariantStock($id: ID!) {
+        node(id: $id) {
+          ... on ProductVariant {
+            id
+            title
+            sku
+            availableForSale
+            quantityAvailable
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    `;
+
+    return this.request<{ node: ShopifyVariantNode | null }>(
+      query,
+      { id: shopifyVariantId },
+      buyerIp
+    );
+  }
+}
+
+export interface ShopifyProductPriceRange {
+  minVariantPrice: { amount: string; currencyCode: string };
+  maxVariantPrice: { amount: string; currencyCode: string };
+}
+
+export interface ShopifyVariantNode {
+  id: string;
+  title: string;
+  sku?: string | null;
+  availableForSale: boolean;
+  quantityAvailable?: number | null;
+  price: { amount: string; currencyCode: string };
+}
+
+export interface ShopifyProductPricing {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  priceRange: ShopifyProductPriceRange;
+  variants: {
+    edges: Array<{ node: ShopifyVariantNode }>;
+  };
 }
 
 export const shopify = new ShopifyStorefrontClient();
@@ -519,3 +634,5 @@ export const addToCart = shopify.addToCart.bind(shopify);
 export const updateCartLine = shopify.updateCartLine.bind(shopify);
 export const removeCartLine = shopify.removeCartLine.bind(shopify);
 export const getCart = shopify.getCart.bind(shopify);
+export const getProductPriceAndAvailability = shopify.getProductPriceAndAvailability.bind(shopify);
+export const getVariantStock = shopify.getVariantStock.bind(shopify);
