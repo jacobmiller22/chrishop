@@ -24,6 +24,7 @@
     "test:ui:report": "playwright show-report",
     "test:ui:mobile": "playwright test --project=mobile-safari-iphone-14 --project=mobile-chrome-pixel-7",
     "test:load": "tsx tests/load/drop-surge.ts",
+    "test:rollback": "tsx --test tests/integration/rollback-procedures.test.ts",
     "test:parity": "tsx scripts/verify-parity.ts",
     "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:responsive",
     "verify:images": "tsx scripts/verify-image-pipeline.ts",

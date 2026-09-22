@@ -44,6 +44,18 @@ export function resolveTargetUrl(environment: 'production' | 'staging'): string 
 }
 
 /**
+ * Validates whether a deployment ID conforms to Cloudflare deployment ID formats.
+ * Prevents command injection and malformed identifiers.
+ */
+export function isValidDeploymentId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false;
+  const trimmed = id.trim();
+  if (trimmed.length < 4 || trimmed.length > 64) return false;
+  // Alphanumeric with hyphens and underscores only
+  return /^[a-zA-Z0-9_-]+$/.test(trimmed);
+}
+
+/**
  * Builds the wrangler rollback command string
  */
 export function buildRollbackCommand(options: {
@@ -51,7 +63,13 @@ export function buildRollbackCommand(options: {
   deploymentId?: string;
 }): string {
   if (options.deploymentId && options.deploymentId.trim().length > 0) {
-    return `wrangler rollback ${options.deploymentId.trim()} --env ${options.environment}`;
+    const trimmed = options.deploymentId.trim();
+    if (!isValidDeploymentId(trimmed)) {
+      throw new Error(
+        `Invalid deployment ID: '${trimmed}'. Deployment IDs must be 4-64 alphanumeric characters, hyphens, or underscores.`
+      );
+    }
+    return `wrangler rollback ${trimmed} --env ${options.environment}`;
   }
   return `wrangler rollback --env ${options.environment}`;
 }
