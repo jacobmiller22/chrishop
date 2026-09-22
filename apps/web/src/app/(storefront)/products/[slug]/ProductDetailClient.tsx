@@ -8,6 +8,7 @@ import {
   StockIndicator,
   AddToCartButton,
   CountdownTimer,
+  TurnstileWidget,
   type VariationOption,
 } from '@chrishop/ui';
 import type { StorefrontProduct, StorefrontVariation } from '@/lib/catalog';
@@ -155,6 +156,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleSelectVariation = (varId: string) => {
     setSelectedVariationId(varId);
@@ -166,6 +168,21 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     try {
       setIsCheckingOut(true);
       setCheckoutError(null);
+
+      // Cloudflare Turnstile Bot & Scalper Mitigation (Story 3.10)
+      const requiresTurnstile =
+        Boolean(process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY) ||
+        process.env.NODE_ENV === 'production';
+
+      if (requiresTurnstile && !turnstileToken) {
+        setCheckoutError('Security verification required. Please complete the challenge before checkout.');
+        setIsCheckingOut(false);
+        if (buyButtonRef.current) {
+          buyButtonRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+
       const variantId =
         selectedVariation.shopify_variant_id ||
         `gid://shopify/ProductVariant/${selectedVariation.id}`;
@@ -176,7 +193,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
         const response = await fetch('/api/cart/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId, quantity: 1 }),
+          body: JSON.stringify({ variantId, quantity: 1, turnstileToken }),
         });
 
         if (response.ok) {
@@ -516,6 +533,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
           {/* Purchase Actions */}
           <div className="space-y-3 pt-2" ref={buyButtonRef}>
+            <TurnstileWidget
+              action="checkout"
+              onVerify={(token) => {
+                setTurnstileToken(token);
+                setCheckoutError(null);
+              }}
+              onError={() => {
+                setCheckoutError('Security verification failed. Please refresh and try again.');
+              }}
+              onExpire={() => {
+                setTurnstileToken(null);
+              }}
+            />
+
             <AddToCartButton
               price={currentPrice}
               status={selectedVariation?.status}
