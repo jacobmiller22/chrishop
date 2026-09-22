@@ -34,6 +34,8 @@ const isForce = args.includes('--force');
 const targetPrIndex = args.indexOf('--pr');
 const targetPrNumber = targetPrIndex !== -1 && args[targetPrIndex + 1] ? parseInt(args[targetPrIndex + 1], 10) : null;
 
+const isResetOrphans = args.includes('--reset-orphans') || args.includes('--clean-orphans');
+
 function runCmd(cmd: string, silent = false): string {
   try {
     return execSync(cmd, { encoding: 'utf-8', stdio: silent ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'inherit'] }).trim();
@@ -55,51 +57,122 @@ interface PRStatus {
   mergedAt: string | null;
 }
 
-async function fetchCloudflareWorkers(accountId: string, apiToken: string): Promise<string[]> {
+async function cfApiRequest(
+  method: string,
+  pathname: string,
+  accountId: string,
+  apiToken: string,
+  body?: any
+): Promise<any> {
   return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.cloudflare.com',
-      path: `/client/v4/accounts/${accountId}/workers/scripts`,
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        'Content-Type': 'application/json',
+    const dataString = body ? JSON.stringify(body) : undefined;
+    const req = https.request(
+      {
+        hostname: 'api.cloudflare.com',
+        path: pathname,
+        method,
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+          ...(dataString ? { 'Content-Length': Buffer.byteLength(dataString) } : {}),
+        },
+        timeout: 15000,
       },
-      timeout: 10000,
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.success && Array.isArray(parsed.result)) {
-            resolve(parsed.result.map((w: any) => w.id));
-          } else {
-            console.warn(`${colors.yellow}⚠️ Could not list workers via Cloudflare API: ${parsed.errors?.[0]?.message || 'Unknown error'}${colors.reset}`);
-            resolve([]);
+      (res) => {
+        let raw = '';
+        res.on('data', (chunk) => (raw += chunk));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(raw));
+          } catch {
+            resolve({ success: false, errors: [{ message: 'Failed to parse JSON response' }] });
           }
-        } catch {
-          resolve([]);
-        }
-      });
-    });
-
-    req.on('error', (err) => {
-      console.warn(`${colors.yellow}⚠️ Cloudflare API request failed: ${err.message}${colors.reset}`);
-      resolve([]);
-    });
-
+        });
+      }
+    );
+    req.on('error', (err) => resolve({ success: false, errors: [{ message: err.message }] }));
     req.on('timeout', () => {
       req.destroy();
-      resolve([]);
+      resolve({ success: false, errors: [{ message: 'Cloudflare API timeout' }] });
     });
-
+    if (dataString) req.write(dataString);
     req.end();
   });
+}
+
+async function purgeOrphanPreviewResources(prNumber: number, accountId: string, apiToken: string): Promise<void> {
+  console.log(`${colors.cyan}Auditing and purging orphan preview resources for PR #${prNumber}...${colors.reset}`);
+
+  // 1. Purge D1 Database
+  const d1DbName = `chrishop-preview-pr-${prNumber}-db`;
+  const d1Res = await cfApiRequest('GET', `/client/v4/accounts/${accountId}/d1/database?name=${encodeURIComponent(d1DbName)}`, accountId, apiToken);
+  if (d1Res.success && Array.isArray(d1Res.result)) {
+    for (const db of d1Res.result) {
+      if (db.name === d1DbName && db.uuid) {
+        console.log(`  🗑 Purging orphan D1 database: ${db.name} (${db.uuid})...`);
+        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/d1/database/${db.uuid}`, accountId, apiToken);
+        if (delRes.success) {
+          console.log(`  ${colors.green}✔ D1 database ${db.name} deleted successfully.${colors.reset}`);
+        } else {
+          console.warn(`  ${colors.yellow}Warning: Failed to delete D1 database ${db.name}: ${delRes.errors?.[0]?.message}${colors.reset}`);
+        }
+      }
+    }
+  }
+
+  // 2. Purge KV Namespace
+  const kvTitle = `NEXT_CACHE_WORKERS_KV_PREVIEW_PR_${prNumber}`;
+  const kvRes = await cfApiRequest('GET', `/client/v4/accounts/${accountId}/storage/kv/namespaces?per_page=100`, accountId, apiToken);
+  if (kvRes.success && Array.isArray(kvRes.result)) {
+    for (const ns of kvRes.result) {
+      if (ns.title === kvTitle && ns.id) {
+        console.log(`  🗑 Purging orphan KV namespace: ${ns.title} (${ns.id})...`);
+        const delRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/storage/kv/namespaces/${ns.id}`, accountId, apiToken);
+        if (delRes.success) {
+          console.log(`  ${colors.green}✔ KV namespace ${ns.title} deleted successfully.${colors.reset}`);
+        } else {
+          console.warn(`  ${colors.yellow}Warning: Failed to delete KV namespace ${ns.title}: ${delRes.errors?.[0]?.message}${colors.reset}`);
+        }
+      }
+    }
+  }
+
+  // 3. Purge DNS Record
+  const zoneRes = await cfApiRequest('GET', `/client/v4/zones?name=jacobmiller22.com`, accountId, apiToken);
+  if (zoneRes.success && Array.isArray(zoneRes.result) && zoneRes.result[0]?.id) {
+    const zoneId = zoneRes.result[0].id;
+    const recordName = `pr-${prNumber}-chrishop.jacobmiller22.com`;
+    const dnsRes = await cfApiRequest('GET', `/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(recordName)}`, accountId, apiToken);
+    if (dnsRes.success && Array.isArray(dnsRes.result)) {
+      for (const rec of dnsRes.result) {
+        if (rec.id) {
+          console.log(`  🗑 Purging orphan DNS record: ${rec.name} (${rec.id})...`);
+          const delRes = await cfApiRequest('DELETE', `/client/v4/zones/${zoneId}/dns_records/${rec.id}`, accountId, apiToken);
+          if (delRes.success) {
+            console.log(`  ${colors.green}✔ DNS record ${rec.name} deleted successfully.${colors.reset}`);
+          } else {
+            console.warn(`  ${colors.yellow}Warning: Failed to delete DNS record ${rec.name}: ${delRes.errors?.[0]?.message}${colors.reset}`);
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Purge Worker Script
+  const workerName = `chrishop-preview-pr-${prNumber}`;
+  const workerRes = await cfApiRequest('DELETE', `/client/v4/accounts/${accountId}/workers/scripts/${workerName}`, accountId, apiToken);
+  if (workerRes.success) {
+    console.log(`  ${colors.green}✔ Worker ${workerName} deleted successfully.${colors.reset}`);
+  }
+}
+
+async function fetchCloudflareWorkers(accountId: string, apiToken: string): Promise<string[]> {
+  const res = await cfApiRequest('GET', `/client/v4/accounts/${accountId}/workers/scripts`, accountId, apiToken);
+  if (res.success && Array.isArray(res.result)) {
+    return res.result.map((w: any) => w.id);
+  }
+  console.warn(`${colors.yellow}⚠️ Could not list workers via Cloudflare API: ${res.errors?.[0]?.message || 'Unknown error'}${colors.reset}`);
+  return [];
 }
 
 function getPRStatus(prNumber: number): PRStatus | null {
@@ -138,6 +211,16 @@ async function main() {
 
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || '';
   const apiToken = process.env.CLOUDFLARE_API_TOKEN || '';
+
+  if (isResetOrphans && targetPrNumber) {
+    if (!accountId || !apiToken) {
+      console.warn(`${colors.yellow}Warning: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN. Cannot purge orphan resources.${colors.reset}`);
+      return;
+    }
+    await purgeOrphanPreviewResources(targetPrNumber, accountId, apiToken);
+    console.log(`\n${colors.bold}${colors.green}✔ Orphan preview sweep completed for PR #${targetPrNumber}.${colors.reset}\n`);
+    return;
+  }
 
   const discoveredWorkers: WorkerScriptSummary[] = [];
 

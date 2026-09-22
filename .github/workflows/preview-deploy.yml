@@ -108,6 +108,15 @@ jobs:
           # Restore existing remote state from R2 if updating an active PR preview
           pnpm exec wrangler r2 object get "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" 2>/dev/null || true
 
+          # If no state file exists in R2, sweep any dangling unmanaged orphan resources from previous aborted attempts
+          if [ ! -f "${STATE_FILE}" ]; then
+            echo "No prior Terraform state found in R2 for PR #${PR_NUM}. Purging any unmanaged orphan resources..."
+            pnpm exec tsx scripts/cleanup-preview-environments.ts --pr "${PR_NUM}" --reset-orphans || true
+          fi
+
+          # Always persist state to R2 on exit so future runs never lose state tracking
+          trap 'if [ -f "${STATE_FILE}" ]; then pnpm exec wrangler r2 object put "chrishop-terraform-state/${STATE_KEY}" --file="${STATE_FILE}" || true; fi' EXIT
+
           cd infra/terraform/environments/preview
           terraform init
           terraform apply -auto-approve \
