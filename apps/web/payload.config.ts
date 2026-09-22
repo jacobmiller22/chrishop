@@ -10,6 +10,8 @@ import { Products } from './src/collections/Products';
 import { ProductVariations } from './src/collections/ProductVariations';
 import { Media } from './src/collections/Media';
 import { Users } from './src/collections/Users';
+import { Pages } from './src/collections/Pages';
+import { ThemeSettings } from './src/globals/ThemeSettings';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -103,7 +105,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Categories, ProductLines, Products, ProductVariations, Media, Users],
+  collections: [Categories, ProductLines, Products, ProductVariations, Media, Users, Pages],
+  globals: [ThemeSettings],
   editor: lexicalEditor(),
   db: sqliteD1Adapter({
     binding: getD1Binding(),
