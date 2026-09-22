@@ -161,3 +161,47 @@ node -e "
 # Run notifications test suite
 pnpm --filter notifications test
 ```
+
+---
+
+## 8. Customer Transactional Email Disambiguation & Delivery Policy (Story 3.9)
+
+### 8.1 Architectural Problem & Threat Model
+Both Shopify Checkout and Resend have email notification capabilities. Without an explicit architectural policy and operational configuration, a customer completing a checkout would receive two duplicate, conflicting order receipts:
+1. Native Shopify order confirmation (generic Shopify liquid template).
+2. ChrisShop custom Resend order receipt (bespoke BankBeaters Leadville workshop branded template).
+
+Receiving dual receipts degrades customer experience, introduces trust ambiguity, and risks email spam filtering.
+
+### 8.2 Architectural Decision: Option A (Selected)
+ChrisShop selects **Option A: Resend-Authoritative Transactional Receipts with Shopify Native Customer Confirmations Disabled**.
+
+- **Customer Receipts**: 100% authoritative ownership by `packages/notifications` via Resend (`orders@shop.jacobmiller22.com`).
+- **Brand Aesthetic**: Full control over responsive dark-mode styling, Leadville 10,152 ft craftsmanship provenance, itemized line items, and specimen guarantees.
+- **Delivery Path**: Shopify checkout fires `orders/create` webhook -> Cloudflare Workers Edge -> `SHOPIFY_ORDERS_QUEUE` -> `ResendNotificationProvider.notifyOrderReceipt()`.
+- **Duplicate Prevention Gate**: Exactly ONE customer receipt is generated per checkout via two complementary mechanisms:
+  1. **Shopify Admin Settings**: Native customer order confirmation notifications are disabled.
+  2. **Edge KV Idempotency**: `checkAndSetIdempotency(webhookId, KV)` prevents duplicate delivery on webhook replay.
+
+### 8.3 Shopify Admin Configuration Runbook
+To activate Option A in Shopify Admin:
+1. Navigate to **Shopify Admin > Settings > Notifications**.
+2. Under **Customer notifications**, locate **Order confirmation**.
+3. Turn off customer order confirmation email sending (or edit template to prevent dispatch).
+4. Ensure **Staff order notifications** remain active for backup alerts if desired (optional; Resend also dispatches merchant alerts to `MERCHANT_ALERT_EMAIL`).
+5. Under **Shipping**, ensure shipping updates coordinate with the fulfillment pipeline (Story 3.5).
+
+### 8.4 Option B Fallback (Configurable Override)
+Should the merchant choose **Option B** (retain native Shopify order confirmations for standard sales and scope Resend strictly to custom artwork certificates and VIP drops):
+- Set environment variable: `FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS="true"` (or `DISABLE_RESEND_CUSTOMER_RECEIPTS="true"`).
+- In this mode, `OrderConsumer` detects the flag and skips `notifyOrderReceipt`, allowing Shopify native emails to fulfill standard orders while Resend continues to handle merchant alerts, low-stock notifications, and ops telemetry.
+
+### 8.5 Disambiguation Matrix
+
+| Notification Event | Recipient | Authoritative Provider | Shopify Setting | Fallback Toggle (`Option B`) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Order Receipt / Confirmation** | Customer | **Resend** (`ResendNotificationProvider`) | **Disabled** in Admin | `FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS="true"` skips Resend |
+| **Merchant Order Alert** | Merchant (`MERCHANT_ALERT_EMAIL`) | **Resend** (`notifyMerchantOrderAlert`) | Independent | Always active |
+| **Low-Stock / Sold-Out Warning** | Merchant (`MERCHANT_ALERT_EMAIL`) | **Resend** (`notifyLowStock`) | Independent | Always active |
+| **Shipping Tracking Update** | Customer | **Resend** (`notifyShippingUpdate`) | Managed | Coordinated with fulfillment |
+| **Operational Telemetry** | Discord / Webhook | **Webhook** (`WebhookNotificationProvider`) | N/A | Always active |

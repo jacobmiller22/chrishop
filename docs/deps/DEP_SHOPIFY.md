@@ -208,6 +208,14 @@ The webhook ingestion pipeline at `/api/webhooks/shopify` uses Web Crypto API (`
 import { verifyShopifyWebhookHmacSubtle, checkAndSetIdempotency } from '@/lib/shopify-webhook';
 ```
 
+### 4.1 Customer Notification Disambiguation Policy (Story 3.9)
+
+To prevent duplicate customer order confirmation receipts between Shopify's native notification engine and ChrisShop's custom Resend pipeline, ChrisShop adopts **Option A** per [`DEP_RESEND.md`](DEP_RESEND.md#8-customer-transactional-email-disambiguation--delivery-policy-story-39):
+
+- **Shopify Admin Configuration**: In Shopify Admin (**Settings > Notifications > Customer notifications > Order confirmation**), disable native customer confirmation emails.
+- **Authoritative Provider**: Resend (`packages/notifications`) acts as the single authoritative provider for branded customer receipts, ensuring customers receive **exactly ONE** confirmation per checkout.
+- **Fallback Mode**: If Option B is activated via `FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS="true"`, Resend skips customer receipts, allowing Shopify native notifications to serve standard orders while Resend retains merchant and operational alert ownership.
+
 ---
 
 ## 5. Development & Testing Workflow

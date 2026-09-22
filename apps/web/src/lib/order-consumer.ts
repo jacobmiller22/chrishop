@@ -260,6 +260,8 @@ export interface OrderConsumerEnv {
   SHOPIFY_ORDERS_DLQ?: {
     send(message: any): Promise<void>;
   };
+  FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS?: string;
+  DISABLE_RESEND_CUSTOMER_RECEIPTS?: string;
   [key: string]: any;
 }
 
@@ -270,6 +272,7 @@ export interface OrderConsumerOptions {
   initialRetryDelaySeconds?: number;
   backoffMultiplier?: number;
   lowStockThreshold?: number;
+  disableCustomerReceipts?: boolean;
 }
 
 export interface MessageProcessingResult {
@@ -783,17 +786,36 @@ export async function processOrderEvent(
   const lowStockThreshold = options.lowStockThreshold ?? LOW_STOCK_THRESHOLD;
 
   // 1. Customer Order Receipt (Resend)
-  try {
-    const result: EmailDispatchResult = await resendProvider.notifyOrderReceipt(receipt);
-    if (result.success) {
-      customerEmailSent = true;
-    } else {
-      errors.push(`Customer Receipt Error: ${result.error || 'Failed to dispatch email'}`);
+  // Story 3.9: Transactional Email Policy & Customer Notification Disambiguation (Shopify vs. Resend)
+  // Option A (Default): Resend dispatches 100% custom branded order confirmation receipts,
+  // with Shopify native customer confirmations disabled in Shopify Admin to prevent duplicate receipts.
+  // Option B: If disableCustomerReceipts or FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS is true,
+  // customer receipts are handled natively by Shopify while Resend handles merchant/ops alerts.
+  const disableCustomerReceipts =
+    options.disableCustomerReceipts ??
+    (env.FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS === 'true' ||
+      env.DISABLE_RESEND_CUSTOMER_RECEIPTS === 'true' ||
+      (typeof process !== 'undefined' &&
+        (process.env?.FLAG_DISABLE_RESEND_CUSTOMER_RECEIPTS === 'true' ||
+          process.env?.DISABLE_RESEND_CUSTOMER_RECEIPTS === 'true')));
+
+  if (disableCustomerReceipts) {
+    console.log(
+      '[OrderConsumer:EmailDisambiguation] Customer receipt email skipped via policy flag (Option B active)'
+    );
+  } else {
+    try {
+      const result: EmailDispatchResult = await resendProvider.notifyOrderReceipt(receipt);
+      if (result.success) {
+        customerEmailSent = true;
+      } else {
+        errors.push(`Customer Receipt Error: ${result.error || 'Failed to dispatch email'}`);
+      }
+    } catch (err: any) {
+      const msg = `Customer Receipt Exception: ${err?.message || String(err)}`;
+      console.error(`[OrderConsumer:ReceiptFailure] ${msg}`);
+      errors.push(msg);
     }
-  } catch (err: any) {
-    const msg = `Customer Receipt Exception: ${err?.message || String(err)}`;
-    console.error(`[OrderConsumer:ReceiptFailure] ${msg}`);
-    errors.push(msg);
   }
 
   // 2. Merchant Order Alert (Resend to MERCHANT_ALERT_EMAIL)
