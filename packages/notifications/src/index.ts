@@ -97,6 +97,46 @@ export interface EmailDispatchResult {
 }
 
 /**
+ * Formats a canonical carrier tracking URL based on carrier name and tracking number.
+ * Supports USPS, UPS, FedEx, DHL, and OnTrac with automatic URL generation.
+ */
+export function formatCarrierTrackingUrl(
+  carrier?: string | null,
+  trackingNumber?: string | null,
+  fallbackUrl?: string | null
+): string {
+  if (fallbackUrl && fallbackUrl.startsWith('http')) {
+    return fallbackUrl;
+  }
+  const cleanNumber = (trackingNumber || '').trim();
+  const normalizedCarrier = (carrier || '').trim().toLowerCase();
+
+  if (!cleanNumber) {
+    return fallbackUrl || 'https://chrishop.jacobmiller22.com/orders';
+  }
+
+  if (normalizedCarrier.includes('usps') || normalizedCarrier.includes('postal')) {
+    return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(cleanNumber)}`;
+  }
+  if (normalizedCarrier.includes('ups') || normalizedCarrier.includes('united parcel')) {
+    return `https://www.ups.com/track?tracknum=${encodeURIComponent(cleanNumber)}`;
+  }
+  if (normalizedCarrier.includes('fedex')) {
+    return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(cleanNumber)}`;
+  }
+  if (normalizedCarrier.includes('dhl')) {
+    return `https://www.dhl.com/en/express/tracking.html?AWB=${encodeURIComponent(cleanNumber)}`;
+  }
+  if (normalizedCarrier.includes('ontrac')) {
+    return `https://www.ontrac.com/tracking/?number=${encodeURIComponent(cleanNumber)}`;
+  }
+  if (fallbackUrl) {
+    return fallbackUrl;
+  }
+  return `https://www.google.com/search?q=track+${encodeURIComponent(carrier || 'shipment')}+${encodeURIComponent(cleanNumber)}`;
+}
+
+/**
  * Resend Email Notification Provider
  * Default channel for customer order receipts, shipping tracking updates,
  * merchant purchase alerts, and inventory threshold notifications.
@@ -308,6 +348,22 @@ ${receipt.shipping_address.city}, ${receipt.shipping_address.state} ${receipt.sh
   }
 
   async notifyShippingUpdate(shipping: ShippingUpdatePayload): Promise<EmailDispatchResult> {
+    const itemsHtml =
+      shipping.items && shipping.items.length > 0
+        ? `
+        <div style="margin: 20px 0; border-top: 1px solid #eee; padding-top: 16px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #555;">Items in this shipment:</h3>
+          <ul style="padding-left: 20px; margin: 0; line-height: 1.6; color: #333;">
+            ${shipping.items
+              .map(
+                (item) =>
+                  `<li><strong>${item.title}</strong>${item.variation_name ? ` (${item.variation_name})` : ''} &times; ${item.quantity}</li>`
+              )
+              .join('')}
+          </ul>
+        </div>`
+        : '';
+
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
         <h1 style="border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">ChrisShop</h1>
@@ -319,14 +375,31 @@ ${receipt.shipping_address.city}, ${receipt.shipping_address.state} ${receipt.sh
             Track Your Package
           </a>
         </div>
+        ${itemsHtml}
+        <div style="margin-top: 32px; padding: 14px; background-color: #f8f9fa; border-left: 3px solid #ff5500; font-size: 13px; color: #555;">
+          <strong>Leadville Workshop Guarantee</strong><br/>
+          Each piece of BankBeaters gear is handcrafted and individually field-inspected at 10,152 ft before shipment.
+        </div>
       </div>
     `;
+
+    const itemsText =
+      shipping.items && shipping.items.length > 0
+        ? `\nItems Shipped:\n${shipping.items
+            .map(
+              (item) =>
+                `- ${item.title}${item.variation_name ? ` (${item.variation_name})` : ''} x${item.quantity}`
+            )
+            .join('\n')}\n`
+        : '';
 
     const text = `ChrisShop Shipping Update
 Your order ${shipping.order_number} has shipped!
 Carrier: ${shipping.carrier}
 Tracking Number: ${shipping.tracking_number}
 Track Package: ${shipping.tracking_url}
+${itemsText}
+Handcrafted in Leadville, CO.
 `;
 
     return this.sendEmail({

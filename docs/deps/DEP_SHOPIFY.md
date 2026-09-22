@@ -193,22 +193,19 @@ export const syncProductToShopify: CollectionAfterChangeHook = async ({ doc, req
 
 ---
 
-## 4. Webhook Ingestion & HMAC Verification
+## 4. Webhook Ingestion, Fulfillment & HMAC Verification
 
 Shopify emits HTTP POST webhooks for lifecycle events:
 
-- `orders/create`: Triggers Discord order announcement in `#store-orders`.
-- `orders/fulfilled`: Triggers dispatch of customer tracking notification.
+- `orders/create` & `orders/paid`: Triggers customer order receipt (via Resend), merchant purchase alert, low stock threshold monitoring (`stock_quantity <= 3`), and Discord order announcement in `#store-orders`.
+- `orders/fulfilled`, `orders/partially_fulfilled`, & `fulfillments/create`: Normalizes carrier tracking data (USPS, UPS, FedEx, DHL, OnTrac), generates canonical tracking links via `formatCarrierTrackingUrl()`, dispatches branded customer tracking email with fulfilled line items and the Leadville Workshop Guarantee, and posts fulfillment confirmation to Discord `#store-orders`.
 
-### Signature Verification
+### Signature Verification & Idempotency Gate
+
+The webhook ingestion pipeline at `/api/webhooks/shopify` uses Web Crypto API (`crypto.subtle`) for constant-time HMAC-SHA256 signature verification and Cloudflare Workers KV (`order_webhook:<id>` with 24-hour TTL) to prevent duplicate processing on webhook replays.
 
 ```typescript
-import crypto from 'node:crypto';
-
-export function verifyShopifyWebhook(rawBody: string, hmacHeader: string, secret: string): boolean {
-  const hash = crypto.createHmac('sha256', secret).update(rawBody, 'utf-8').digest('base64');
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(hmacHeader));
-}
+import { verifyShopifyWebhookHmacSubtle, checkAndSetIdempotency } from '@/lib/shopify-webhook';
 ```
 
 ---

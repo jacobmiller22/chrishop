@@ -5,6 +5,7 @@ import {
   CompositeNotificationProvider,
   ResendNotificationProvider,
   WebhookNotificationProvider,
+  formatCarrierTrackingUrl,
   type NotificationPayload,
   type OrderReceiptPayload,
   type ShippingUpdatePayload,
@@ -154,6 +155,99 @@ describe('Notification Providers (@chrishop/notifications)', () => {
       } finally {
         globalThis.fetch = originalFetch;
       }
+    });
+
+    it('should format shipping tracking email with fulfilled line items and Leadville guarantee', async () => {
+      let capturedBody: any = null;
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = (async (_url: string, init: RequestInit) => {
+        capturedBody = JSON.parse(init.body as string);
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({ id: 're_ship_with_items' }),
+        } as Response;
+      }) as any;
+
+      try {
+        const provider = new ResendNotificationProvider({
+          apiKey: 're_test_key_items',
+        });
+
+        const shippingPayload: ShippingUpdatePayload = {
+          order_id: 'ord-1234',
+          order_number: '#1049',
+          customer_name: 'Leadville Angler',
+          customer_email: 'angler@leadville.example',
+          carrier: 'FedEx',
+          tracking_number: '794829104820',
+          tracking_url: 'https://www.fedex.com/fedextrack/?trknbr=794829104820',
+          items: [
+            {
+              title: 'BankBeaters 5-Panel Guide Cap',
+              variation_name: 'Signal Orange / One Size',
+              quantity: 2,
+            },
+            {
+              title: 'Waxed Canvas Tool Roll',
+              quantity: 1,
+            },
+          ],
+        };
+
+        const result = await provider.notifyShippingUpdate(shippingPayload);
+
+        assert.equal(result.success, true);
+        assert.ok(capturedBody.subject.includes('#1049'));
+        assert.ok(capturedBody.html.includes('FedEx'));
+        assert.ok(capturedBody.html.includes('794829104820'));
+        assert.ok(capturedBody.html.includes('BankBeaters 5-Panel Guide Cap'));
+        assert.ok(capturedBody.html.includes('Signal Orange / One Size'));
+        assert.ok(capturedBody.html.includes('Leadville Workshop Guarantee'));
+        assert.ok(capturedBody.text.includes('BankBeaters 5-Panel Guide Cap'));
+        assert.ok(capturedBody.text.includes('Handcrafted in Leadville, CO'));
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('should format carrier tracking URLs accurately across carriers via formatCarrierTrackingUrl', () => {
+      assert.equal(
+        formatCarrierTrackingUrl('USPS', '9400111899562537624102'),
+        'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111899562537624102'
+      );
+      assert.equal(
+        formatCarrierTrackingUrl('U.S. Postal Service', '9400111899562537624102'),
+        'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111899562537624102'
+      );
+      assert.equal(
+        formatCarrierTrackingUrl('UPS', '1Z9999999999999999'),
+        'https://www.ups.com/track?tracknum=1Z9999999999999999'
+      );
+      assert.equal(
+        formatCarrierTrackingUrl('FedEx', '794829104820'),
+        'https://www.fedex.com/fedextrack/?trknbr=794829104820'
+      );
+      assert.equal(
+        formatCarrierTrackingUrl('DHL Express', '1234567890'),
+        'https://www.dhl.com/en/express/tracking.html?AWB=1234567890'
+      );
+      assert.equal(
+        formatCarrierTrackingUrl('OnTrac', 'C1100123456789'),
+        'https://www.ontrac.com/tracking/?number=C1100123456789'
+      );
+      // Explicit valid HTTP fallback
+      assert.equal(
+        formatCarrierTrackingUrl('Regional Courier', 'REG999', 'https://carrier.example/track/REG999'),
+        'https://carrier.example/track/REG999'
+      );
+      // Empty tracking number falls back
+      assert.equal(
+        formatCarrierTrackingUrl('USPS', '', 'https://fallback.example'),
+        'https://fallback.example'
+      );
     });
 
     it('should retry on HTTP 429 rate limits with backoff per DEP_RESEND.md Section 5', async () => {
