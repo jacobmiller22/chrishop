@@ -42,6 +42,7 @@
     "audit:roadmap": "tsx scripts/audit-roadmap.ts",
     "deploy:prod": "tsx scripts/promote-production.ts",
     "secrets:rotate": "tsx scripts/rotate-secrets.ts",
+    "secrets:audit": "tsx scripts/secrets-audit.ts",
     "release:notes": "tsx scripts/compose-release-notes.ts",
     "branch": "bash scripts/create-branch.sh",
     "pm:prioritize": "tsx scripts/prioritize-backlog.ts",

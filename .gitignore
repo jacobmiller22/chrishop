@@ -16,12 +16,16 @@ out
 .wrangler
 .wrangler/
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env*
 !.env.example
 .dev.vars
+.dev.vars*
 **/.dev.vars
+**/.dev.vars*
+*.key
+*.secret
 
 # Logs
 *.log
