@@ -32,6 +32,7 @@
     "verify:cd": "tsx scripts/verify-production-cd.ts",
     "verify:local": "tsx scripts/verify-local.ts",
     "domain:verify": "tsx scripts/verify-domain-cutover.ts",
+    "cache:verify": "tsx scripts/verify-edge-cache.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
