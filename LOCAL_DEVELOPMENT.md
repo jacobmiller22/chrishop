@@ -239,16 +239,48 @@ pnpm run test:unit
 # 3. Ephemeral Integration Tests (In-memory D1 SQLite & Shopify Client)
 pnpm run test:integration
 
-# 4. Run All Tests
+# 4. Multi-Viewport Storefront Responsiveness Guardrails (Playwright)
+pnpm run test:responsive
+
+# 5. Run All Tests
 pnpm run test:all
 
-# 5. Production Build Validation (All Workspaces & Cloudflare Worker)
+# 6. Production Build Validation (All Workspaces & Cloudflare Worker)
 pnpm run build
 # Or explicitly build only apps or only worker bundle:
 pnpm run build:apps
 pnpm run build:worker
 pnpm run build:prod
 
-# 6. Turnkey Pre-PR Verification Pipeline (All 7 Stages)
+# 7. Turnkey Pre-PR Verification Pipeline (All 9 Stages)
 pnpm run verify:local
 ```
+
+---
+
+## 7.1 Automated Storefront Responsiveness Guardrails (`test:responsive`)
+
+To ensure flawless customer conversion across all device form factors, ChrisShop enforces an automated multi-viewport regression suite powered by Playwright and headless Chromium.
+
+### Viewport Tiers Covered
+The guardrail suite tests all core storefront routes (`/`, `/products`, `/products/[slug]`, `/about`) across seven standardized viewport tiers:
+
+| Tier Name | Dimensions | Device Archetype | Ergonomic & Layout Invariants |
+| :--- | :--- | :--- | :--- |
+| `mobile-compact` | 320 × 568 | iPhone SE / Compact | Zero horizontal overflow, single-column stacking, min 44x44px touch targets |
+| `mobile-standard` | 390 × 844 | iPhone 12/13/14/15 | Thumb-zone sticky CTA on PDP, mobile hamburger drawer, touch targets |
+| `mobile-large` | 430 × 932 | iPhone Pro Max / Plus | Thumb-zone sticky CTA on PDP, fluid card grid scaling |
+| `tablet-portrait` | 768 × 1024 | iPad Mini / Portrait | 2-column catalog grid, accessible drawer navigation |
+| `tablet-landscape` | 1024 × 768 | iPad Landscape | Full desktop horizontal navigation, multi-column media layout |
+| `desktop-standard`| 1280 × 800 | MacBook Air / Laptop | Dual-column PDP layout (media feed left, sticky purchase pane right) |
+| `desktop-wide` | 1536 × 960 | Large Monitor | Max-width content constraint (1280px), centered typography |
+
+### Core Architectural Guardrails Enforced
+1. **Zero Horizontal Overflow**: Pinpoints any element where `rect.right > docWidth + 1.5px` or `scrollWidth > clientWidth`.
+2. **Dynamic Type & Font Scaling (125% & 150%)**: Scales root font size to verify that buttons, cards, and specifications wrap gracefully without text clipping or horizontal overflow.
+3. **Touch Target Compliance (WCAG 2.5.5 / 2.5.8)**: Validates that all mobile interactive controls (buttons, links, pills) meet the 44×44px bounding box standard.
+4. **Adaptive Navigation Contract**: Verifies mobile drawer presence on `< 768px` and full desktop navigation on `≥ 1024px`.
+5. **Mobile PDP Sticky CTA**: Ensures fixed bottom-0 action bar remains docked in the ergonomic thumb zone throughout mobile browsing.
+6. **iOS Safari Auto-Zoom Prevention**: Enforces `font-size >= 16px` on form inputs.
+7. **Actionable Pinpoint Diagnostics**: Injects intentional defects during test runs to verify that failures immediately output CSS selectors and computed bounding boxes.
+

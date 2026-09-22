@@ -32,24 +32,24 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <h4 className="text-xs font-mono uppercase tracking-widest text-stone-200 font-bold">
               Field Equipment
             </h4>
-            <ul className="space-y-2 text-xs sm:text-sm">
+            <ul className="space-y-1 text-xs sm:text-sm">
               <li>
-                <a href="/products" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/products" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Complete Catalog
                 </a>
               </li>
               <li>
-                <a href="/products?category=outerwear" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/products?category=outerwear" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Waterproof Shells
                 </a>
               </li>
               <li>
-                <a href="/products?category=packs-carry" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/products?category=packs-carry" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Packs &amp; Carry Systems
                 </a>
               </li>
               <li>
-                <a href="/products?category=field-accessories" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/products?category=field-accessories" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Field Tools &amp; Accessories
                 </a>
               </li>
@@ -61,24 +61,24 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <h4 className="text-xs font-mono uppercase tracking-widest text-stone-200 font-bold">
               Craft &amp; Origin
             </h4>
-            <ul className="space-y-2 text-xs sm:text-sm">
+            <ul className="space-y-1 text-xs sm:text-sm">
               <li>
-                <a href="/about" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/about" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   The Maker&apos;s Story
                 </a>
               </li>
               <li>
-                <a href="/#makers-bench" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/#makers-bench" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   The Workbench &amp; Juki Rig
                 </a>
               </li>
               <li>
-                <a href="/about#guarantee" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/about#guarantee" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Lifetime Repair Guarantee
                 </a>
               </li>
               <li>
-                <a href="/cart" className="hover:text-[#E55B24] transition-colors py-1 inline-block">
+                <a href="/cart" className="hover:text-[#E55B24] transition-colors py-2.5 inline-flex items-center min-h-[44px]">
                   Gear Roll (Cart)
                 </a>
               </li>

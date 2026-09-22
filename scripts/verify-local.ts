@@ -39,6 +39,7 @@ interface StepResult {
 const results: StepResult[] = [];
 const args = process.argv.slice(2);
 const skipBuild = args.includes('--skip-build');
+const skipResponsive = args.includes('--skip-responsive');
 
 function printBanner() {
   console.log(
@@ -176,22 +177,27 @@ function verifyIntegrationTests() {
   execSync('pnpm run test:integration', { stdio: 'pipe' });
 }
 
-// Stage 5: Dependency Security Audit Gate
+// Stage 5: Multi-Viewport Storefront Responsiveness Guardrails (test:responsive)
+function verifyResponsiveness() {
+  execSync('pnpm run test:responsive', { stdio: 'pipe' });
+}
+
+// Stage 6: Dependency Security Audit Gate
 function verifySecurityAudit() {
   execSync('pnpm audit --audit-level=high', { stdio: 'pipe' });
 }
 
-// Stage 6: Production Build Validation
+// Stage 7: Production Build Validation
 function verifyBuild() {
   execSync('pnpm run build', { stdio: 'pipe' });
 }
 
-// Stage 7: Cloudflare Worker Bundle Size Budget Gate
+// Stage 8: Cloudflare Worker Bundle Size Budget Gate
 function verifyBundleBudget() {
   execSync('pnpm run check:bundle', { stdio: 'pipe' });
 }
 
-// Stage 8: Git Hygiene & Worktree Cleanliness
+// Stage 9: Git Hygiene & Worktree Cleanliness
 function verifyGitHygiene() {
   const status = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
   const leakedArtifacts = status
@@ -261,19 +267,28 @@ async function main() {
     verifyIntegrationTests
   );
 
-  await runStep('5. Dependency Security Audit Gate (audit:security)', verifySecurityAudit);
+  await runStep(
+    '5. Storefront Responsiveness Guardrails (test:responsive)',
+    verifyResponsiveness,
+    {
+      skip: skipResponsive,
+      skipReason: '--skip-responsive flag provided',
+    }
+  );
 
-  await runStep('6. Production Build Validation (build)', verifyBuild, {
+  await runStep('6. Dependency Security Audit Gate (audit:security)', verifySecurityAudit);
+
+  await runStep('7. Production Build Validation (build)', verifyBuild, {
     skip: skipBuild,
     skipReason: '--skip-build flag provided',
   });
 
-  await runStep('7. Worker Bundle Size Budget Gate (check:bundle)', verifyBundleBudget, {
+  await runStep('8. Worker Bundle Size Budget Gate (check:bundle)', verifyBundleBudget, {
     skip: skipBuild,
     skipReason: '--skip-build flag provided',
   });
 
-  await runStep('8. Git Worktree & Artifact Hygiene', verifyGitHygiene);
+  await runStep('9. Git Worktree & Artifact Hygiene', verifyGitHygiene);
 
   printSummary();
 }
