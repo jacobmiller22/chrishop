@@ -9,11 +9,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export const metadata: Metadata = {
-  title: 'BankBeaters Adventure Gear | Curiosity > Fear',
-  description:
-    'Patagonia-grade technical outdoor and adventure fishing gear hand-sewn by Chris for anglers and explorers who work the bank on foot.',
-};
+import { defaultStorefrontMetadata } from '@/lib/metadata';
+
+export const metadata: Metadata = defaultStorefrontMetadata;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

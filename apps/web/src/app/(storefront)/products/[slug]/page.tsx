@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { fetchProductBySlug, getProducts, enrichProductWithShopifyPricing } from '@/lib/catalog';
+import { ProductJsonLd, BreadcrumbJsonLd } from '@chrishop/ui';
+import {
+  fetchProductBySlug,
+  getProducts,
+  enrichProductWithShopifyPricing,
+  getAssetUrl,
+} from '@/lib/catalog';
+import { buildOpenGraphImageUrl } from '@/lib/r2-image';
 import ProductDetailClient from './ProductDetailClient';
 
 export const revalidate = 10;
@@ -27,11 +34,63 @@ export async function generateMetadata(props: ProductPageProps): Promise<Metadat
     };
   }
 
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    'https://chrishop.jacobmiller22.com'
+  ).replace(/\/+$/, '');
+
+  const productUrl = `${baseUrl}/products/${rawProduct.slug}`;
+  const rawImage =
+    rawProduct.featured_image ||
+    rawProduct.hero_image ||
+    (rawProduct.gallery && rawProduct.gallery[0]
+      ? typeof rawProduct.gallery[0] === 'string'
+        ? rawProduct.gallery[0]
+        : (rawProduct.gallery[0] as any).url
+      : null);
+
+  const assetUrl = rawImage ? getAssetUrl(rawImage) : null;
+  const ogImageUrl = assetUrl
+    ? buildOpenGraphImageUrl(assetUrl, baseUrl)
+    : `${baseUrl}/api/og?title=${encodeURIComponent(rawProduct.title)}&badge=${encodeURIComponent(
+        rawProduct.status === 'published' ? 'Field Gear' : 'Upcoming Drop'
+      )}&price=${encodeURIComponent(`$${rawProduct.base_price}`)}`;
+
+  const description =
+    rawProduct.description ||
+    'Handcrafted technical outdoor adventure gear built for rugged alpine exploration.';
+
   return {
-    title: `${rawProduct.title} | BankBeaters Adventure Gear`,
-    description:
-      rawProduct.description ||
-      'Handcrafted technical outdoor adventure gear built for rugged alpine exploration.',
+    title: rawProduct.title,
+    description,
+    alternates: {
+      canonical: productUrl,
+    },
+    openGraph: {
+      title: `${rawProduct.title} | BankBeaters Adventure Gear`,
+      description,
+      url: productUrl,
+      siteName: 'BankBeaters',
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${rawProduct.title} - BankBeaters Adventure Gear`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${rawProduct.title} | BankBeaters Adventure Gear`,
+      description,
+      site: '@bankbeaters',
+      creator: '@bankbeaters',
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -45,5 +104,23 @@ export default async function ProductDetailPage(props: ProductPageProps) {
 
   const product = await enrichProductWithShopifyPricing(rawProduct);
 
-  return <ProductDetailClient product={product} />;
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    'https://chrishop.jacobmiller22.com'
+  ).replace(/\/+$/, '');
+
+  const breadcrumbs = [
+    { name: 'Home', url: baseUrl },
+    { name: 'Field Gear', url: `${baseUrl}/products` },
+    { name: product.title, url: `${baseUrl}/products/${product.slug}` },
+  ];
+
+  return (
+    <>
+      <ProductJsonLd product={product as any} baseUrl={baseUrl} />
+      <BreadcrumbJsonLd items={breadcrumbs} />
+      <ProductDetailClient product={product} />
+    </>
+  );
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button, Card, Badge } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
@@ -5,7 +6,11 @@ import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2
 import { isHomepageHeroPocEnabled } from '@/lib/flags';
 import { HeroBanner } from '@/components/storefront/HeroBanner';
 
+import { homeMetadata } from '@/lib/metadata';
+
 export const revalidate = 60;
+
+export const metadata: Metadata = homeMetadata;
 
 export default async function HomePage() {
   const isHeroPoc = await isHomepageHeroPocEnabled();

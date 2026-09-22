@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, Badge, Button, CountdownTimer } from '@chrishop/ui';
 import { fetchProducts, fetchCategories, getAssetUrl, enrichProductsWithShopifyPricing } from '@/lib/catalog';
@@ -12,6 +13,62 @@ interface ProductsPageProps {
     sort?: string;
     type?: string;
   }>;
+}
+
+export async function generateMetadata(props: ProductsPageProps): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const activeCategory = searchParams?.category;
+  const activeType = searchParams?.type;
+
+  let title = 'Field Gear & Technical Packs';
+  let description =
+    'Handcrafted technical outdoor adventure gear, fishing chest rigs, and weatherproof apparel built for rugged exploration.';
+
+  if (activeCategory) {
+    const categories = await fetchCategories();
+    const category = categories.find((c) => c.slug === activeCategory || c.id === activeCategory);
+    if (category) {
+      title = `${category.name} | Technical Outdoor Gear`;
+      description =
+        category.description ||
+        `Explore our hand-sewn ${category.name.toLowerCase()} built in Leadville, Colorado.`;
+    }
+  } else if (activeType === 'micro_batch') {
+    title = 'Micro-Batch & Limited Edition Gear';
+    description = 'Strictly limited edition small-batch runs hand-sewn in Leadville, Colorado.';
+  }
+
+  const canonical = activeCategory ? `/products?category=${activeCategory}` : '/products';
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title: `${title} | BankBeaters`,
+      description,
+      url: canonical,
+      siteName: 'BankBeaters',
+      images: [
+        {
+          url: `/api/og?title=${encodeURIComponent(title)}&badge=${encodeURIComponent('Field Gear Catalog')}`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | BankBeaters`,
+      description,
+      images: [
+        `/api/og?title=${encodeURIComponent(title)}&badge=${encodeURIComponent('Field Gear Catalog')}`,
+      ],
+    },
+  };
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

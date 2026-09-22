@@ -296,3 +296,34 @@ export function buildResponsiveImageProps(
     alt,
   };
 }
+
+/**
+ * Generates an absolute OpenGraph image URL (1200x630) using Cloudflare Image Resizing.
+ * Social crawlers (Twitter, OpenGraph, Facebook, Slack, iMessage) require fully qualified absolute URLs.
+ *
+ * @param sourceUrl - Public URL or R2 asset key of the original media
+ * @param baseUrl - Base storefront URL (defaults to process.env.NEXT_PUBLIC_SITE_URL or https://chrishop.jacobmiller22.com)
+ * @returns Fully qualified OpenGraph image transform URL
+ */
+export function buildOpenGraphImageUrl(sourceUrl: string, baseUrl?: string): string {
+  const transformPath = buildCloudflareImageUrl(sourceUrl, {
+    width: 1200,
+    height: 630,
+    fit: 'cover',
+    quality: 90,
+    format: 'auto',
+  });
+
+  if (transformPath.startsWith('http://') || transformPath.startsWith('https://')) {
+    return transformPath;
+  }
+
+  const base = (
+    baseUrl ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    'https://chrishop.jacobmiller22.com'
+  ).replace(/\/+$/, '');
+
+  return `${base}${transformPath}`;
+}

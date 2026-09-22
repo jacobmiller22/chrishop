@@ -10,3 +10,4 @@ export * from './components/VariationSelector';
 export * from './components/StockIndicator';
 export * from './components/AddToCartButton';
 export * from './components/CountdownTimer';
+export * from './components/ProductJsonLd';

@@ -4,13 +4,11 @@ import { Card, Badge, Button, CountdownTimer } from '@chrishop/ui';
 import { getScheduledDrops, getAssetUrl, enrichProductsWithShopifyPricing } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
 
+import { dropsMetadata } from '@/lib/metadata';
+
 export const revalidate = 10;
 
-export const metadata: Metadata = {
-  title: 'Drop Schedule | BankBeaters Adventure Gear',
-  description:
-    'Explore upcoming scheduled drops of handcrafted small-batch technical adventure gear. Live countdown timers, edition sizes, and release locks.',
-};
+export const metadata: Metadata = dropsMetadata;
 
 export default async function DropSchedulePage() {
   const rawScheduledProducts = await getScheduledDrops();
