@@ -105,6 +105,21 @@ jobs:
           echo "Executing seed script against chrishop-staging-db..."
           pnpm exec wrangler d1 execute chrishop-staging-db --remote --env staging --file=scripts/seed.sql || true
 
+      - name: Provision Staging Cloudflare Queues
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          pnpm exec wrangler queues create shopify-orders-queue-staging 2>/dev/null || true
+          pnpm exec wrangler queues create shopify-orders-dlq-staging 2>/dev/null || true
+          if ! pnpm exec wrangler queues list 2>/dev/null | grep -q "shopify-orders-queue-staging"; then
+            echo "Queue shopify-orders-queue-staging not found on Cloudflare account. Omitting queues binding for staging."
+            node -e '
+              const fs = require("fs");
+              let content = fs.readFileSync("wrangler.toml", "utf-8");
+              content = content.replace(/\[\[env\.staging\.queues\.producers\]\][\s\S]*?dead_letter_queue\s*=\s*"shopify-orders-dlq-staging"/, "# Queues omitted (unprovisioned in staging)");
+              fs.writeFileSync("wrangler.toml", content);
+            '
+          fi
+
       - name: Deploy to Cloudflare Workers (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
@@ -197,6 +212,22 @@ jobs:
         run: |
           echo "Applying D1 migrations to chrishop-prod-db..."
           pnpm exec wrangler d1 migrations apply chrishop-prod-db --remote || true
+
+      - name: Provision Production Cloudflare Queues
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          pnpm exec wrangler queues create shopify-orders-queue 2>/dev/null || true
+          pnpm exec wrangler queues create shopify-orders-dlq 2>/dev/null || true
+          if ! pnpm exec wrangler queues list 2>/dev/null | grep -q "shopify-orders-queue"; then
+            echo "Queue shopify-orders-queue not found on Cloudflare account. Omitting queues binding for production."
+            node -e '
+              const fs = require("fs");
+              let content = fs.readFileSync("wrangler.toml", "utf-8");
+              content = content.replace(/\[\[env\.production\.queues\.producers\]\][\s\S]*?dead_letter_queue\s*=\s*"shopify-orders-dlq"/, "# Queues omitted (unprovisioned in production)");
+              content = content.replace(/\[\[queues\.producers\]\][\s\S]*?dead_letter_queue\s*=\s*"shopify-orders-dlq"/, "# Queues omitted (unprovisioned in production)");
+              fs.writeFileSync("wrangler.toml", content);
+            '
+          fi
 
       - name: Deploy to Cloudflare Workers (Production)
         uses: cloudflare/wrangler-action@v3

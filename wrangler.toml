@@ -28,6 +28,22 @@ id = "8e448bf8d94d4d8ea2cba989f193343d"
 binding = "BUCKET"
 bucket_name = "chrishop-media-prod"
 
+# Production Cloudflare Queues Configuration (Story 3.8: Async Webhook Pipeline)
+[[queues.producers]]
+binding = "SHOPIFY_ORDERS_QUEUE"
+queue = "shopify-orders-queue"
+
+[[queues.producers]]
+binding = "SHOPIFY_ORDERS_DLQ"
+queue = "shopify-orders-dlq"
+
+[[queues.consumers]]
+queue = "shopify-orders-queue"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "shopify-orders-dlq"
+
 # Production Feature Flags (ADR-001)
 # Cloudflare Flagship Binding: Uncomment and set app_id when app is created in Cloudflare Dashboard
 # [[flagship]]
@@ -72,6 +88,22 @@ id = "0f39e4af03e344eaa160d11b047d09b6"
 binding = "BUCKET"
 bucket_name = "chrishop-media-staging"
 
+# Staging Cloudflare Queues Configuration (Story 3.8: Async Webhook Pipeline)
+[[env.staging.queues.producers]]
+binding = "SHOPIFY_ORDERS_QUEUE"
+queue = "shopify-orders-queue-staging"
+
+[[env.staging.queues.producers]]
+binding = "SHOPIFY_ORDERS_DLQ"
+queue = "shopify-orders-dlq-staging"
+
+[[env.staging.queues.consumers]]
+queue = "shopify-orders-queue-staging"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "shopify-orders-dlq-staging"
+
 # Staging Feature Flags (ADR-001)
 # [[env.staging.flagship]]
 # binding = "FLAGS"
@@ -115,6 +147,22 @@ id = "8e448bf8d94d4d8ea2cba989f193343d"
 binding = "BUCKET"
 bucket_name = "chrishop-media-prod"
 
+# Production Environment Cloudflare Queues Configuration (Story 3.8: Async Webhook Pipeline)
+[[env.production.queues.producers]]
+binding = "SHOPIFY_ORDERS_QUEUE"
+queue = "shopify-orders-queue"
+
+[[env.production.queues.producers]]
+binding = "SHOPIFY_ORDERS_DLQ"
+queue = "shopify-orders-dlq"
+
+[[env.production.queues.consumers]]
+queue = "shopify-orders-queue"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "shopify-orders-dlq"
+
 [env.production.vars]
 NODE_ENV = "production"
 SITE_URL = "https://chrishop.jacobmiller22.com"
@@ -151,6 +199,22 @@ id = "71a3223ebcda4e03a4b79bd5df7311c5"
 [[env.preview.r2_buckets]]
 binding = "BUCKET"
 bucket_name = "chrishop-media-preview"
+
+# Ephemeral Preview Cloudflare Queues Configuration (Story 3.8: Async Webhook Pipeline)
+[[env.preview.queues.producers]]
+binding = "SHOPIFY_ORDERS_QUEUE"
+queue = "shopify-orders-queue-preview"
+
+[[env.preview.queues.producers]]
+binding = "SHOPIFY_ORDERS_DLQ"
+queue = "shopify-orders-dlq-preview"
+
+[[env.preview.queues.consumers]]
+queue = "shopify-orders-queue-preview"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "shopify-orders-dlq-preview"
 
 # Ephemeral Preview Feature Flags (Story 2.47 & ADR-001)
 # Ephemeral previews evaluate flags via:

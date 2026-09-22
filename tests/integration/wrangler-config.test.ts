@@ -50,6 +50,14 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.match(content, /binding\s*=\s*"BUCKET"/, 'R2 binding must be BUCKET');
     assert.match(content, /bucket_name\s*=\s*"chrishop-media-prod"/, 'R2 bucket name must be chrishop-media-prod');
 
+    // Production Queues (Story 3.8: Async Webhook Pipeline)
+    assert.ok(content.includes('[[queues.producers]]'), 'Must declare [[queues.producers]]');
+    assert.match(content, /binding\s*=\s*"SHOPIFY_ORDERS_QUEUE"/, 'Must declare SHOPIFY_ORDERS_QUEUE producer');
+    assert.match(content, /binding\s*=\s*"SHOPIFY_ORDERS_DLQ"/, 'Must declare SHOPIFY_ORDERS_DLQ producer');
+    assert.ok(content.includes('[[queues.consumers]]'), 'Must declare [[queues.consumers]]');
+    assert.match(content, /queue\s*=\s*"shopify-orders-queue"/, 'Consumer must listen to shopify-orders-queue');
+    assert.match(content, /dead_letter_queue\s*=\s*"shopify-orders-dlq"/, 'Consumer must configure dead_letter_queue');
+
     // Production Vars
     assert.match(content, /NODE_ENV\s*=\s*"production"/, 'NODE_ENV must be production');
     assert.match(content, /SITE_URL\s*=\s*"https:\/\/chrishop\.jacobmiller22\.com"/, 'SITE_URL must be chrishop.jacobmiller22.com');
@@ -88,6 +96,12 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('[[env.staging.r2_buckets]]'), 'Must declare [[env.staging.r2_buckets]]');
     assert.match(content, /bucket_name\s*=\s*"chrishop-media-staging"/, 'Staging R2 bucket name must be chrishop-media-staging');
 
+    // Staging Queues (Story 3.8: Async Webhook Pipeline)
+    assert.ok(content.includes('[[env.staging.queues.producers]]'), 'Must declare [[env.staging.queues.producers]]');
+    assert.match(content, /queue\s*=\s*"shopify-orders-queue-staging"/, 'Staging producer must use shopify-orders-queue-staging');
+    assert.match(content, /queue\s*=\s*"shopify-orders-dlq-staging"/, 'Staging producer must use shopify-orders-dlq-staging');
+    assert.ok(content.includes('[[env.staging.queues.consumers]]'), 'Must declare [[env.staging.queues.consumers]]');
+
     // Staging Vars
     assert.match(content, /NODE_ENV\s*=\s*"staging"/, 'Staging NODE_ENV must be staging');
     assert.match(
@@ -109,6 +123,8 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('[[env.production.d1_databases]]'), 'Must declare [[env.production.d1_databases]]');
     assert.ok(content.includes('[[env.production.kv_namespaces]]'), 'Must declare [[env.production.kv_namespaces]]');
     assert.ok(content.includes('[[env.production.r2_buckets]]'), 'Must declare [[env.production.r2_buckets]]');
+    assert.ok(content.includes('[[env.production.queues.producers]]'), 'Must declare [[env.production.queues.producers]]');
+    assert.ok(content.includes('[[env.production.queues.consumers]]'), 'Must declare [[env.production.queues.consumers]]');
   });
 
   it('should verify ephemeral PR preview environment section [env.preview]', () => {
@@ -119,6 +135,8 @@ describe('Cloudflare Workers Project & Staging Setup (wrangler.toml & Workflows)
     assert.ok(content.includes('[[env.preview.d1_databases]]'), 'Must declare [[env.preview.d1_databases]]');
     assert.ok(content.includes('[[env.preview.kv_namespaces]]'), 'Must declare [[env.preview.kv_namespaces]]');
     assert.ok(content.includes('[[env.preview.r2_buckets]]'), 'Must declare [[env.preview.r2_buckets]]');
+    assert.ok(content.includes('[[env.preview.queues.producers]]'), 'Must declare [[env.preview.queues.producers]]');
+    assert.ok(content.includes('[[env.preview.queues.consumers]]'), 'Must declare [[env.preview.queues.consumers]]');
   });
 
   it('should validate wrangler types generation across all target environments', () => {

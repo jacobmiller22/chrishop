@@ -233,6 +233,7 @@ import { runWithCloudflareRequestContext } from "./cloudflare/init.js";
 import { maybeGetSkewProtectionResponse } from "./cloudflare/skew-protection.js";
 // @ts-expect-error: Will be resolved by wrangler build
 import { handler as middlewareHandler } from "./middleware/handler.mjs";
+import { handleOrderQueueBatch } from "../apps/web/src/lib/order-consumer.ts";
 
 export default {
   async fetch(request, env, ctx) {
@@ -362,6 +363,8 @@ export default {
     if (env.DB) globalThis.DB = env.DB;
     if (env.BUCKET) globalThis.BUCKET = env.BUCKET;
     if (env.NEXT_CACHE_WORKERS_KV) globalThis.NEXT_CACHE_WORKERS_KV = env.NEXT_CACHE_WORKERS_KV;
+    if (env.SHOPIFY_ORDERS_QUEUE) globalThis.SHOPIFY_ORDERS_QUEUE = env.SHOPIFY_ORDERS_QUEUE;
+    if (env.SHOPIFY_ORDERS_DLQ) globalThis.SHOPIFY_ORDERS_DLQ = env.SHOPIFY_ORDERS_DLQ;
 
     // 5. Execute Unified OpenNext Server Function within Cloudflare Request Context
     try {
@@ -434,27 +437,7 @@ export default {
 
   // 7. Cloudflare Queue Consumer Entrypoint (SHOPIFY_ORDERS_QUEUE)
   async queue(batch, env, ctx) {
-    const queueName = batch.queue || 'SHOPIFY_ORDERS_QUEUE';
-    console.log(\`[Worker:Queue] Received batch of \${batch.messages?.length || 0} messages on \${queueName}\`);
-
-    for (const message of batch.messages) {
-      const messageId = message.id || 'msg-unknown';
-      const attempts = message.attempts || 1;
-      try {
-        const payload = message.body;
-        console.log(\`[Worker:Queue] Processing message \${messageId} (attempt \${attempts}), topic: \${payload?.topic || 'orders/create'}\`);
-
-        if (typeof message.ack === 'function') {
-          await message.ack();
-        }
-      } catch (err) {
-        console.error(\`[Worker:QueueError] Message \${messageId} processing failed:\`, err);
-        if (typeof message.retry === 'function') {
-          const delaySeconds = Math.min(60, 5 * Math.pow(2, Math.max(0, attempts - 1)));
-          await message.retry({ delaySeconds });
-        }
-      }
-    }
+    return await handleOrderQueueBatch(batch, env, ctx);
   },
 };
 `;
