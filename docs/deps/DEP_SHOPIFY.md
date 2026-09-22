@@ -145,34 +145,46 @@ mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
 
 ## 3. Shopify Admin API & Synchronization Hook
 
-When an artwork drop is published or updated in Payload CMS, an `afterChange` collection hook triggers a synchronization GraphQL call to the Shopify Admin API:
+When a product or equipment drop is published or updated in Payload CMS, an `afterChange` collection hook triggers a synchronization GraphQL call to the Shopify Admin API.
+
+> [!CAUTION]
+> **Adversarial Audit Invariant (Zero Inventory Overwrites)**:
+> Under NO circumstances does this hook sync or mutate Shopify inventory levels or variant quantities. Shopify is the sole authoritative source of truth for stock management. Syncing stock from Payload creates drop oversell hazards during high-velocity checkout events.
 
 ```typescript
-// apps/web/src/collections/products/hooks/syncToShopify.ts
-export const syncProductToShopify = async ({ doc, operation }) => {
-  if (doc.status !== 'active') return doc;
+// apps/web/src/collections/hooks/syncProductToShopify.ts
+export const syncProductToShopify: CollectionAfterChangeHook = async ({ doc, req }) => {
+  if (req?.context?.skipShopifySync) return doc;
+  if (!doc?.title) return doc;
 
   if (!doc.shopify_product_id) {
-    // Call productCreate GraphQL mutation
-    const res = await shopifyAdminClient.request(CREATE_PRODUCT_MUTATION, {
-      input: {
-        title: doc.title,
-        status: 'ACTIVE',
-        variants: doc.variations?.map((v) => ({
-          price: v.price_override || doc.base_price,
-          sku: v.sku,
-          inventoryQuantities: [{ availableQuantity: v.stock_quantity, locationId }],
-        })),
-      },
+    // Provision in Shopify Admin API (editorial metadata only)
+    const res = await shopifyAdmin.createProduct({
+      title: doc.title,
+      descriptionHtml: doc.description,
+      tags: ['bankbeaters', `category:${doc.category}`],
+      status: doc.status === 'active' ? 'ACTIVE' : 'DRAFT',
     });
-    doc.shopify_product_id = res.data.productCreate.product.id;
+    if (res.success && res.product?.id) {
+      doc.shopify_product_id = res.product.id;
+      // Persist GID to D1
+      if (req?.payload?.update && doc.id) {
+        await req.payload.update({
+          collection: 'products',
+          id: doc.id,
+          data: { shopify_product_id: res.product.id },
+          context: { skipShopifySync: true },
+        });
+      }
+    }
   } else {
-    // Call productUpdate mutation
-    await shopifyAdminClient.request(UPDATE_PRODUCT_MUTATION, {
-      input: {
-        id: doc.shopify_product_id,
-        title: doc.title,
-      },
+    // Update existing product editorial metadata
+    await shopifyAdmin.updateProduct({
+      id: doc.shopify_product_id,
+      title: doc.title,
+      descriptionHtml: doc.description,
+      tags: ['bankbeaters', `category:${doc.category}`],
+      status: doc.status === 'active' ? 'ACTIVE' : 'DRAFT',
     });
   }
   return doc;
