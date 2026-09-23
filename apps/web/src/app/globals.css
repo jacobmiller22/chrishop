@@ -16,16 +16,79 @@
   font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
 }
 
-/* Direction A: The Alpine Field Journal (Warm Daylight Ecru) */
+/* Direction A: The Alpine Field Journal (Multi-Palette System) */
 .direction-theme-a {
-  --bg-canvas: #F6F3EC;
-  --text-primary: #1A2421;
-  --text-muted: #5A6660;
-  --surface-card: #EFEBE0;
-  --surface-border: #DDD7C8;
-  --accent-color: #C85A32;
-  background-color: var(--bg-canvas) !important;
-  color: var(--text-primary) !important;
+  --journal-canvas: #F6F3EC;
+  --journal-surface: #EFECE3;
+  --journal-border: #DDD7C8;
+  --journal-ink: #1A2421;
+  --journal-muted: #5A6660;
+  --journal-accent: #C85A32;
+  --journal-accent-hover: #B04D28;
+  --journal-hero-overlay: #1A2421;
+  background-color: var(--journal-canvas) !important;
+  color: var(--journal-ink) !important;
+}
+
+/* Palette 1: Sailcloth Ecru & Colorado Clay (Baseline) */
+.direction-theme-a.palette-sailcloth,
+.direction-theme-a:not([class*="palette-"]) {
+  --journal-canvas: #F6F3EC;
+  --journal-surface: #EFECE3;
+  --journal-border: #DDD7C8;
+  --journal-ink: #1A2421;
+  --journal-muted: #5A6660;
+  --journal-accent: #C85A32;
+  --journal-accent-hover: #B04D28;
+  --journal-hero-overlay: #1A2421;
+}
+
+/* Palette 2: Blue Spruce & Glacial Quartz */
+.direction-theme-a.palette-spruce {
+  --journal-canvas: #F0F4F4;
+  --journal-surface: #E3ECEB;
+  --journal-border: #C6D8D6;
+  --journal-ink: #0F2224;
+  --journal-muted: #455E60;
+  --journal-accent: #D96B27;
+  --journal-accent-hover: #BF581A;
+  --journal-hero-overlay: #0F2224;
+}
+
+/* Palette 3: Waxed Cedar & Russet Pine */
+.direction-theme-a.palette-cedar {
+  --journal-canvas: #F8F5EE;
+  --journal-surface: #EFE8DC;
+  --journal-border: #DDD0BE;
+  --journal-ink: #2B2118;
+  --journal-muted: #685A4E;
+  --journal-accent: #A8472A;
+  --journal-accent-hover: #8C371D;
+  --journal-hero-overlay: #2B2118;
+}
+
+/* Palette 4: Leadville Granite & Signal Orange */
+.direction-theme-a.palette-granite {
+  --journal-canvas: #ECEFF1;
+  --journal-surface: #E1E6E9;
+  --journal-border: #CBD3D8;
+  --journal-ink: #151B20;
+  --journal-muted: #505E68;
+  --journal-accent: #E55B24;
+  --journal-accent-hover: #CC4B18;
+  --journal-hero-overlay: #151B20;
+}
+
+/* Palette 5: Timberline Nocturne (Dark Mode) */
+.direction-theme-a.palette-nocturne {
+  --journal-canvas: #121615;
+  --journal-surface: #1A201E;
+  --journal-border: #2C3834;
+  --journal-ink: #F4F1EA;
+  --journal-muted: #8D9C96;
+  --journal-accent: #E66838;
+  --journal-accent-hover: #CF5526;
+  --journal-hero-overlay: #090B0B;
 }
 
 /* Direction B: Pure Riverbank Utility (Washed Granite & Burnt Amber) */

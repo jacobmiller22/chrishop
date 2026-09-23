@@ -9,6 +9,7 @@ import {
   DirectionWorkshopSpec,
   DirectionSwitcher,
   type DesignDirection,
+  type JournalPalette,
 } from '@/components/storefront/directions';
 
 export const revalidate = 60;
@@ -16,16 +17,30 @@ export const revalidate = 60;
 export const metadata: Metadata = homeMetadata;
 
 export interface HomePageProps {
-  searchParams?: Promise<{ direction?: string }>;
+  searchParams?: Promise<{ direction?: string; palette?: string }>;
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const cookieDirection = cookieStore.get('bb_design_direction')?.value as DesignDirection | undefined;
+  const cookiePalette = cookieStore.get('bb_journal_palette')?.value as JournalPalette | undefined;
 
   const validDirection = (dir?: string): DesignDirection | null => {
     if (dir === 'a' || dir === 'b' || dir === 'c') return dir;
+    return null;
+  };
+
+  const validPalette = (pal?: string): JournalPalette | null => {
+    if (
+      pal === 'sailcloth' ||
+      pal === 'spruce' ||
+      pal === 'cedar' ||
+      pal === 'granite' ||
+      pal === 'nocturne'
+    ) {
+      return pal;
+    }
     return null;
   };
 
@@ -34,6 +49,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     validDirection(cookieDirection) ||
     (process.env.DEFAULT_DESIGN_DIRECTION as DesignDirection) ||
     'a';
+
+  const activePalette: JournalPalette =
+    validPalette(resolvedSearchParams?.palette) ||
+    validPalette(cookiePalette) ||
+    'sailcloth';
 
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;
@@ -47,7 +67,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     <div className="relative pb-16">
       {/* Dynamic Direction Archetype Rendering */}
       {activeDirection === 'a' && (
-        <DirectionAlpineJournal products={products} featuredProduct={featuredProduct} />
+        <DirectionAlpineJournal
+          products={products}
+          featuredProduct={featuredProduct}
+          initialPalette={activePalette}
+        />
       )}
 
       {activeDirection === 'b' && (

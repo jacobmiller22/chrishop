@@ -1,23 +1,54 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/catalog';
+import {
+  JournalPaletteSwitcher,
+  type JournalPalette,
+} from './JournalPaletteSwitcher';
 
 export interface DirectionAlpineJournalProps {
   products: StorefrontProduct[];
   featuredProduct?: StorefrontProduct | null;
+  initialPalette?: JournalPalette;
 }
 
 export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
   products,
   featuredProduct: _featuredProduct,
+  initialPalette = 'sailcloth',
 }) => {
+  const [activePalette, setActivePalette] = useState<JournalPalette>(initialPalette);
+
+  // Sync state if initialPalette changes (e.g. from URL navigation)
+  useEffect(() => {
+    if (initialPalette) {
+      setActivePalette(initialPalette);
+    }
+  }, [initialPalette]);
+
   const displayProducts = products.slice(0, 6);
 
   return (
-    <div className="direction-theme-a -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 space-y-24 transition-colors">
+    <div
+      className={`direction-theme-a palette-${activePalette} -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 space-y-12 transition-colors duration-500`}
+    >
+      {/* 0. COLORWAY PALETTE SWITCHER BAR */}
+      <JournalPaletteSwitcher
+        currentPalette={activePalette}
+        onSelectPalette={setActivePalette}
+      />
+
       {/* 1. EDITORIAL HERO: Full Bleed Riverbank Photography + Floating Heritage Mark */}
-      <section className="relative w-full rounded-3xl overflow-hidden shadow-xl border border-[#DDD7C8] bg-[#EFECE3]">
+      <section
+        className="relative w-full rounded-3xl overflow-hidden shadow-xl border transition-colors duration-500"
+        style={{
+          borderColor: 'var(--journal-border)',
+          backgroundColor: 'var(--journal-surface)',
+        }}
+      >
         <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -28,8 +59,14 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
             fetchPriority="high"
           />
 
-          {/* Warm daylight subtle gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1A2421]/90 via-[#1A2421]/40 to-transparent" />
+          {/* Dynamic palette hero gradient */}
+          <div
+            className="absolute inset-0 transition-opacity duration-500"
+            style={{
+              background:
+                'linear-gradient(to top, var(--journal-hero-overlay) 0%, rgba(10, 16, 14, 0.45) 50%, transparent 100%)',
+            }}
+          />
 
           {/* Floating Brand Narrative */}
           <div className="absolute bottom-8 left-6 right-6 sm:bottom-12 sm:left-12 sm:right-12 max-w-3xl space-y-4">
@@ -50,7 +87,10 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
             <div className="pt-2 flex items-center gap-4">
               <Link
                 href="/products"
-                className="min-h-[44px] inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-[#C85A32] hover:bg-[#b04d28] text-white font-sans text-sm font-semibold tracking-wide shadow-md transition-transform hover:-translate-y-0.5"
+                className="min-h-[44px] inline-flex items-center justify-center px-8 py-3.5 rounded-full text-white font-sans text-sm font-semibold tracking-wide shadow-md transition-all hover:opacity-90 hover:-translate-y-0.5"
+                style={{
+                  backgroundColor: 'var(--journal-accent)',
+                }}
               >
                 Explore Field Gear ({products.length}) →
               </Link>
@@ -67,18 +107,28 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
 
       {/* 2. UN-BOXED GEAR ROSTER: Clean, Borderless Floating Silhouettes */}
       <section className="space-y-10">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#DDD7C8] pb-6 gap-4">
+        <div
+          className="flex flex-col sm:flex-row sm:items-end justify-between border-b pb-6 gap-4 transition-colors"
+          style={{ borderColor: 'var(--journal-border)' }}
+        >
           <div className="space-y-1">
-            <span className="text-xs uppercase font-sans tracking-[0.2em] text-[#C85A32] font-bold">
+            <span
+              className="text-xs uppercase font-sans tracking-[0.2em] font-bold"
+              style={{ color: 'var(--journal-accent)' }}
+            >
               Small-Batch Outfitter Roster
             </span>
-            <h2 className="text-3xl sm:text-4xl font-journal-serif italic text-[#1A2421]">
+            <h2
+              className="text-3xl sm:text-4xl font-journal-serif italic"
+              style={{ color: 'var(--journal-ink)' }}
+            >
               Current Field Builds
             </h2>
           </div>
           <Link
             href="/products"
-            className="min-h-[44px] inline-flex items-center text-sm font-sans font-semibold text-[#C85A32] hover:text-[#b04d28] gap-1 px-1"
+            className="min-h-[44px] inline-flex items-center text-sm font-sans font-semibold gap-1 px-1 hover:underline"
+            style={{ color: 'var(--journal-accent)' }}
           >
             Complete Equipment Vault ({products.length}) →
           </Link>
@@ -94,7 +144,11 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
               <article key={item.id} className="group flex flex-col space-y-4">
                 <Link
                   href={`/products/${item.slug}`}
-                  className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[#EFECE3] border border-[#DDD7C8] shadow-sm transition-transform duration-500 group-hover:-translate-y-1"
+                  className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border shadow-sm transition-transform duration-500 group-hover:-translate-y-1"
+                  style={{
+                    backgroundColor: 'var(--journal-surface)',
+                    borderColor: 'var(--journal-border)',
+                  }}
                 >
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -105,13 +159,23 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-400 font-sans text-xs">
+                    <div
+                      className="w-full h-full flex items-center justify-center font-sans text-xs"
+                      style={{ color: 'var(--journal-muted)' }}
+                    >
                       Field Silhouette
                     </div>
                   )}
 
                   {item.category?.name && (
-                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-sans font-medium bg-[#F6F3EC]/90 text-[#1A2421] backdrop-blur-sm border border-[#DDD7C8]">
+                    <span
+                      className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-sans font-medium backdrop-blur-sm border shadow-xs"
+                      style={{
+                        backgroundColor: 'var(--journal-canvas)',
+                        color: 'var(--journal-ink)',
+                        borderColor: 'var(--journal-border)',
+                      }}
+                    >
                       {item.category.name}
                     </span>
                   )}
@@ -119,16 +183,26 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
 
                 <div className="space-y-1.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="text-lg font-journal-serif text-[#1A2421]">
-                      <Link href={`/products/${item.slug}`} className="min-h-[44px] inline-flex items-center hover:text-[#C85A32] transition-colors py-1">
+                    <h3 className="text-lg font-journal-serif">
+                      <Link
+                        href={`/products/${item.slug}`}
+                        className="min-h-[44px] inline-flex items-center transition-colors py-1 hover:underline"
+                        style={{ color: 'var(--journal-ink)' }}
+                      >
                         {item.title}
                       </Link>
                     </h3>
-                    <span className="text-sm font-sans font-bold text-[#1A2421]">
+                    <span
+                      className="text-sm font-sans font-bold"
+                      style={{ color: 'var(--journal-ink)' }}
+                    >
                       ${Number(price).toFixed(2)}
                     </span>
                   </div>
-                  <p className="text-xs font-sans text-[#5A6660] line-clamp-2 leading-relaxed">
+                  <p
+                    className="text-xs font-sans line-clamp-2 leading-relaxed"
+                    style={{ color: 'var(--journal-muted)' }}
+                  >
                     {typeof item.description === 'string' ? item.description : ''}
                   </p>
                 </div>
@@ -139,23 +213,38 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
       </section>
 
       {/* 3. EDITORIAL STORY DISPATCH: The Maker's Workshop */}
-      <section className="border-t border-[#DDD7C8] pt-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section
+        className="border-t pt-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center transition-colors"
+        style={{ borderColor: 'var(--journal-border)' }}
+      >
         <div className="lg:col-span-6 space-y-6">
           <div className="space-y-2">
-            <span className="text-xs uppercase font-sans tracking-[0.2em] text-[#C85A32] font-bold">
+            <span
+              className="text-xs uppercase font-sans tracking-[0.2em] font-bold"
+              style={{ color: 'var(--journal-accent)' }}
+            >
               Provenance &amp; Field Repair
             </span>
-            <h2 className="text-3xl sm:text-4xl font-journal-serif italic text-[#1A2421]">
+            <h2
+              className="text-3xl sm:text-4xl font-journal-serif italic"
+              style={{ color: 'var(--journal-ink)' }}
+            >
               The Leadville Cutting Bench
             </h2>
           </div>
 
-          <p className="font-journal-serif text-base sm:text-lg text-[#1A2421] leading-relaxed">
+          <p
+            className="font-journal-serif text-base sm:text-lg leading-relaxed"
+            style={{ color: 'var(--journal-ink)' }}
+          >
             In angling and outdoor culture, a <em>Bank Beater</em> is anyone who reaches water on foot.
             There are no cushioned casting decks—only miles through brambles, willows, and cold riverbanks.
           </p>
 
-          <p className="text-sm font-sans text-[#5A6660] leading-relaxed">
+          <p
+            className="text-sm font-sans leading-relaxed"
+            style={{ color: 'var(--journal-muted)' }}
+          >
             Every garment and carry rig is constructed from 500D Cordura®, X-Pac® sailcloth, and bonded
             nylon thread on an industrial lockstitch machine. If you ever tear a seam or puncture a pocket
             in the field, send it back to the workshop. Chris repairs all BankBeaters gear for life.
@@ -164,7 +253,8 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
           <div className="pt-2">
             <Link
               href="/about"
-              className="min-h-[44px] inline-flex items-center text-sm font-sans font-semibold text-[#C85A32] hover:text-[#b04d28] gap-1 px-1"
+              className="min-h-[44px] inline-flex items-center text-sm font-sans font-semibold gap-1 px-1 hover:underline"
+              style={{ color: 'var(--journal-accent)' }}
             >
               Read the Full Origin Essay →
             </Link>
@@ -172,15 +262,33 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
         </div>
 
         <div className="lg:col-span-6">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg border border-[#DDD7C8] bg-[#EFECE3]">
+          <div
+            className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg border"
+            style={{
+              borderColor: 'var(--journal-border)',
+              backgroundColor: 'var(--journal-surface)',
+            }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/media/hero/bank-beaters-hero.jpg"
               alt="Leadville Colorado Workshop"
               className="w-full h-full object-cover"
             />
-            <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-[#F6F3EC]/95 backdrop-blur-md border border-[#DDD7C8] text-xs font-sans text-[#5A6660]">
-              <span className="font-bold text-[#1A2421] block mb-0.5">Single-Needle Craftsmanship</span>
+            <div
+              className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl backdrop-blur-md border text-xs font-sans shadow-md"
+              style={{
+                backgroundColor: 'var(--journal-surface)',
+                borderColor: 'var(--journal-border)',
+                color: 'var(--journal-muted)',
+              }}
+            >
+              <span
+                className="font-bold block mb-0.5"
+                style={{ color: 'var(--journal-ink)' }}
+              >
+                Single-Needle Craftsmanship
+              </span>
               Guaranteed for the lifetime of your field adventures.
             </div>
           </div>
@@ -189,3 +297,4 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
     </div>
   );
 };
+
