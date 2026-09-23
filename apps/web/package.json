@@ -26,7 +26,7 @@
     "@sentry/nextjs": "^10.75.2",
     "@shopify/storefront-api-client": "^2.0.0",
     "graphql": "^16.8.1",
-    "next": "16.3.3",
+    "next": "16.3.5",
     "payload": "^3.89.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
