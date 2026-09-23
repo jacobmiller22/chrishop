@@ -406,9 +406,15 @@ export default async function HomePage() {
         className="rounded-2xl border border-stone-800/80 bg-[#101317] p-8 sm:p-12 space-y-8"
       >
         <div className="max-w-3xl space-y-4">
-          <span className="text-xs font-mono text-[#E55B24] uppercase tracking-widest font-bold block">
-            Craftsmanship & Provenance
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-mono text-[#E55B24] uppercase tracking-widest font-bold">
+              BankBeaters Adventure Gear
+            </span>
+            <span className="text-xs font-mono text-stone-500">·</span>
+            <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">
+              Curiosity &gt; Fear
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-black text-stone-100 uppercase tracking-tight">
             The Maker&apos;s Bench
           </h2>
@@ -422,6 +428,13 @@ export default async function HomePage() {
             bonded nylon thread. Whenever deadstock fabrics or salvaged military-spec textiles cross the
             cutting bench, we craft 2–3 piece <strong>micro-batches</strong> alongside standard production runs.
           </p>
+          <div className="pt-2">
+            <Link href="/about">
+              <Button variant="outline" size="sm" className="font-mono text-xs uppercase tracking-wider">
+                The Maker&apos;s Story &amp; Provenance →
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-stone-800/80">

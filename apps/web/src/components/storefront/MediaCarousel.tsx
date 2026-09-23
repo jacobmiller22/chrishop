@@ -171,7 +171,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
             )}
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-wider text-[#E55B24]">[ SPEC // WORKBENCH SILHOUETTE ]</p>
+            <p className="text-xs font-mono uppercase tracking-wider text-[#E55B24]">Workbench Silhouette Preview</p>
             <p className="text-[11px] font-mono text-stone-500">Field documentation in progress</p>
           </div>
         </div>
