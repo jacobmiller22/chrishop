@@ -33,7 +33,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     validDirection(resolvedSearchParams?.direction) ||
     validDirection(cookieDirection) ||
     (process.env.DEFAULT_DESIGN_DIRECTION as DesignDirection) ||
-    'a';
+    'b';
 
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;
