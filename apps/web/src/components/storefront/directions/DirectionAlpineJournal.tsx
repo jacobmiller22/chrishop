@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { DropCountdown } from '@chrishop/ui';
 import type { StorefrontProduct } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/catalog';
 
@@ -81,6 +82,11 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Workshop Drop Countdown Banner */}
+      <div className="flex justify-center -mt-4">
+        <DropCountdown title="Workshop Drop Countdown" />
+      </div>
 
       {/* 2. UN-BOXED GEAR ROSTER: Clean, Borderless Floating Silhouettes */}
       <section className="space-y-10">

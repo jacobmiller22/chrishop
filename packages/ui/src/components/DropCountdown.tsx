@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Badge } from './Badge';
 
 export interface DropCountdownProps {
   targetDate?: Date | string;
@@ -69,38 +68,38 @@ export const DropCountdown: React.FC<DropCountdownProps> = ({
   return (
     <div
       data-testid="drop-countdown-timer"
-      className={`inline-flex flex-col sm:flex-row items-center gap-3 p-3 sm:px-4 sm:py-2.5 rounded-xl bg-[#101317]/90 border border-stone-800 shadow-xl backdrop-blur-md ${className}`}
+      className={`inline-flex flex-col sm:flex-row items-center gap-3 p-3 sm:px-4 sm:py-2.5 rounded-xl bg-[#EFE8DC]/95 border border-[#DDD0BE] shadow-md backdrop-blur-md ${className}`}
     >
       <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[#E55B24] animate-pulse" />
-        <span className="text-xs font-mono uppercase tracking-widest text-stone-300 font-bold">
+        <span className="w-2 h-2 rounded-full bg-[#A8472A] animate-pulse" />
+        <span className="text-xs font-mono uppercase tracking-widest text-[#2B2118] font-bold">
           {title}
         </span>
-        <Badge variant="warning" className="text-[10px] font-mono uppercase tracking-wider py-0 px-1.5">
+        <span className="text-[10px] font-mono uppercase tracking-wider py-0.5 px-2 bg-[#A8472A] text-white rounded-full font-bold">
           Small-Batch
-        </Badge>
+        </span>
       </div>
 
-      <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black text-stone-100">
-        <div className="flex flex-col items-center bg-[#15191E] border border-stone-800 rounded px-2 py-0.5">
+      <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black text-[#2B2118]">
+        <div className="flex flex-col items-center bg-[#F8F5EE] border border-[#DDD0BE] rounded px-2 py-0.5">
           <span data-testid="countdown-hours">
             {mounted ? pad(timeRemaining.days * 24 + timeRemaining.hours) : '24'}
           </span>
-          <span className="text-[9px] font-normal text-stone-500 uppercase tracking-tighter">HRS</span>
+          <span className="text-[9px] font-normal text-[#685A4E] uppercase tracking-tighter">HRS</span>
         </div>
-        <span className="text-[#E55B24] font-bold">:</span>
-        <div className="flex flex-col items-center bg-[#15191E] border border-stone-800 rounded px-2 py-0.5">
+        <span className="text-[#A8472A] font-bold">:</span>
+        <div className="flex flex-col items-center bg-[#F8F5EE] border border-[#DDD0BE] rounded px-2 py-0.5">
           <span data-testid="countdown-minutes">
             {mounted ? pad(timeRemaining.minutes) : '14'}
           </span>
-          <span className="text-[9px] font-normal text-stone-500 uppercase tracking-tighter">MIN</span>
+          <span className="text-[9px] font-normal text-[#685A4E] uppercase tracking-tighter">MIN</span>
         </div>
-        <span className="text-[#E55B24] font-bold">:</span>
-        <div className="flex flex-col items-center bg-[#15191E] border border-stone-800 rounded px-2 py-0.5">
+        <span className="text-[#A8472A] font-bold">:</span>
+        <div className="flex flex-col items-center bg-[#F8F5EE] border border-[#DDD0BE] rounded px-2 py-0.5">
           <span data-testid="countdown-seconds">
             {mounted ? pad(timeRemaining.seconds) : '32'}
           </span>
-          <span className="text-[9px] font-normal text-stone-500 uppercase tracking-tighter">SEC</span>
+          <span className="text-[9px] font-normal text-[#685A4E] uppercase tracking-tighter">SEC</span>
         </div>
       </div>
     </div>

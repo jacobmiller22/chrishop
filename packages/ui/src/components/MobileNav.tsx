@@ -22,7 +22,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   isOpen,
   onClose,
   navItems = [
-    { label: 'Equipment Vault', href: '/products' },
+    { label: 'Field Gear', href: '/products' },
     { label: 'The Workshop', href: '/about' },
     { label: 'Drop Schedule', href: '/drops' },
   ],
