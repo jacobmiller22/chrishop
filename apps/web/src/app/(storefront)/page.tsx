@@ -1,60 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
 import { fetchProducts, fetchProductBySlug } from '@/lib/catalog';
 import { homeMetadata } from '@/lib/metadata';
-import {
-  DirectionAlpineJournal,
-  DirectionRiverbankUtility,
-  DirectionWorkshopSpec,
-  DirectionSwitcher,
-  type DesignDirection,
-  type JournalPalette,
-} from '@/components/storefront/directions';
+import { DirectionAlpineJournal } from '@/components/storefront/directions';
 
 export const revalidate = 60;
 
 export const metadata: Metadata = homeMetadata;
 
-export interface HomePageProps {
-  searchParams?: Promise<{ direction?: string; palette?: string }>;
-}
-
-export default async function HomePage({ searchParams }: HomePageProps) {
-  const resolvedSearchParams = await searchParams;
-  const cookieStore = await cookies();
-  const cookieDirection = cookieStore.get('bb_design_direction')?.value as DesignDirection | undefined;
-  const cookiePalette = cookieStore.get('bb_journal_palette')?.value as JournalPalette | undefined;
-
-  const validDirection = (dir?: string): DesignDirection | null => {
-    if (dir === 'a' || dir === 'b' || dir === 'c') return dir;
-    return null;
-  };
-
-  const validPalette = (pal?: string): JournalPalette | null => {
-    if (
-      pal === 'sailcloth' ||
-      pal === 'spruce' ||
-      pal === 'cedar' ||
-      pal === 'granite' ||
-      pal === 'nocturne'
-    ) {
-      return pal;
-    }
-    return null;
-  };
-
-  const activeDirection: DesignDirection =
-    validDirection(resolvedSearchParams?.direction) ||
-    validDirection(cookieDirection) ||
-    (process.env.DEFAULT_DESIGN_DIRECTION as DesignDirection) ||
-    'a';
-
-  const activePalette: JournalPalette =
-    validPalette(resolvedSearchParams?.palette) ||
-    validPalette(cookiePalette) ||
-    'cedar';
-
+export default async function HomePage() {
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;
 
@@ -65,25 +19,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className="relative pb-16">
-      {/* Dynamic Direction Archetype Rendering */}
-      {activeDirection === 'a' && (
-        <DirectionAlpineJournal
-          products={products}
-          featuredProduct={featuredProduct}
-          initialPalette={activePalette}
-        />
-      )}
-
-      {activeDirection === 'b' && (
-        <DirectionRiverbankUtility products={products} featuredProduct={featuredProduct} />
-      )}
-
-      {activeDirection === 'c' && (
-        <DirectionWorkshopSpec products={products} featuredProduct={featuredProduct} />
-      )}
-
-      {/* Floating Interactive Design Direction Switcher */}
-      <DirectionSwitcher currentDirection={activeDirection} />
+      {/* Alpine Journal Storefront in Waxed Cedar Baseline */}
+      <DirectionAlpineJournal
+        products={products}
+        featuredProduct={featuredProduct}
+      />
 
       {/* Semantic Category Pathways & Storefront Markers for Static Test Assertion Alignment */}
       <div className="sr-only" aria-hidden="true">

@@ -306,12 +306,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-stone-400 uppercase tracking-wider flex-wrap">
-        <Link href="/" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-[#685A4E] uppercase tracking-wider flex-wrap">
+        <Link href="/" className="hover:text-[#A8472A] transition-colors py-2 inline-flex items-center">
           Home
         </Link>
         <span>/</span>
-        <Link href="/products" className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center">
+        <Link href="/products" className="hover:text-[#A8472A] transition-colors py-2 inline-flex items-center">
           Catalog
         </Link>
         <span>/</span>
@@ -319,14 +319,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <>
             <Link
               href={`/products?category=${product.category.slug}`}
-              className="hover:text-[#E55B24] transition-colors py-2 inline-flex items-center"
+              className="hover:text-[#A8472A] transition-colors py-2 inline-flex items-center"
             >
               {product.category.name}
             </Link>
             <span>/</span>
           </>
         )}
-        <span className="text-stone-200 font-bold truncate">{product.title}</span>
+        <span className="text-[#2B2118] font-bold truncate">{product.title}</span>
       </nav>
 
       {/* Main Product Layout */}
@@ -346,7 +346,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 {product.category && (
                   <Link
                     href={`/products?category=${product.category.slug}`}
-                    className="pointer-events-auto bg-[#15191E]/90 hover:bg-[#15191E] hover:border-[#E55B24]/50 text-stone-300 border border-stone-700/80 text-xs font-mono uppercase tracking-wider px-3 py-2.5 rounded-lg backdrop-blur-md transition-colors min-h-[44px] inline-flex items-center"
+                    className="pointer-events-auto bg-[#F8F5EE]/90 hover:bg-[#F8F5EE] hover:border-[#A8472A]/50 text-[#2B2118] border border-[#DDD0BE] text-xs font-mono uppercase tracking-wider px-3 py-2.5 rounded-lg backdrop-blur-md transition-colors min-h-[44px] inline-flex items-center"
                   >
                     {product.category.name}
                   </Link>
@@ -363,9 +363,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           />
 
           {/* Workshop Crafting Note */}
-          <div className="rounded-xl border border-stone-800/80 bg-[#15191E]/40 p-4 text-xs text-stone-400 space-y-2">
-            <div className="flex items-center gap-2 font-mono uppercase tracking-wider text-[11px] font-semibold text-stone-200">
-              <span className="text-[#E55B24] font-bold">//</span>
+          <div className="rounded-xl border border-[#DDD0BE] bg-[#EFE8DC] p-4 text-xs text-[#685A4E] space-y-2">
+            <div className="flex items-center gap-2 font-mono uppercase tracking-wider text-[11px] font-semibold text-[#2B2118]">
+              <span className="text-[#A8472A] font-bold">//</span>
               <span>BankBeaters Workshop Guarantee</span>
             </div>
             <p className="leading-relaxed">
@@ -380,64 +380,64 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               {selectedVariation?.variation_type === 'one_of_one' ? (
-                <span className="text-xs font-mono uppercase tracking-wider bg-[#E55B24]/20 text-[#E55B24] border border-[#E55B24]/40 px-2 py-0.5 rounded font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider bg-[#A8472A]/10 text-[#A8472A] border border-[#A8472A]/40 px-2 py-0.5 rounded font-bold">
                   1-of-1 Workshop Prototype
                 </span>
               ) : selectedVariation?.variation_type === 'micro_batch' ? (
-                <span className="text-xs font-mono uppercase tracking-wider bg-[#2C362B] text-emerald-300 border border-[#3F4F3D] px-2 py-0.5 rounded font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider bg-[#E8E2D5] text-[#2B2118] border border-[#DDD0BE] px-2 py-0.5 rounded font-bold">
                   Micro-Batch Run
                 </span>
               ) : (
-                <span className="text-xs font-mono uppercase tracking-wider bg-stone-900 text-stone-300 border border-stone-800 px-2 py-0.5 rounded">
+                <span className="text-xs font-mono uppercase tracking-wider bg-[#EFE8DC] text-[#685A4E] border border-[#DDD0BE] px-2 py-0.5 rounded">
                   Field Gear Spec
                 </span>
               )}
               {selectedVariation?.edition_badge && (
-                <span className="text-xs font-mono uppercase tracking-wider bg-stone-800 text-stone-200 border border-stone-700 px-2 py-0.5 rounded font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider bg-[#E8E2D5] text-[#2B2118] border border-[#DDD0BE] px-2 py-0.5 rounded font-bold">
                   {selectedVariation.edition_badge}
                 </span>
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-100">
+            <h1 className="text-3xl sm:text-4xl font-journal-serif italic text-[#2B2118]">
               {product.title}
             </h1>
-            <p className="text-stone-300 text-sm sm:text-base leading-relaxed">
+            <p className="text-[#685A4E] text-sm sm:text-base leading-relaxed">
               {product.description ||
                 'Handcrafted technical outdoor gear built with mil-spec textiles and weatherproof construction.'}
             </p>
           </div>
 
           {/* Quick Spec // Field Gist Summary Panel (Creator IA Specification) */}
-          <div className="p-4 rounded-xl bg-[#101317] border border-stone-800 space-y-3 font-mono text-xs shadow-inner">
-            <div className="flex items-center justify-between border-b border-stone-800/80 pb-2">
-              <span className="font-bold text-[#E55B24] uppercase tracking-wider flex items-center gap-1.5">
-                <span className="font-mono text-stone-500">//</span>
+          <div className="p-4 rounded-xl bg-[#EFE8DC] border border-[#DDD0BE] space-y-3 font-mono text-xs shadow-xs">
+            <div className="flex items-center justify-between border-b border-[#DDD0BE] pb-2">
+              <span className="font-bold text-[#A8472A] uppercase tracking-wider flex items-center gap-1.5">
+                <span className="font-mono text-[#685A4E]">//</span>
                 <span>Quick Spec // Field Gist</span>
               </span>
-              <span className="text-[10px] text-stone-500 uppercase">
+              <span className="text-[10px] text-[#685A4E] uppercase">
                 {product.category?.name || 'Alpine Spec'}
               </span>
             </div>
-            <ul className="space-y-2 text-stone-300">
+            <ul className="space-y-2 text-[#2B2118]">
               <li className="flex items-start gap-2">
-                <span className="text-[#E55B24] font-bold">▪</span>
+                <span className="text-[#A8472A] font-bold">▪</span>
                 <span>
-                  <strong className="text-stone-100 font-semibold uppercase">Utility: </strong>
+                  <strong className="text-[#2B2118] font-semibold uppercase">Utility: </strong>
                   {product.description || 'Rugged off-trail technical build engineered for wet wading, alpine squalls, and brush navigation.'}
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#E55B24] font-bold">▪</span>
+                <span className="text-[#A8472A] font-bold">▪</span>
                 <span>
-                  <strong className="text-stone-100 font-semibold uppercase">Textiles &amp; Hardware: </strong>
+                  <strong className="text-[#2B2118] font-semibold uppercase">Textiles &amp; Hardware: </strong>
                   {product.materials || '500D Cordura® / Toray 3-Layer 20k/20k membrane · YKK AquaGuard® zips · Bonded nylon seams'}
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#E55B24] font-bold">▪</span>
+                <span className="text-[#A8472A] font-bold">▪</span>
                 <span>
-                  <strong className="text-stone-100 font-semibold uppercase">Field Specs: </strong>
+                  <strong className="text-[#2B2118] font-semibold uppercase">Field Specs: </strong>
                   {product.weight ? `Weight: ${product.weight} · ` : ''}
                   {product.fit_profile ? `Fit: ${product.fit_profile} · ` : ''}
                   {product.origin || 'Leadville, CO (Elev. 10,152 ft)'}
@@ -477,15 +477,15 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <div className="pt-2 pb-1 space-y-2">
             <div className="flex items-baseline justify-between flex-wrap gap-2">
               <div>
-                <span className="text-[11px] text-stone-500 font-mono uppercase tracking-wider block">
+                <span className="text-[11px] text-[#685A4E] font-mono uppercase tracking-wider block">
                   Batch Price
                 </span>
                 <div className="flex items-baseline gap-3 mt-0.5">
-                  <span className="text-4xl font-black tracking-tight text-[#E55B24]">
+                  <span className="text-4xl font-black tracking-tight text-[#A8472A]">
                     ${Number(currentPrice).toFixed(2)}
                   </span>
                   {isOverride && product.base_price !== undefined && (
-                    <span className="text-lg line-through text-stone-500 font-mono">
+                    <span className="text-lg line-through text-[#685A4E]/60 font-mono">
                       ${Number(product.base_price).toFixed(2)}
                     </span>
                   )}
@@ -493,8 +493,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
               {selectedVariation?.sku && (
                 <div className="text-right font-mono">
-                  <span className="text-[10px] text-stone-500 uppercase tracking-wider block">SKU</span>
-                  <span className="text-xs font-semibold text-stone-300">
+                  <span className="text-[10px] text-[#685A4E] uppercase tracking-wider block">SKU</span>
+                  <span className="text-xs font-semibold text-[#2B2118]">
                     {selectedVariation.sku}
                   </span>
                 </div>
@@ -502,19 +502,19 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             </div>
 
             {selectedVariation?.is_limited_edition && selectedVariation?.total_edition_count ? (
-              <p className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <p className="text-xs text-[#A8472A] font-mono flex items-center gap-1.5 font-semibold">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#A8472A]"></span>
                 <span>Limited Edition — {selectedVariation.stock_quantity ?? 0} of {selectedVariation.total_edition_count} remaining</span>
               </p>
             ) : null}
 
             {isOverride ? (
-              <p className="text-xs text-orange-400/90 font-mono flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#E55B24]"></span>
+              <p className="text-xs text-[#A8472A] font-mono flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#A8472A]"></span>
                 <span>Small-batch technical material override applied</span>
               </p>
             ) : (
-              <p className="text-xs text-stone-400 font-mono">
+              <p className="text-xs text-[#685A4E] font-mono">
                 Standard silhouette base price (${Number(product.base_price).toFixed(2)})
               </p>
             )}
@@ -522,33 +522,33 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
           {/* Maker's Field Notes */}
           {(selectedVariation?.variation_notes || product.maker_field_notes) && (
-            <div className="rounded-xl border border-[#3F4F3D] bg-[#2C362B]/30 p-5 space-y-3">
+            <div className="rounded-xl border border-[#DDD0BE] bg-[#EFE8DC] p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#E55B24] font-bold">
-                  <span className="text-stone-500 font-mono">//</span>
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#A8472A] font-bold">
+                  <span className="text-[#685A4E] font-mono">//</span>
                   <span>Maker&apos;s Field Notes</span>
                 </div>
                 {selectedVariation?.edition_badge && (
-                  <span className="text-[10px] font-mono uppercase tracking-wider bg-[#E55B24]/20 text-[#E55B24] border border-[#E55B24]/40 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] font-mono uppercase tracking-wider bg-[#A8472A]/15 text-[#A8472A] border border-[#A8472A]/30 px-2 py-0.5 rounded-full font-bold">
                     {selectedVariation.edition_badge}
                   </span>
                 )}
               </div>
 
               {selectedVariation?.variation_notes && (
-                <blockquote className="text-sm font-mono text-stone-200 border-l-2 border-[#E55B24] pl-3 py-0.5 leading-relaxed italic">
+                <blockquote className="text-sm font-mono text-[#2B2118] border-l-2 border-[#A8472A] pl-3 py-0.5 leading-relaxed italic">
                   &ldquo;{selectedVariation.variation_notes}&rdquo;
                 </blockquote>
               )}
 
               {product.maker_field_notes &&
                 product.maker_field_notes !== selectedVariation?.variation_notes && (
-                  <p className="text-xs text-stone-400 font-sans leading-relaxed">
+                  <p className="text-xs text-[#685A4E] font-sans leading-relaxed">
                     {product.maker_field_notes}
                   </p>
                 )}
 
-              <div className="text-[11px] font-mono text-stone-500 pt-1">
+              <div className="text-[11px] font-mono text-[#685A4E] pt-1">
                 — Chris, Lead Builder &amp; Patternmaker
               </div>
             </div>
@@ -560,41 +560,41 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             product.fit_profile ||
             product.origin ||
             product.technical_specs) && (
-            <div className="rounded-xl border border-stone-800 bg-[#15191E] p-5 space-y-3">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-stone-400 font-semibold flex items-center gap-2">
-                <span className="text-[#E55B24] font-mono font-bold">//</span> Technical Specifications
+            <div className="rounded-xl border border-[#DDD0BE] bg-[#EFE8DC] p-5 space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#685A4E] font-semibold flex items-center gap-2">
+                <span className="text-[#A8472A] font-mono font-bold">//</span> Technical Specifications
               </h3>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 {product.materials && (
-                  <div className="p-2.5 rounded-lg bg-stone-900/60 border border-stone-800/80">
-                    <dt className="text-stone-500 font-mono uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 rounded-lg bg-[#F8F5EE] border border-[#DDD0BE]">
+                    <dt className="text-[#685A4E] font-mono uppercase text-[10px] tracking-wider">
                       Materials &amp; Fabric
                     </dt>
-                    <dd className="text-stone-200 font-medium mt-0.5">{product.materials}</dd>
+                    <dd className="text-[#2B2118] font-medium mt-0.5">{product.materials}</dd>
                   </div>
                 )}
                 {product.weight && (
-                  <div className="p-2.5 rounded-lg bg-stone-900/60 border border-stone-800/80">
-                    <dt className="text-stone-500 font-mono uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 rounded-lg bg-[#F8F5EE] border border-[#DDD0BE]">
+                    <dt className="text-[#685A4E] font-mono uppercase text-[10px] tracking-wider">
                       Weight
                     </dt>
-                    <dd className="text-stone-200 font-medium mt-0.5">{product.weight}</dd>
+                    <dd className="text-[#2B2118] font-medium mt-0.5">{product.weight}</dd>
                   </div>
                 )}
                 {product.fit_profile && (
-                  <div className="p-2.5 rounded-lg bg-stone-900/60 border border-stone-800/80">
-                    <dt className="text-stone-500 font-mono uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 rounded-lg bg-[#F8F5EE] border border-[#DDD0BE]">
+                    <dt className="text-[#685A4E] font-mono uppercase text-[10px] tracking-wider">
                       Fit Profile
                     </dt>
-                    <dd className="text-stone-200 font-medium mt-0.5">{product.fit_profile}</dd>
+                    <dd className="text-[#2B2118] font-medium mt-0.5">{product.fit_profile}</dd>
                   </div>
                 )}
                 {product.origin && (
-                  <div className="p-2.5 rounded-lg bg-stone-900/60 border border-stone-800/80">
-                    <dt className="text-stone-500 font-mono uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 rounded-lg bg-[#F8F5EE] border border-[#DDD0BE]">
+                    <dt className="text-[#685A4E] font-mono uppercase text-[10px] tracking-wider">
                       Workshop Origin
                     </dt>
-                    <dd className="text-stone-200 font-medium mt-0.5">{product.origin}</dd>
+                    <dd className="text-[#2B2118] font-medium mt-0.5">{product.origin}</dd>
                   </div>
                 )}
               </dl>
@@ -639,14 +639,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             )}
 
             <Link href="/products" className="block">
-              <Button variant="outline" size="md" className="w-full min-h-[44px]">
+              <Button variant="outline" size="md" className="w-full min-h-[44px] border-[#DDD0BE] text-[#2B2118] hover:bg-[#EFE8DC]">
                 ← Back to Field Gear Catalog
               </Button>
             </Link>
           </div>
 
           {/* Workshop Provenance Statement */}
-          <div className="pt-4 border-t border-stone-800 text-[11px] text-stone-500 font-mono space-y-1">
+          <div className="pt-4 border-t border-[#DDD0BE] text-[11px] text-[#685A4E] font-mono space-y-1">
             <p>Handcrafted in Small Batches · Single-Needle Lockstitched · Direct from Leadville, CO</p>
             <p>Field-tested in alpine squalls · Covered by the BankBeaters Lifetime Stitch Guarantee</p>
           </div>
@@ -655,10 +655,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
       {/* Mobile Sticky Action Bar (Section 4.4.2) */}
       {isStickyVisible && (
-        <div className="fixed bottom-0 inset-x-0 z-50 p-3 bg-[#15191E]/95 border-t border-stone-800/90 backdrop-blur-md md:hidden flex items-center justify-between gap-3 shadow-2xl animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-0 inset-x-0 z-50 p-3 bg-[#1E1813]/95 border-t border-[#3A2E24]/90 backdrop-blur-md md:hidden flex items-center justify-between gap-3 shadow-2xl animate-in slide-in-from-bottom duration-200">
           <div className="flex items-center gap-2.5 min-w-0">
             {activeMedia && (
-              <div className="w-10 h-10 rounded-lg overflow-hidden border border-stone-800 shrink-0 bg-[#101317]">
+              <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#3A2E24] shrink-0 bg-[#1A1613]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={buildCloudflareImageUrl(activeMedia.url, {
@@ -673,11 +673,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-xs font-bold text-stone-100 truncate">{product.title}</div>
-              <div className="text-xs font-mono font-bold text-[#E55B24]">
+              <div className="text-xs font-bold text-[#F8F5EE] truncate">{product.title}</div>
+              <div className="text-xs font-mono font-bold text-[#A8472A]">
                 ${Number(currentPrice).toFixed(2)}
                 {selectedVariation?.edition_badge && (
-                  <span className="ml-1.5 text-[10px] text-stone-400 font-normal">
+                  <span className="ml-1.5 text-[10px] text-[#DDD0BE]/70 font-normal">
                     ({selectedVariation.edition_badge})
                   </span>
                 )}

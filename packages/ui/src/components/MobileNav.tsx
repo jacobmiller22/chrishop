@@ -86,10 +86,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       />
 
       {/* Slide-over Drawer Panel */}
-      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-xs bg-[#101317] border-l border-stone-800 p-6 pt-20 shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform ease-in-out duration-300">
+      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-xs bg-[#1A1613] border-l border-[#3A2E24] p-6 pt-20 shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform ease-in-out duration-300">
         <div className="space-y-6">
           {/* Drawer Header with Title and Accessible Close Button */}
-          <div className="flex items-center justify-between pb-4 border-b border-stone-800/80">
+          <div className="flex items-center justify-between pb-4 border-b border-[#3A2E24]/80">
             <div>
               {logoSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -99,10 +99,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                   className="h-7 w-auto object-contain mb-1.5"
                 />
               ) : null}
-              <span className={logoSrc ? "sr-only" : "text-lg font-black uppercase font-mono text-[#E55B24] tracking-wider block"}>
+              <span className={logoSrc ? "sr-only" : "text-lg font-black uppercase font-mono text-[#A8472A] tracking-wider block"}>
                 {title}
               </span>
-              <span className="text-[11px] font-mono text-stone-500 uppercase tracking-widest block">
+              <span className="text-[11px] font-mono text-[#DDD0BE]/60 uppercase tracking-widest block">
                 {subtitle}
               </span>
             </div>
@@ -111,7 +111,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               ref={closeButtonRef}
               type="button"
               onClick={onClose}
-              className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-lg bg-[#15191E] border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
+              className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-lg bg-[#2A211A] border border-[#3A2E24] text-[#DDD0BE] hover:text-white hover:border-[#A8472A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A]"
               aria-label="Close navigation menu"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,11 +132,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 key={item.label}
                 href={item.href}
                 onClick={onClose}
-                className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-semibold uppercase tracking-wider font-mono text-stone-200 hover:bg-[#15191E] hover:text-[#E55B24] transition-colors min-h-[44px]"
+                className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-semibold uppercase tracking-wider font-mono text-[#EFE8DC] hover:bg-[#2A211A] hover:text-[#A8472A] transition-colors min-h-[44px]"
               >
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="text-[10px] font-mono bg-orange-950/80 text-[#E55B24] border border-orange-800/80 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono bg-amber-950/60 text-[#A8472A] border border-[#A8472A]/50 px-2 py-0.5 rounded">
                     {item.badge}
                   </span>
                 )}
@@ -149,18 +149,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             <a
               href="/cart"
               onClick={onClose}
-              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#15191E] border border-stone-800 text-stone-100 hover:border-[#E55B24]/50 transition-colors min-h-[44px]"
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#2A211A] border border-[#3A2E24] text-[#EFE8DC] hover:border-[#A8472A]/60 transition-colors min-h-[44px]"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E55B24]">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#A8472A]">
                   [ ROLL ]
                 </span>
-                <span className="text-sm font-mono font-bold uppercase tracking-wider text-stone-200">
+                <span className="text-sm font-mono font-bold uppercase tracking-wider text-[#EFE8DC]">
                   Gear Roll
                 </span>
               </div>
-              <span className="bg-[#E55B24] text-white font-bold min-w-[1.5rem] h-6 px-2 rounded-full text-xs inline-flex items-center justify-center font-mono">
+              <span className="bg-[#A8472A] text-white font-bold min-w-[1.5rem] h-6 px-2 rounded-full text-xs inline-flex items-center justify-center font-mono">
                 {cartCount}
               </span>
             </a>
@@ -168,14 +168,14 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         </div>
 
         {/* Drawer Footer with Craft Origin */}
-        <div className="pt-6 border-t border-stone-800/80 space-y-2 text-xs font-mono text-stone-400">
+        <div className="pt-6 border-t border-[#3A2E24]/80 space-y-2 text-xs font-mono text-[#DDD0BE]/70">
           <div className="flex items-center justify-between">
-            <span className="text-stone-500 uppercase tracking-widest text-[10px]">Origin</span>
-            <span className="text-stone-300">Leadville, CO · 10,152 FT</span>
+            <span className="text-[#DDD0BE]/50 uppercase tracking-widest text-[10px]">Origin</span>
+            <span className="text-[#EFE8DC]">Leadville, CO · 10,152 FT</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-stone-500 uppercase tracking-widest text-[10px]">Motto</span>
-            <span className="text-[#E55B24] font-bold">Curiosity &gt; Fear</span>
+            <span className="text-[#DDD0BE]/50 uppercase tracking-widest text-[10px]">Motto</span>
+            <span className="text-[#A8472A] font-bold">Curiosity &gt; Fear</span>
           </div>
         </div>
       </div>

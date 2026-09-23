@@ -1,46 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import type { StorefrontProduct } from '@/lib/catalog';
 import { getAssetUrl } from '@/lib/catalog';
-import {
-  JournalPaletteSwitcher,
-  type JournalPalette,
-} from './JournalPaletteSwitcher';
 
 export interface DirectionAlpineJournalProps {
   products: StorefrontProduct[];
   featuredProduct?: StorefrontProduct | null;
-  initialPalette?: JournalPalette;
 }
 
 export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
   products,
   featuredProduct: _featuredProduct,
-  initialPalette = 'cedar',
 }) => {
-  const [activePalette, setActivePalette] = useState<JournalPalette>(initialPalette);
-
-  // Sync state if initialPalette changes (e.g. from URL navigation)
-  useEffect(() => {
-    if (initialPalette) {
-      setActivePalette(initialPalette);
-    }
-  }, [initialPalette]);
-
   const displayProducts = products.slice(0, 6);
 
   return (
-    <div
-      className={`direction-theme-a palette-${activePalette} -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 space-y-12 transition-colors duration-500`}
-    >
-      {/* 0. COLORWAY PALETTE SWITCHER BAR */}
-      <JournalPaletteSwitcher
-        currentPalette={activePalette}
-        onSelectPalette={setActivePalette}
-      />
-
+    <div className="space-y-12">
       {/* 1. EDITORIAL HERO: Full Bleed Riverbank Photography + Floating Heritage Mark */}
       <section
         className="relative w-full rounded-3xl overflow-hidden shadow-xl border transition-colors duration-500"

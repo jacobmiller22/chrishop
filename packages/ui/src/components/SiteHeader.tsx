@@ -35,14 +35,14 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   return (
     <>
       <header
-        className={`sticky top-0 z-50 w-full border-b border-stone-800/80 bg-[#0F1215]/95 backdrop-blur-md transition-colors ${className}`}
+        className={`sticky top-0 z-50 w-full border-b border-[#3A2E24]/70 bg-[#1E1813]/95 backdrop-blur-md transition-colors ${className}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand & Wordmark */}
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="flex items-center gap-2 group min-h-[44px] min-w-[44px] py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded-lg"
+              className="flex items-center gap-2 group min-h-[44px] min-w-[44px] py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded-lg"
               aria-label="BankBeaters Adventure Gear Home"
             >
               {logoSrc ? (
@@ -53,12 +53,12 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                   className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-105"
                 />
               ) : null}
-              <span className={logoSrc ? "sr-only" : "text-xl font-black tracking-wider uppercase font-mono text-[#E55B24] group-hover:text-orange-400 transition-colors"}>
+              <span className={logoSrc ? "sr-only" : "text-xl font-black tracking-wider uppercase font-mono text-[#A8472A] group-hover:text-amber-400 transition-colors"}>
                 {title}
               </span>
             </a>
             {subtitle && (
-              <span className="hidden lg:inline-block text-xs text-stone-400 font-mono border-l border-stone-800 pl-3">
+              <span className="hidden lg:inline-block text-xs text-[#DDD0BE]/60 font-mono border-l border-[#3A2E24] pl-3">
                 {subtitle}
               </span>
             )}
@@ -70,7 +70,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
               <a
                 key={item.label}
                 href={item.href}
-                className="text-sm font-mono uppercase tracking-wider text-stone-300 hover:text-[#E55B24] transition-colors py-2 min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded"
+                className="text-sm font-mono uppercase tracking-wider text-[#EFE8DC] hover:text-[#A8472A] transition-colors py-2 min-h-[44px] flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded"
               >
                 {item.label}
               </a>
@@ -78,12 +78,12 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <a
               href="/cart"
               data-testid="header-cart-button"
-              className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded-lg"
+              className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded-lg"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
-              <span className="text-sm font-medium text-stone-200 bg-[#15191E] px-3.5 py-2 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors min-h-[44px]">
-                <span className="font-mono text-xs uppercase tracking-wider font-semibold text-stone-300">Gear Roll</span>
-                <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs inline-flex items-center justify-center font-mono">
+              <span className="text-sm font-medium text-[#EFE8DC] bg-[#2A211A] px-3.5 py-2 rounded-lg border border-[#3A2E24] flex items-center gap-2 group-hover:border-[#A8472A]/60 transition-colors min-h-[44px]">
+                <span className="font-mono text-xs uppercase tracking-wider font-semibold text-[#EFE8DC]">Gear Roll</span>
+                <span className="bg-[#A8472A] text-white font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs inline-flex items-center justify-center font-mono">
                   {cartCount}
                 </span>
               </span>
@@ -95,11 +95,11 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <a
               href="/cart"
               data-testid="header-cart-button"
-              className="relative flex items-center justify-center min-w-[44px] min-h-[44px] px-2.5 rounded-lg bg-[#15191E] border border-stone-800 text-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
+              className="relative flex items-center justify-center min-w-[44px] min-h-[44px] px-2.5 rounded-lg bg-[#2A211A] border border-[#3A2E24] text-[#EFE8DC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A]"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
-              <span className="font-mono text-xs uppercase tracking-wider font-bold text-[#E55B24]">ROLL</span>
-              <span className="absolute -top-1 -right-1 bg-[#E55B24] text-white font-bold min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] inline-flex items-center justify-center font-mono">
+              <span className="font-mono text-xs uppercase tracking-wider font-bold text-[#A8472A]">ROLL</span>
+              <span className="absolute -top-1 -right-1 bg-[#A8472A] text-white font-bold min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] inline-flex items-center justify-center font-mono">
                 {cartCount}
               </span>
             </a>
@@ -107,7 +107,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-lg bg-[#15191E] border border-stone-800 text-stone-300 hover:text-white hover:border-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
+              className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-lg bg-[#2A211A] border border-[#3A2E24] text-[#DDD0BE] hover:text-white hover:border-[#A8472A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A]"
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-storefront-menu"
               aria-label="Toggle navigation menu"
