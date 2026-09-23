@@ -202,7 +202,7 @@ export function ProductFilters({
                 <Link
                   key={cat.id}
                   href={buildUrl({ category: isSelected ? null : cat.slug })}
-                  className={`min-h-[36px] inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-mono whitespace-nowrap transition-all ${
+                  className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono whitespace-nowrap transition-all ${
                     isSelected
                       ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
                       : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'
@@ -336,7 +336,7 @@ export function ProductFilters({
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-stone-800">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🧰</span>
+                  <span className="text-[#E55B24] font-mono text-xs uppercase font-bold tracking-widest">[ SPEC ]</span>
                   <h2 className="text-lg font-bold text-stone-100 font-mono uppercase">
                     Filter Equipment
                   </h2>

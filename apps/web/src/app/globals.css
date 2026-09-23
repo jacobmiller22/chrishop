@@ -12,6 +12,46 @@
   font-style: italic;
 }
 
+.font-journal-serif {
+  font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+}
+
+/* Direction A: The Alpine Field Journal (Warm Daylight Ecru) */
+.direction-theme-a {
+  --bg-canvas: #F6F3EC;
+  --text-primary: #1A2421;
+  --text-muted: #5A6660;
+  --surface-card: #EFEBE0;
+  --surface-border: #DDD7C8;
+  --accent-color: #C85A32;
+  background-color: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Direction B: Pure Riverbank Utility (Washed Granite & Burnt Amber) */
+.direction-theme-b {
+  --bg-canvas: #161A1E;
+  --text-primary: #ECE9E2;
+  --text-muted: #88939E;
+  --surface-card: #1D2228;
+  --surface-border: #2D353F;
+  --accent-color: #C05621;
+  background-color: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Direction C: Leadville Workshop Spec (Workshop Charcoal & Blueprint) */
+.direction-theme-c {
+  --bg-canvas: #0F1215;
+  --text-primary: #E2E8F0;
+  --text-muted: #64748B;
+  --surface-card: #15191E;
+  --surface-border: #2A323D;
+  --accent-color: #E55B24;
+  background-color: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
