@@ -19,19 +19,19 @@ export const CraftsmanshipStorySection: React.FC<CraftsmanshipStorySectionProps>
   storyText = 'In angling and bushwhacking culture, a Bank Beater is someone who explores shorelines, cut-banks, tidal marshes, and remote canyon pools on foot. Chris sews gear by hand in Leadville, CO using bombproof Cordura, X-Pac sailcloth, and bonded nylon thread.',
   pillars = [
     {
-      icon: '🛡️',
+      icon: '01 // ARMOR',
       title: 'Bombproof Construction',
       description:
         'Bar-tacked stress points, waterproof AquaGuard® zips, and reinforced high-wear zones engineered to outlast the harshest brambles.',
     },
     {
-      icon: '🧵',
+      icon: '02 // BATCH',
       title: 'Micro-Batch Agility',
       description:
         'Limited runs of 2–4 unique pieces using salvaged deadstock camouflage, custom pocketing, and hand-stamped serialized tags.',
     },
     {
-      icon: '♻️',
+      icon: '03 // REPAIR',
       title: 'Lifetime Repair Guarantee',
       description:
         'Gear is built to be used, not displayed. If you shred an elbow crawling through briars, send it back to the workshop for field repair.',
@@ -64,7 +64,7 @@ export const CraftsmanshipStorySection: React.FC<CraftsmanshipStorySectionProps>
             key={pillar.title}
             className="space-y-2 p-5 rounded-xl bg-[#15191E] border border-stone-800/60"
           >
-            <span className="text-2xl">{pillar.icon || '🧵'}</span>
+            <span className="text-xs font-mono text-[#E55B24] font-bold block">[ {pillar.icon || 'SPEC'} ]</span>
             <h4 className="font-bold text-stone-200 text-sm font-mono uppercase">
               {pillar.title}
             </h4>

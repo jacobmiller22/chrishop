@@ -15,21 +15,21 @@ export interface MobileNavProps {
   cartCount?: number;
   title?: string;
   subtitle?: string;
+  logoSrc?: string;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
   isOpen,
   onClose,
   navItems = [
-    { label: 'Active Drops', href: '/' },
+    { label: 'Equipment Vault', href: '/products' },
+    { label: 'The Workshop', href: '/about' },
     { label: 'Drop Schedule', href: '/drops' },
-    { label: 'Field Gear', href: '/products' },
-    { label: 'The Maker’s Story', href: '/about' },
-    { label: 'The Maker’s Bench', href: '/#makers-bench' },
   ],
   cartCount = 0,
   title = 'BankBeaters',
   subtitle = 'Leadville, CO · Elev. 10,152 ft',
+  logoSrc = '/media/hero/bank-beaters-logo-white.png',
 }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -91,7 +91,15 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           {/* Drawer Header with Title and Accessible Close Button */}
           <div className="flex items-center justify-between pb-4 border-b border-stone-800/80">
             <div>
-              <span className="text-lg font-black uppercase font-mono text-[#E55B24] tracking-wider block">
+              {logoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoSrc}
+                  alt={title}
+                  className="h-7 w-auto object-contain mb-1.5"
+                />
+              ) : null}
+              <span className={logoSrc ? "sr-only" : "text-lg font-black uppercase font-mono text-[#E55B24] tracking-wider block"}>
                 {title}
               </span>
               <span className="text-[11px] font-mono text-stone-500 uppercase tracking-widest block">
@@ -145,8 +153,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
               <div className="flex items-center gap-2.5">
-                <span className="text-lg">🎒</span>
-                <span className="text-sm font-mono font-bold uppercase tracking-wider">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E55B24]">
+                  [ ROLL ]
+                </span>
+                <span className="text-sm font-mono font-bold uppercase tracking-wider text-stone-200">
                   Gear Roll
                 </span>
               </div>

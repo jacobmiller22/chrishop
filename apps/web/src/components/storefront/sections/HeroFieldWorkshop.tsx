@@ -20,7 +20,7 @@ export const HeroFieldWorkshop: React.FC<HeroFieldWorkshopProps> = ({
   subheadline = 'Leadville Workshop Field Rig',
   ethosStatement = 'No assembly line. No overseas containers. Every stitch, bar-tack, and zipper channel is individually guided through an industrial single-needle lockstitch machine in our Colorado mountain shop.',
   backdropImage = '/media/hero/bank-beaters-hero.jpg',
-  badgeText = '⚡ Workshop Bench Active',
+  badgeText = 'Workshop Bench Active',
   provenanceCallout = 'Leadville, CO · Elev. 10,152 ft · Juki Lockstitch',
   ctaButtons,
   productsCount = 0,
@@ -71,7 +71,19 @@ export const HeroFieldWorkshop: React.FC<HeroFieldWorkshopProps> = ({
             </Badge>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Authentic Original Brand Logo & Typography */}
+            <div className="pt-1 max-w-[280px] sm:max-w-[340px] lg:max-w-[380px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/media/hero/bank-beaters-logo-white.png"
+                alt="BankBeaters Adventure Gear"
+                className="w-full h-auto drop-shadow-[0_8px_16px_rgba(0,0,0,0.8)] filter"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+
             {subheadline && (
               <span className="text-xs sm:text-sm font-mono tracking-[0.2em] text-[#E55B24] uppercase font-bold block">
                 {subheadline}

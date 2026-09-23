@@ -25,7 +25,7 @@ export const HeroMinimalistOverlay: React.FC<HeroMinimalistOverlayProps> = ({
   subheadline = 'Hand-Sewn Technical Outdoor Gear',
   ethosStatement = 'Patagonia-grade technical outerwear, convertible carry rigs, and field accessories crafted by Chris for anglers and bushwhackers who explore remote canyon banks on foot.',
   backdropImage = '/media/hero/bank-beaters-bg.jpg',
-  badgeText = '⚡ Limited-Run Drop Live',
+  badgeText = 'Limited-Run Drop Live',
   provenanceCallout = 'Single-needle lockstitched in Leadville, CO (10,152 ft) · Micro-batches of 2–4 serialized pieces',
   ctaButtons,
   productsCount = 0,

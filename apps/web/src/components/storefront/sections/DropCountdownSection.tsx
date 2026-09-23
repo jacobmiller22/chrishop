@@ -38,7 +38,7 @@ export const DropCountdownSection: React.FC<DropCountdownSectionProps> = ({
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2">
               <Badge variant="warning" className="font-mono text-xs uppercase">
-                ⚡ Scheduled Release
+                Scheduled Release
               </Badge>
               {targetDate && (
                 <span className="text-xs font-mono text-stone-400">
