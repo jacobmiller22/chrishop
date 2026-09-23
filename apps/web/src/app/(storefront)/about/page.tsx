@@ -117,8 +117,8 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">🌧️</span>
-              <span className="text-xs font-mono text-[#E55B24] font-bold">20,000mm / 20k</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// HYDRO</span>
+              <span className="text-xs font-mono text-stone-400 font-bold">20,000mm / 20k</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
               Toray 3-Layer Membrane
@@ -131,7 +131,7 @@ export default function AboutPage() {
 
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">🛡️</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// ARMOR</span>
               <span className="text-xs font-mono text-emerald-400 font-bold">500D / 1000D</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
@@ -145,7 +145,7 @@ export default function AboutPage() {
 
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">⛵</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// COMPOSITE</span>
               <span className="text-xs font-mono text-sky-400 font-bold">VX21 Laminate</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
@@ -159,8 +159,8 @@ export default function AboutPage() {
 
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">🧵</span>
-              <span className="text-xs font-mono text-[#E55B24] font-bold">Martexin 10oz</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// CANVAS</span>
+              <span className="text-xs font-mono text-stone-400 font-bold">Martexin 10oz</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
               Waxed Army Duck Canvas
@@ -173,7 +173,7 @@ export default function AboutPage() {
 
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">⚡</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// HARDWARE</span>
               <span className="text-xs font-mono text-stone-300 font-bold">YKK AquaGuard®</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
@@ -187,7 +187,7 @@ export default function AboutPage() {
 
           <Card className="space-y-3 bg-[#15191E] border-stone-800/80">
             <div className="flex items-center justify-between">
-              <span className="text-2xl">🪡</span>
+              <span className="text-xs font-mono font-bold text-[#E55B24]">// STITCH</span>
               <span className="text-xs font-mono text-emerald-400 font-bold">Single-Needle</span>
             </div>
             <h3 className="font-bold font-mono text-base text-stone-100 uppercase">
@@ -205,8 +205,8 @@ export default function AboutPage() {
       <section id="guarantee" className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="p-8 rounded-2xl bg-[#15191E] border border-stone-800/80 space-y-4 shadow-xl">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📦</span>
-            <span className="text-xs font-mono uppercase tracking-wider text-[#E55B24] font-bold">
+            <span className="font-mono text-[#E55B24] font-bold text-xs">// DISCIPLINE</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-stone-300 font-bold">
               Production Discipline
             </span>
           </div>
@@ -225,7 +225,7 @@ export default function AboutPage() {
 
         <div className="p-8 rounded-2xl bg-[#15191E] border border-[#3F4F3D] space-y-4 shadow-xl">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🛡️</span>
+            <span className="font-mono text-emerald-400 font-bold text-xs">// GUARANTEE</span>
             <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold">
               Field Commitment
             </span>

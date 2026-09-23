@@ -32,11 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           title="BankBeaters"
           subtitle="Adventure Gear · Curiosity > Fear"
           navItems={[
-            { label: 'Active Drops', href: '/' },
+            { label: 'Equipment Vault', href: '/products' },
+            { label: 'The Workshop', href: '/about' },
             { label: 'Drop Schedule', href: '/drops' },
-            { label: 'Field Gear', href: '/products' },
-            { label: 'The Maker’s Story', href: '/about' },
-            { label: 'The Maker’s Bench', href: '/#makers-bench' },
           ]}
         />
         <main

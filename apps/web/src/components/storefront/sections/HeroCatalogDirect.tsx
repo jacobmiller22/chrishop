@@ -97,7 +97,7 @@ export const HeroCatalogDirect: React.FC<HeroCatalogDirectProps> = ({
           className="p-4 rounded-xl bg-[#15191E] border border-stone-800 hover:border-[#E55B24]/50 transition-colors flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">🧥</span>
+            <span className="text-[#E55B24] font-bold text-xs">[ SPEC 01 ]</span>
             <div>
               <span className="text-stone-200 font-bold block group-hover:text-[#E55B24] transition-colors">
                 Outerwear &amp; Shells
@@ -113,7 +113,7 @@ export const HeroCatalogDirect: React.FC<HeroCatalogDirectProps> = ({
           className="p-4 rounded-xl bg-[#15191E] border border-stone-800 hover:border-[#E55B24]/50 transition-colors flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">🎒</span>
+            <span className="text-[#E55B24] font-bold text-xs">[ SPEC 02 ]</span>
             <div>
               <span className="text-stone-200 font-bold block group-hover:text-[#E55B24] transition-colors">
                 Packs &amp; Carry Rigs
@@ -129,7 +129,7 @@ export const HeroCatalogDirect: React.FC<HeroCatalogDirectProps> = ({
           className="p-4 rounded-xl bg-[#15191E] border border-stone-800 hover:border-[#E55B24]/50 transition-colors flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">🧰</span>
+            <span className="text-[#E55B24] font-bold text-xs">[ SPEC 03 ]</span>
             <div>
               <span className="text-stone-200 font-bold block group-hover:text-[#E55B24] transition-colors">
                 Field Accessories

@@ -69,7 +69,7 @@ export const MaterialProvenanceSection: React.FC<MaterialProvenanceSectionProps>
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-lg">⚙️</span>
+                <span className="font-mono text-[#E55B24] font-bold text-xs">// SPEC</span>
                 {mat.badge && (
                   <Badge variant="olive" className="text-[10px] font-mono uppercase">
                     {mat.badge}

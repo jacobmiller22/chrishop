@@ -21,11 +21,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   isOpen,
   onClose,
   navItems = [
-    { label: 'Active Drops', href: '/' },
+    { label: 'Equipment Vault', href: '/products' },
+    { label: 'The Workshop', href: '/about' },
     { label: 'Drop Schedule', href: '/drops' },
-    { label: 'Field Gear', href: '/products' },
-    { label: 'The Maker’s Story', href: '/about' },
-    { label: 'The Maker’s Bench', href: '/#makers-bench' },
   ],
   cartCount = 0,
   title = 'BankBeaters',
@@ -145,8 +143,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
               <div className="flex items-center gap-2.5">
-                <span className="text-lg">🎒</span>
-                <span className="text-sm font-mono font-bold uppercase tracking-wider">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#E55B24]">
+                  [ ROLL ]
+                </span>
+                <span className="text-sm font-mono font-bold uppercase tracking-wider text-stone-200">
                   Gear Roll
                 </span>
               </div>

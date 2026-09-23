@@ -20,7 +20,7 @@ export const HeroFieldWorkshop: React.FC<HeroFieldWorkshopProps> = ({
   subheadline = 'Leadville Workshop Field Rig',
   ethosStatement = 'No assembly line. No overseas containers. Every stitch, bar-tack, and zipper channel is individually guided through an industrial single-needle lockstitch machine in our Colorado mountain shop.',
   backdropImage = '/media/hero/bank-beaters-hero.jpg',
-  badgeText = '⚡ Workshop Bench Active',
+  badgeText = 'Workshop Bench Active',
   provenanceCallout = 'Leadville, CO · Elev. 10,152 ft · Juki Lockstitch',
   ctaButtons,
   productsCount = 0,

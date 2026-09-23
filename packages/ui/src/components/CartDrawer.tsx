@@ -78,7 +78,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-stone-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xl">🎒</span>
+            <span className="font-mono text-[#E55B24] font-bold text-base">//</span>
             <div>
               <h2 className="text-lg font-black uppercase font-mono tracking-tight text-stone-100">
                 Gear Roll
@@ -103,9 +103,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {items.length === 0 ? (
             <div className="text-center py-16 space-y-4">
-              <span className="text-6xl block">🎒</span>
-              <p className="text-stone-300 font-mono text-sm uppercase tracking-wider">
-                Your Gear Roll is empty
+              <div className="mx-auto w-16 h-16 rounded-xl border border-stone-800 bg-[#101317] flex items-center justify-center text-stone-600">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <p className="text-stone-300 font-mono text-xs uppercase tracking-wider">
+                [ GEAR ROLL EMPTY ]
               </p>
               <p className="text-xs text-stone-500 max-w-xs mx-auto">
                 Explore our small-batch bank fishing outerwear and convertible carry systems.
@@ -135,8 +139,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       className="w-16 h-16 rounded-lg object-cover border border-stone-800 shrink-0 bg-stone-900"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-lg bg-[#101317] border border-stone-800 flex items-center justify-center text-2xl shrink-0">
-                      🧥
+                    <div className="w-16 h-16 rounded-lg bg-[#101317] border border-stone-800 flex items-center justify-center font-mono text-[10px] text-stone-500 shrink-0 uppercase">
+                      Spec
                     </div>
                   )}
 

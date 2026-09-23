@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Button, Card, Badge, DropCountdown } from '@chrishop/ui';
+import { Button, Card, Badge } from '@chrishop/ui';
 import { fetchProducts, fetchProductBySlug, getAssetUrl } from '@/lib/catalog';
 import { buildCloudflareImageUrl, generateCloudflareImageSrcset } from '@/lib/r2-image';
-import { isHomepageHeroPocEnabled } from '@/lib/flags';
 import { HeroBanner } from '@/components/storefront/HeroBanner';
 import { DropCountdownTracker } from '../../components/storefront/DropCountdownTracker';
 
@@ -14,7 +13,6 @@ export const revalidate = 60;
 export const metadata: Metadata = homeMetadata;
 
 export default async function HomePage() {
-  const isHeroPoc = await isHomepageHeroPocEnabled();
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;
 
@@ -40,68 +38,15 @@ export default async function HomePage() {
     : null;
 
   return (
-    <div className="space-y-20">
-      <div className="flex justify-center pt-4">
-        <DropCountdown title="Workshop Drop Countdown" />
-        <DropCountdownTracker title="Workshop Drop Countdown" />
-      </div>
+    <div className="space-y-16">
+      <DropCountdownTracker title="Workshop Drop Countdown" />
 
-      {/* Dynamic Hero Experience: Immersive Hero Banner (POC) vs Legacy Text Hero */}
-      {isHeroPoc ? (
-        <HeroBanner productsCount={products.length} featuredProduct={featuredProduct} />
-      ) : (
-        <section className="text-center py-16 space-y-6 max-w-4xl mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <Badge variant="warning" className="uppercase tracking-wider font-mono text-[11px]">
-              ⚡ Small-Batch Drop Live
-            </Badge>
-            <Badge variant="olive" className="uppercase tracking-wider font-mono text-[11px]">
-              Hand-Sewn Workshop Origin
-            </Badge>
-            <Badge variant="neutral" className="uppercase tracking-wider font-mono text-[11px]">
-              Lifetime Repair Guarantee
-            </Badge>
-          </div>
-
-          <div className="space-y-3">
-            <span className="text-sm font-mono tracking-widest text-[#E55B24] uppercase font-bold block">
-              BankBeaters Adventure Gear
-            </span>
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-100 uppercase font-mono">
-              Curiosity &gt; Fear.
-            </h1>
-          </div>
-
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-stone-300 leading-relaxed">
-            Patagonia-grade technical outerwear, convertible carry rigs, and field accessories hand-sewn
-            by Chris for anglers and bushwhackers who work the bank on foot.
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/products">
-              <Button
-                variant="primary"
-                size="lg"
-                className="font-bold uppercase tracking-wider text-sm shadow-lg shadow-orange-950/40 px-8 py-3.5"
-              >
-                Explore Gear Roster ({products.length})
-              </Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm px-6 py-3.5">
-                The Maker&apos;s Story
-              </Button>
-            </Link>
-            {featuredProduct && (
-              <Link href={`/products/${featuredProduct.slug}`}>
-                <Button variant="outline" size="lg" className="font-bold uppercase tracking-wider text-sm">
-                  Inspect The Anorak
-                </Button>
-              </Link>
-            )}
-          </div>
-        </section>
-      )}
+      {/* Field Workshop Split-Screen Hero with Authentic R2 Photography */}
+      <HeroBanner
+        productsCount={products.length}
+        featuredProduct={featuredProduct}
+        preset="field_workshop"
+      />
 
 
       {/* Flagship Product Showcase (The Bushwhack Storm Anorak) */}
@@ -146,7 +91,9 @@ export default async function HomePage() {
                   />
                 ) : (
                   <div className="text-center space-y-3 p-8">
-                    <span className="text-7xl">🧥</span>
+                    <span className="font-mono text-2xl font-black text-stone-600 tracking-widest block">
+                      [ SPEC NO. 01 ]
+                    </span>
                     <p className="text-sm font-mono text-[#E55B24] uppercase font-bold tracking-wider">
                       Technical Storm Shell
                     </p>
@@ -313,7 +260,9 @@ export default async function HomePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-4xl">🎒</span>
+                      <span className="font-mono text-xs uppercase tracking-wider text-stone-600 font-bold">
+                        [ SPEC SILHOUETTE ]
+                      </span>
                     )}
                     {item.category?.name && (
                       <Badge
@@ -377,7 +326,7 @@ export default async function HomePage() {
             <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-4xl group-hover:scale-110 transition-transform">🧥</span>
+                  <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold">[ SPEC 01 ]</span>
                   <Badge variant="warning" className="text-[10px] uppercase font-mono">
                     Toray 3-Layer
                   </Badge>
@@ -402,7 +351,7 @@ export default async function HomePage() {
             <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-4xl group-hover:scale-110 transition-transform">🎒</span>
+                  <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold">[ SPEC 02 ]</span>
                   <Badge variant="olive" className="text-[10px] uppercase font-mono">
                     500D Cordura / X-Pac
                   </Badge>
@@ -427,7 +376,7 @@ export default async function HomePage() {
             <Card className="h-full flex flex-col justify-between p-6 bg-[#15191E] border-stone-800 hover:border-[#E55B24]/70 transition-all duration-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-4xl group-hover:scale-110 transition-transform">🧰</span>
+                  <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold">[ SPEC 03 ]</span>
                   <Badge variant="neutral" className="text-[10px] uppercase font-mono">
                     Martexin Waxed
                   </Badge>
@@ -477,7 +426,7 @@ export default async function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-stone-800/80">
           <div className="space-y-2 p-4 rounded-xl bg-[#15191E] border border-stone-800/60">
-            <span className="text-2xl">🛡️</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold block mb-1">[ 01 // ARMOR ]</span>
             <h4 className="font-bold text-stone-200 text-sm font-mono uppercase">Bombproof Construction</h4>
             <p className="text-xs text-stone-400 leading-relaxed">
               Bar-tacked stress points, waterproof AquaGuard® zips, and reinforced high-wear zones engineered to outlast the harshest brambles.
@@ -485,7 +434,7 @@ export default async function HomePage() {
           </div>
 
           <div className="space-y-2 p-4 rounded-xl bg-[#15191E] border border-stone-800/60">
-            <span className="text-2xl">🧵</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold block mb-1">[ 02 // BATCH ]</span>
             <h4 className="font-bold text-stone-200 text-sm font-mono uppercase">Micro-Batch Agility</h4>
             <p className="text-xs text-stone-400 leading-relaxed">
               Limited runs of 2–4 unique pieces using salvaged deadstock camouflage, custom pocketing, and hand-stamped serialized tags.
@@ -493,7 +442,7 @@ export default async function HomePage() {
           </div>
 
           <div className="space-y-2 p-4 rounded-xl bg-[#15191E] border border-stone-800/60">
-            <span className="text-2xl">♻️</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-[#E55B24] font-bold block mb-1">[ 03 // LIFETIME ]</span>
             <h4 className="font-bold text-stone-200 text-sm font-mono uppercase">Lifetime Repair Guarantee</h4>
             <p className="text-xs text-stone-400 leading-relaxed">
               Gear is built to be used, not displayed. If you shred an elbow crawling through briars, send it back to the workshop for field repair.

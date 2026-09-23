@@ -21,11 +21,9 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   title = 'BankBeaters',
   subtitle = 'Adventure Gear · Curiosity > Fear',
   navItems = [
-    { label: 'Active Drops', href: '/' },
+    { label: 'Equipment Vault', href: '/products' },
+    { label: 'The Workshop', href: '/about' },
     { label: 'Drop Schedule', href: '/drops' },
-    { label: 'Field Gear', href: '/products' },
-    { label: 'The Maker’s Story', href: '/about' },
-    { label: 'The Maker’s Bench', href: '/#makers-bench' },
   ],
   cartCount = 0,
   className = '',
@@ -74,7 +72,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
               <span className="text-sm font-medium text-stone-200 bg-[#15191E] px-3.5 py-2 rounded-lg border border-stone-800 flex items-center gap-2 group-hover:border-[#E55B24]/50 transition-colors min-h-[44px]">
-                <span>🎒 Gear Roll</span>
+                <span className="font-mono text-xs uppercase tracking-wider font-semibold text-stone-300">Gear Roll</span>
                 <span className="bg-[#E55B24] text-white font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs inline-flex items-center justify-center font-mono">
                   {cartCount}
                 </span>
@@ -87,10 +85,10 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <a
               href="/cart"
               data-testid="header-cart-button"
-              className="relative flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg bg-[#15191E] border border-stone-800 text-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
+              className="relative flex items-center justify-center min-w-[44px] min-h-[44px] px-2.5 rounded-lg bg-[#15191E] border border-stone-800 text-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24]"
               aria-label={`View Gear Roll cart with ${cartCount} items`}
             >
-              <span className="text-base">🎒</span>
+              <span className="font-mono text-xs uppercase tracking-wider font-bold text-[#E55B24]">ROLL</span>
               <span className="absolute -top-1 -right-1 bg-[#E55B24] text-white font-bold min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] inline-flex items-center justify-center font-mono">
                 {cartCount}
               </span>
