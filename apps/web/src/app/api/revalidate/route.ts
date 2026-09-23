@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (tag) {
-      (revalidateTag as any)(tag);
+      (revalidateTag as any)(tag, 'max');
       revalidated.push(`tag:${tag}`);
     }
 

@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload';
 import { syncProductToShopify } from './hooks/syncProductToShopify';
+import {
+  revalidateProductAfterChange,
+  revalidateProductAfterDelete,
+} from './hooks/revalidateCatalog';
 import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
@@ -104,7 +108,8 @@ export const Products: CollectionConfig = {
         return data;
       },
     ],
-    afterChange: [syncProductToShopify],
+    afterChange: [syncProductToShopify, revalidateProductAfterChange],
+    afterDelete: [revalidateProductAfterDelete],
   },
   fields: [
     {

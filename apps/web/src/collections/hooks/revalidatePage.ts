@@ -17,9 +17,9 @@ export const revalidatePage: CollectionAfterChangeHook = async ({ doc }) => {
       revalidatePath(`/${slug}`, 'page');
     }
 
-    (revalidateTag as any)('pages');
+    (revalidateTag as any)('pages', 'max');
     if (slug) {
-      (revalidateTag as any)(`page-${slug}`);
+      (revalidateTag as any)(`page-${slug}`, 'max');
     }
   } catch {
     // Graceful no-op when executing outside of Next.js server runtime (e.g. tests, CLI)

@@ -1,4 +1,8 @@
 import type { CollectionConfig } from 'payload';
+import {
+  revalidateCategoryAfterChange,
+  revalidateCategoryAfterDelete,
+} from './hooks/revalidateCatalog';
 import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
@@ -18,6 +22,10 @@ export const Categories: CollectionConfig = {
     create: isAdminOrEditor,
     update: isAdminOrEditor,
     delete: isAdmin,
+  },
+  hooks: {
+    afterChange: [revalidateCategoryAfterChange],
+    afterDelete: [revalidateCategoryAfterDelete],
   },
   fields: [
     {
