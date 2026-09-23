@@ -1,4 +1,8 @@
 import type { CollectionConfig } from 'payload';
+import {
+  revalidateVariationAfterChange,
+  revalidateVariationAfterDelete,
+} from './hooks/revalidateCatalog';
 import { isAdmin, isAdminOrEditor } from '../access';
 
 /**
@@ -54,6 +58,8 @@ export const ProductVariations: CollectionConfig = {
         return data;
       },
     ],
+    afterChange: [revalidateVariationAfterChange],
+    afterDelete: [revalidateVariationAfterDelete],
   },
   fields: [
     {

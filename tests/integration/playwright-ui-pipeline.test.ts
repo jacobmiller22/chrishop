@@ -11,6 +11,7 @@ describe('Story 4.20: GitHub Actions Playwright UI & Integration Test Suite Pipe
   const localDevDocPath = path.join(rootDir, 'LOCAL_DEVELOPMENT.md');
   const storefrontSpecPath = path.join(rootDir, 'tests/ui/storefront-journey.spec.ts');
   const adminSpecPath = path.join(rootDir, 'tests/ui/payload-admin.spec.ts');
+  const propagationSpecPath = path.join(rootDir, 'tests/ui/payload-storefront-propagation.spec.ts');
   const dropCountdownPath = path.join(rootDir, 'packages/ui/src/components/DropCountdown.tsx');
   const cartDrawerPath = path.join(rootDir, 'packages/ui/src/components/CartDrawer.tsx');
 
@@ -73,6 +74,15 @@ describe('Story 4.20: GitHub Actions Playwright UI & Integration Test Suite Pipe
       assert.ok(content.includes('email'), 'Must test email input');
       assert.ok(content.includes('password'), 'Must test password input');
       assert.ok(content.includes('submit'), 'Must test form submit');
+    });
+
+    it('should verify tests/ui/payload-storefront-propagation.spec.ts exists and tests storefront propagation & revalidation', () => {
+      assert.ok(fs.existsSync(propagationSpecPath), 'tests/ui/payload-storefront-propagation.spec.ts must exist');
+      const content = fs.readFileSync(propagationSpecPath, 'utf-8');
+
+      assert.ok(content.includes('/products'), 'Must test /products route');
+      assert.ok(content.includes('/api/revalidate'), 'Must test /api/revalidate endpoint');
+      assert.ok(content.includes("Maker's Field Notes"), 'Must test maker notes rendering');
     });
   });
 
