@@ -11,6 +11,11 @@ import {
 } from '@chrishop/notifications';
 import type { Order, ShippingAddress } from '@chrishop/types';
 import { recordFunnelEvent } from './funnel-telemetry';
+import {
+  dispatchDlqAlert,
+  recordDlqArrival,
+  recordQueueBatchProcessing,
+} from './webhook-telemetry';
 
 export { formatCarrierTrackingUrl, type ShippingUpdatePayload };
 
@@ -969,6 +974,20 @@ export async function handleOrderQueueBatch(
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const initialDelay = options.initialRetryDelaySeconds ?? DEFAULT_INITIAL_RETRY_DELAY_SECONDS;
   const backoffMultiplier = options.backoffMultiplier ?? 2;
+  const batchStart = Date.now();
+
+  let totalLagMs = 0;
+  let lagCount = 0;
+  for (const message of batch.messages) {
+    if (message.timestamp) {
+      const msgTime = new Date(message.timestamp).getTime();
+      if (!isNaN(msgTime) && msgTime > 0) {
+        totalLagMs += Math.max(0, batchStart - msgTime);
+        lagCount++;
+      }
+    }
+  }
+  const avgLagMs = lagCount > 0 ? Math.round(totalLagMs / lagCount) : 0;
 
   const results: MessageProcessingResult[] = [];
   let succeeded = 0;
@@ -1030,6 +1049,7 @@ export async function handleOrderQueueBatch(
             `[OrderConsumer:DLQ] Message ${messageId} exceeded max retries (${attempts}/${maxRetries}). Routing to DLQ.`
           );
 
+          const dlqFailedAt = new Date().toISOString();
           if (env.SHOPIFY_ORDERS_DLQ && typeof env.SHOPIFY_ORDERS_DLQ.send === 'function') {
             try {
               await env.SHOPIFY_ORDERS_DLQ.send({
@@ -1037,12 +1057,32 @@ export async function handleOrderQueueBatch(
                 payload: message.body,
                 error: combinedError,
                 attempts,
-                failedAt: new Date().toISOString(),
+                failedAt: dlqFailedAt,
               });
             } catch (dlqErr) {
               console.error(`[OrderConsumer:DLQFailure] Failed to enqueue to DLQ:`, dlqErr);
             }
           }
+
+          // Trigger automated DLQ Discord alert & record DLQ telemetry
+          const alertDispatched = await dispatchDlqAlert(
+            {
+              originalMessageId: messageId,
+              payload: message.body,
+              error: combinedError,
+              attempts,
+              failedAt: dlqFailedAt,
+            },
+            env.OPS_ALERT_WEBHOOK_URL
+          );
+          recordDlqArrival({
+            originalMessageId: messageId,
+            payload: message.body,
+            error: combinedError,
+            attempts,
+            failedAt: dlqFailedAt,
+            alertDispatched,
+          });
 
           // Acknowledge poisoned message so it does not block the queue
           if (typeof message.ack === 'function') {
@@ -1089,6 +1129,7 @@ export async function handleOrderQueueBatch(
           attempts,
         });
       } else {
+        const dlqFailedAt = new Date().toISOString();
         if (env.SHOPIFY_ORDERS_DLQ && typeof env.SHOPIFY_ORDERS_DLQ.send === 'function') {
           try {
             await env.SHOPIFY_ORDERS_DLQ.send({
@@ -1096,12 +1137,31 @@ export async function handleOrderQueueBatch(
               payload: message.body,
               error: errStr,
               attempts,
-              failedAt: new Date().toISOString(),
+              failedAt: dlqFailedAt,
             });
           } catch (dlqErr) {
             console.error('[OrderConsumer:DLQFailure] Failed to enqueue to DLQ:', dlqErr);
           }
         }
+
+        const alertDispatched = await dispatchDlqAlert(
+          {
+            originalMessageId: messageId,
+            payload: message.body,
+            error: errStr,
+            attempts,
+            failedAt: dlqFailedAt,
+          },
+          env.OPS_ALERT_WEBHOOK_URL
+        );
+        recordDlqArrival({
+          originalMessageId: messageId,
+          payload: message.body,
+          error: errStr,
+          attempts,
+          failedAt: dlqFailedAt,
+          alertDispatched,
+        });
 
         if (typeof message.ack === 'function') {
           await message.ack();
@@ -1121,6 +1181,16 @@ export async function handleOrderQueueBatch(
       }
     }
   }
+
+  const batchDurationMs = Date.now() - batchStart;
+  recordQueueBatchProcessing({
+    batchSize: batch.messages.length,
+    succeeded,
+    retried,
+    deadLettered,
+    durationMs: batchDurationMs,
+    avgQueueLagMs: avgLagMs,
+  });
 
   return {
     total: batch.messages.length,

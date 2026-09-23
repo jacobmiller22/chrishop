@@ -53,6 +53,7 @@
     "d1:telemetry:verify": "tsx scripts/verify-d1-telemetry.ts",
     "funnel:verify": "tsx scripts/verify-conversion-funnel.ts",
     "vitals:verify": "tsx scripts/verify-web-vitals.ts",
+    "webhook:telemetry:verify": "tsx scripts/verify-webhook-telemetry.ts",
     "lint": "turbo run check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

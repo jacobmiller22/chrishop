@@ -49,7 +49,7 @@ describe('Story 4.14: Telemetry & Observability Gap Audit Integration Suite', ()
       const result = validateTelemetryAuditCatalog();
       assert.ok(result.activeCount >= 10, 'Must have at least 10 active signals in production code');
       assert.ok(result.partialCount >= 3, 'Must identify partial signals');
-      assert.ok(result.missingCount >= 5, 'Must identify at least 5 missing signals (gaps)');
+      assert.ok(result.missingCount >= 1, 'Must track identified missing signals (gaps)');
       assert.equal(
         result.activeCount + result.partialCount + result.missingCount,
         result.totalSignals

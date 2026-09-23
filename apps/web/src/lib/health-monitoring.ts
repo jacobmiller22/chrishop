@@ -8,6 +8,10 @@
 
 import { shopify } from './shopify';
 import { getD1TelemetryMetrics, withD1Telemetry, type D1TelemetryMetrics } from './d1-telemetry';
+import {
+  getWebhookTelemetryMetrics,
+  type WebhookPipelineTelemetryMetrics,
+} from './webhook-telemetry';
 
 export interface HealthProbeDetail {
   status: 'healthy' | 'unhealthy' | 'skipped';
@@ -40,8 +44,10 @@ export interface HealthResponsePayload {
     kv: HealthProbeDetail;
     shopify: HealthProbeDetail;
     r2: HealthProbeDetail;
+    webhook?: HealthProbeDetail;
   };
   d1Telemetry?: D1TelemetryMetrics;
+  webhookTelemetry?: WebhookPipelineTelemetryMetrics;
   uptime?: {
     processUptimeSec: number;
   };
@@ -241,12 +247,26 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
   if (shopifyProbe.status === 'unhealthy') failedProbes.shopify = shopifyProbe;
   if (r2Probe.status === 'unhealthy') failedProbes.r2 = r2Probe;
 
+  // 7. Evaluate Webhook Pipeline Health & DLQ Backpressure (Story 4.29)
+  const webhookMetrics = getWebhookTelemetryMetrics();
+  const webhookProbe: HealthProbeDetail = {
+    status: webhookMetrics.healthStatus === 'unhealthy' ? 'unhealthy' : 'healthy',
+    latencyMs: webhookMetrics.averageQueueLagMs,
+    dlqDepth: webhookMetrics.dlqDepth,
+    idempotencyHitRate: webhookMetrics.idempotencyHitRate,
+    messagesProcessed: webhookMetrics.messagesProcessed,
+  };
+  if (webhookMetrics.healthStatus === 'unhealthy') {
+    webhookProbe.error = `DLQ accumulation detected: ${webhookMetrics.dlqDepth} dead-lettered messages`;
+    failedProbes.webhook = webhookProbe;
+  }
+
   const isHealthy = Object.keys(failedProbes).length === 0;
   const overallStatus: 'healthy' | 'unhealthy' = isHealthy ? 'healthy' : 'unhealthy';
   const httpStatus = isHealthy ? 200 : 503;
   const durationMs = Date.now() - startTime;
 
-  // 7. Commit SHA & Build Runtime Metadata (Story 4.23)
+  // 8. Commit SHA & Build Runtime Metadata (Story 4.23)
   const commitSha =
     (env.NEXT_PUBLIC_COMMIT_SHA as string) ||
     (env.CF_PAGES_COMMIT_SHA as string) ||
@@ -266,7 +286,7 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
     (env.NODE_ENV as string) ||
     'production';
 
-  // 8. Dispatch Alert on Failure (out-of-band)
+  // 9. Dispatch Alert on Failure (out-of-band)
   if (!isHealthy) {
     void dispatchHealthAlert(overallStatus, failedProbes).catch((alertErr) => {
       console.error('[HealthCheck:AlertDispatchFailed]', alertErr);
@@ -289,8 +309,10 @@ export async function performHealthCheck(): Promise<{ payload: HealthResponsePay
       kv: kvProbe,
       shopify: shopifyProbe,
       r2: r2Probe,
+      webhook: webhookProbe,
     },
     d1Telemetry: getD1TelemetryMetrics(),
+    webhookTelemetry: webhookMetrics,
     uptime: {
       processUptimeSec: typeof process.uptime === 'function' ? Math.floor(process.uptime()) : 0,
     },

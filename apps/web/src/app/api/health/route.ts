@@ -75,6 +75,13 @@ export async function GET(request?: Request): Promise<NextResponse> {
             'x-d1-avg-latency-ms': String(d1Telemetry.avgDurationMs),
           }
         : {}),
+      ...(payload.webhookTelemetry
+        ? {
+            'x-webhook-dlq-depth': String(payload.webhookTelemetry.dlqDepth),
+            'x-webhook-idempotency-rate': String(payload.webhookTelemetry.idempotencyHitRate),
+            'x-webhook-queue-lag-ms': String(payload.webhookTelemetry.averageQueueLagMs),
+          }
+        : {}),
     },
   });
   return withTraceHeaders(res, trace);
