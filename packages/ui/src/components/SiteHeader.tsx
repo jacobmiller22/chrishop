@@ -15,6 +15,7 @@ export interface SiteHeaderProps {
   navItems?: NavItem[];
   cartCount?: number;
   className?: string;
+  logoSrc?: string;
 }
 
 export const SiteHeader: React.FC<SiteHeaderProps> = ({
@@ -27,6 +28,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   ],
   cartCount = 0,
   className = '',
+  logoSrc = '/media/hero/bank-beaters-logo-white.png',
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -40,10 +42,18 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="flex items-center gap-2 group min-h-[44px] min-w-[44px] py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded-lg"
+              className="flex items-center gap-2 group min-h-[44px] min-w-[44px] py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E55B24] rounded-lg"
               aria-label="BankBeaters Adventure Gear Home"
             >
-              <span className="text-xl font-black tracking-wider uppercase font-mono text-[#E55B24] group-hover:text-orange-400 transition-colors">
+              {logoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoSrc}
+                  alt={title}
+                  className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-105"
+                />
+              ) : null}
+              <span className={logoSrc ? "sr-only" : "text-xl font-black tracking-wider uppercase font-mono text-[#E55B24] group-hover:text-orange-400 transition-colors"}>
                 {title}
               </span>
             </a>
@@ -134,6 +144,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
         cartCount={cartCount}
         title={title}
         subtitle={subtitle}
+        logoSrc={logoSrc}
       />
     </>
   );

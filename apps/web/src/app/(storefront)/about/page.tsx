@@ -48,6 +48,17 @@ export default function AboutPage() {
               </Badge>
             </div>
 
+            {/* Authentic Brand Wordmark in the original font */}
+            <div className="py-1 max-w-[220px] sm:max-w-[280px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/media/hero/bank-beaters-logo-white.png"
+                alt="BankBeaters Adventure Gear"
+                className="w-full h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] filter"
+                loading="eager"
+              />
+            </div>
+
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black uppercase font-mono tracking-tight text-stone-100 drop-shadow-md">
               Built for the Miles Off-Trail.
             </h1>

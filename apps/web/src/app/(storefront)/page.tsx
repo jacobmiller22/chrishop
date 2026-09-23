@@ -407,8 +407,11 @@ export default async function HomePage() {
       >
         <div className="max-w-3xl space-y-4">
           <div className="flex flex-wrap items-center gap-2">
+            <span className="font-brand-serif text-xl font-bold text-stone-100 tracking-wide">
+              BankBeaters
+            </span>
             <span className="text-xs font-mono text-[#E55B24] uppercase tracking-widest font-bold">
-              BankBeaters Adventure Gear
+              Adventure Gear
             </span>
             <span className="text-xs font-mono text-stone-500">·</span>
             <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">
