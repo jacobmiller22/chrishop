@@ -14,23 +14,6 @@ export interface ProductFiltersProps {
   totalCount: number;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  apparel: '🧥',
-  'packs-carry': '🎒',
-  'field-accessories': '🧰',
-  outerwear: '🌧️',
-  'waterproof-storm-shells': '⚡',
-  'storm-shells': '⚡',
-  pants: '👖',
-  'technical-brush-pants': '🪨',
-  'brush-pants': '🪨',
-  'sling-packs': '🎒',
-  'chest-rigs': '🎣',
-  'dry-bags': '🌊',
-  'tool-rolls': '🧵',
-  gloves: '🧤',
-  headwear: '🧢',
-};
 
 const SORT_OPTIONS = [
   { value: 'latest', label: 'Latest Additions' },
@@ -162,18 +145,16 @@ export function ProductFilters({
 
             {topCategories.map((cat) => {
               const isSelected = activeCategory === cat.slug;
-              const icon = CATEGORY_ICONS[cat.slug] || '🎒';
               return (
                 <Link
                   key={cat.id}
                   href={buildUrl({ category: isSelected ? null : cat.slug })}
-                  className={`min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
+                  className={`min-h-[44px] inline-flex items-center px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                     isSelected
                       ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
                       : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
                   }`}
                 >
-                  <span>{icon}</span>
                   <span>{cat.name}</span>
                 </Link>
               );
@@ -211,9 +192,9 @@ export function ProductFilters({
 
         {/* Subcategory Pills (Level 1 & 2) */}
         {subCategories.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-mono text-stone-500 uppercase mr-1">
-              Sub-Categories:
+          <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1">
+            <span className="text-[11px] font-mono text-stone-500 uppercase mr-1 shrink-0">
+              [ SUB-CAT ]:
             </span>
             {subCategories.map((cat) => {
               const isSelected = activeCategory === cat.slug;
@@ -221,7 +202,7 @@ export function ProductFilters({
                 <Link
                   key={cat.id}
                   href={buildUrl({ category: isSelected ? null : cat.slug })}
-                  className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono transition-all ${
+                  className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono whitespace-nowrap transition-all ${
                     isSelected
                       ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
                       : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'
@@ -355,7 +336,7 @@ export function ProductFilters({
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-stone-800">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🧰</span>
+                  <span className="text-[#E55B24] font-mono text-xs uppercase font-bold tracking-widest">[ SPEC ]</span>
                   <h2 className="text-lg font-bold text-stone-100 font-mono uppercase">
                     Filter Equipment
                   </h2>
@@ -447,7 +428,6 @@ export function ProductFilters({
                   {categories.map((cat) => {
                     const isSelected = activeCategory === cat.slug;
                     const isSub = Boolean(cat.parent_id);
-                    const icon = CATEGORY_ICONS[cat.slug] || '🎒';
                     return (
                       <button
                         key={cat.id}
@@ -462,8 +442,7 @@ export function ProductFilters({
                         }`}
                       >
                         <span className="inline-flex items-center gap-2">
-                          {!isSub && <span>{icon}</span>}
-                          {isSub && <span className="text-stone-500">↳</span>}
+                          {isSub && <span className="text-stone-500 font-mono">↳</span>}
                           <span>{cat.name}</span>
                         </span>
                         {isSelected && <span>✓</span>}

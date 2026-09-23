@@ -11,7 +11,7 @@ export interface ImageGalleryProps {
   images: GalleryImage[];
   selectedIndex?: number;
   onSelectIndex?: (index: number) => void;
-  fallbackIcon?: string;
+  fallbackIcon?: React.ReactNode;
   className?: string;
   topBadges?: React.ReactNode;
   renderHero?: (activeImage: GalleryImage) => React.ReactNode;
@@ -22,7 +22,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   images,
   selectedIndex = 0,
   onSelectIndex,
-  fallbackIcon = '🎒',
+  fallbackIcon,
   className = '',
   topBadges,
   renderHero,
@@ -52,12 +52,16 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
           )
         ) : (
           <div className="text-center p-8 space-y-4">
-            <span className="text-8xl select-none inline-block filter drop-shadow-lg">
-              {fallbackIcon}
-            </span>
+            <div className="mx-auto w-16 h-16 rounded-xl border border-stone-800 bg-[#101317] flex items-center justify-center text-stone-600">
+              {fallbackIcon || (
+                <svg className="w-8 h-8 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+            </div>
             <div className="space-y-1">
-              <p className="text-sm font-mono text-[#E55B24]">Workbench Silhouette Preview</p>
-              <p className="text-xs text-stone-500">Field documentation in progress</p>
+              <p className="text-xs font-mono uppercase tracking-wider text-[#E55B24]">[ SPEC // SILHOUETTE PREVIEW ]</p>
+              <p className="text-[11px] font-mono text-stone-500">Field documentation in progress</p>
             </div>
           </div>
         )}

@@ -29,23 +29,6 @@ interface ProductDetailClientProps {
   product: StorefrontProduct;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  apparel: '🧥',
-  outerwear: '🏔️',
-  midlayers: '🧶',
-  'waterproof-storm-shells': '🌧️',
-  'technical-fleece': '🌲',
-  equipment: '🎒',
-  packs: '🎒',
-  'sleep-systems': '⛺',
-  'alpine-daypacks': '🧗',
-  'ultralight-quilts': '🪶',
-  accessories: '🧭',
-  headwear: '🧢',
-  storage: '📦',
-  'field-caps': '🏕️',
-  'roll-top-ditty-bags': '👝',
-};
 
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const variations: StorefrontVariation[] = product.variations || [];
@@ -112,7 +95,6 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   }
 
   const activeMedia = mediaList[selectedImageIndex] || mediaList[0];
-  const categoryIcon = (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🌲';
 
   // Mobile Sticky Action Bar Visibility Observer
   useEffect(() => {
@@ -355,7 +337,6 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             items={mediaList}
             selectedIndex={selectedImageIndex}
             onSelectIndex={setSelectedImageIndex}
-            fallbackIcon={categoryIcon}
             idleIntervalMs={5000}
             resumeDelayMs={15000}
             autoAdvance={true}
@@ -382,12 +363,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           />
 
           {/* Workshop Crafting Note */}
-          <div className="rounded-xl border border-stone-800 bg-[#15191E]/60 p-4 text-xs text-stone-400 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-stone-200">
-              <span>🛡️</span>
+          <div className="rounded-xl border border-stone-800/80 bg-[#15191E]/40 p-4 text-xs text-stone-400 space-y-2">
+            <div className="flex items-center gap-2 font-mono uppercase tracking-wider text-[11px] font-semibold text-stone-200">
+              <span className="text-[#E55B24] font-bold">//</span>
               <span>BankBeaters Workshop Guarantee</span>
             </div>
-            <p>
+            <p className="leading-relaxed">
               Every silhouette is patterned, cut, and single-needle lockstitched in our Colorado
               workshop. Hand-waxed seams, reinforced stress bartacks, and built to outlast the storm.
             </p>
@@ -431,7 +412,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <div className="p-4 rounded-xl bg-[#101317] border border-stone-800 space-y-3 font-mono text-xs shadow-inner">
             <div className="flex items-center justify-between border-b border-stone-800/80 pb-2">
               <span className="font-bold text-[#E55B24] uppercase tracking-wider flex items-center gap-1.5">
-                <span>⚡</span>
+                <span className="font-mono text-stone-500">//</span>
                 <span>Quick Spec // Field Gist</span>
               </span>
               <span className="text-[10px] text-stone-500 uppercase">
@@ -493,14 +474,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           )}
 
           {/* Dynamic Price Display */}
-          <div className="p-4 rounded-xl bg-[#15191E] border border-stone-800 space-y-2">
+          <div className="pt-2 pb-1 space-y-2">
             <div className="flex items-baseline justify-between flex-wrap gap-2">
               <div>
-                <span className="text-xs text-stone-400 font-mono uppercase tracking-wider block">
+                <span className="text-[11px] text-stone-500 font-mono uppercase tracking-wider block">
                   Batch Price
                 </span>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-black text-[#E55B24]">
+                <div className="flex items-baseline gap-3 mt-0.5">
+                  <span className="text-4xl font-black tracking-tight text-[#E55B24]">
                     ${Number(currentPrice).toFixed(2)}
                   </span>
                   {isOverride && product.base_price !== undefined && (
@@ -511,9 +492,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               </div>
               {selectedVariation?.sku && (
-                <div className="text-right">
-                  <span className="text-xs text-stone-500 font-mono block">SKU</span>
-                  <span className="text-xs font-mono font-bold text-stone-300">
+                <div className="text-right font-mono">
+                  <span className="text-[10px] text-stone-500 uppercase tracking-wider block">SKU</span>
+                  <span className="text-xs font-semibold text-stone-300">
                     {selectedVariation.sku}
                   </span>
                 </div>
@@ -521,18 +502,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             </div>
 
             {selectedVariation?.is_limited_edition && selectedVariation?.total_edition_count ? (
-              <p className="text-xs text-emerald-400 font-mono">
-                ✦ Limited Edition — {selectedVariation.stock_quantity ?? 0} of {selectedVariation.total_edition_count} remaining
+              <p className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>Limited Edition — {selectedVariation.stock_quantity ?? 0} of {selectedVariation.total_edition_count} remaining</span>
               </p>
             ) : null}
 
             {isOverride ? (
-              <p className="text-xs text-orange-400/90 font-mono">
-                ✦ Small-batch technical material override applied
+              <p className="text-xs text-orange-400/90 font-mono flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#E55B24]"></span>
+                <span>Small-batch technical material override applied</span>
               </p>
             ) : (
               <p className="text-xs text-stone-400 font-mono">
-                ✦ Standard silhouette base price (${Number(product.base_price).toFixed(2)})
+                Standard silhouette base price (${Number(product.base_price).toFixed(2)})
               </p>
             )}
           </div>
@@ -542,7 +525,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="rounded-xl border border-[#3F4F3D] bg-[#2C362B]/30 p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#E55B24] font-bold">
-                  <span>📐</span>
+                  <span className="text-stone-500 font-mono">//</span>
                   <span>Maker&apos;s Field Notes</span>
                 </div>
                 {selectedVariation?.edition_badge && (
@@ -579,7 +562,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             product.technical_specs) && (
             <div className="rounded-xl border border-stone-800 bg-[#15191E] p-5 space-y-3">
               <h3 className="text-xs font-mono uppercase tracking-wider text-stone-400 font-semibold flex items-center gap-2">
-                <span>⚙️</span> Technical Specifications
+                <span className="text-[#E55B24] font-mono font-bold">//</span> Technical Specifications
               </h3>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 {product.materials && (

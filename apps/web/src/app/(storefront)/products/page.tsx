@@ -71,24 +71,6 @@ export async function generateMetadata(props: ProductsPageProps): Promise<Metada
   };
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  apparel: '🧥',
-  'packs-carry': '🎒',
-  'field-accessories': '🧰',
-  outerwear: '🌧️',
-  'waterproof-storm-shells': '⚡',
-  'storm-shells': '⚡',
-  pants: '👖',
-  'technical-brush-pants': '🪨',
-  'brush-pants': '🪨',
-  'sling-packs': '🎒',
-  'chest-rigs': '🎣',
-  'dry-bags': '🌊',
-  'tool-rolls': '🧵',
-  gloves: '🧤',
-  headwear: '🧢',
-};
-
 export default async function ProductsPage(props: ProductsPageProps) {
   const searchParams = await props.searchParams;
   const activeCategory = searchParams?.category;
@@ -203,11 +185,15 @@ export default async function ProductsPage(props: ProductsPageProps) {
       {/* Catalog Grid */}
       {products.length === 0 ? (
         <div className="text-center py-16 bg-[#15191E] border border-stone-800 rounded-2xl p-8 space-y-4">
-          <span className="text-5xl">🎒</span>
-          <h2 className="text-xl font-bold text-stone-200 font-mono uppercase">
-            {hasActiveFilters ? 'No Matching Gear Found' : 'No Gear In This Category'}
+          <div className="mx-auto w-16 h-16 rounded-xl border border-stone-800 bg-[#101317] flex items-center justify-center text-stone-500">
+            <svg className="w-8 h-8 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <h2 className="text-base font-bold text-stone-200 font-mono uppercase tracking-wider">
+            {hasActiveFilters ? '[ NO MATCHING GEAR SPECIFICATIONS ]' : '[ NO GEAR IN THIS CATEGORY ]'}
           </h2>
-          <p className="text-stone-400 text-sm max-w-md mx-auto">
+          <p className="text-stone-400 text-xs max-w-md mx-auto leading-relaxed">
             {hasActiveFilters
               ? 'No equipment matches the active category, batch type, or filter combination. Reset filters to explore all bench builds.'
               : 'The equipment catalog is being prepared on the workbench. Check back shortly for active drops!'}
@@ -224,8 +210,6 @@ export default async function ProductsPage(props: ProductsPageProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {products.map((product) => {
             const imageUrl = getAssetUrl(product.featured_image || product.hero_image);
-            const categoryIcon =
-              (product.category?.slug && CATEGORY_ICONS[product.category.slug]) || '🎒';
             const price = product.effective_min_price ?? product.base_price;
             const hasMicroBatch = product.variations?.some(
               (v) => v.variation_type === 'micro_batch' || v.variation_type === 'one_of_one' || v.is_limited_edition
@@ -263,11 +247,13 @@ export default async function ProductsPage(props: ProductsPageProps) {
                     />
                   ) : (
                     <div className="text-center space-y-2 p-6">
-                      <span className="text-5xl select-none group-hover:scale-110 transition-transform duration-300 inline-block">
-                        {categoryIcon}
-                      </span>
-                      <p className="text-xs font-mono text-[#E55B24] uppercase tracking-wider font-bold">
-                        {product.category?.name || 'Technical Gear'}
+                      <div className="mx-auto w-12 h-12 rounded-lg border border-stone-800 bg-stone-900/60 flex items-center justify-center text-stone-600 mb-1 group-hover:border-[#E55B24]/40 transition-colors">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-[11px] font-mono text-[#E55B24] uppercase tracking-wider font-bold">
+                        [ SPEC // SILHOUETTE ]
                       </p>
                     </div>
                   )}
