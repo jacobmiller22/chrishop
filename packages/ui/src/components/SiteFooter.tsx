@@ -2,9 +2,17 @@ import React from 'react';
 
 export interface SiteFooterProps {
   className?: string;
+  logoSrc?: string;
+  title?: string;
+  subtitle?: string;
 }
 
-export const SiteFooter: React.FC<SiteFooterProps> = ({ className = '' }) => {
+export const SiteFooter: React.FC<SiteFooterProps> = ({
+  className = '',
+  logoSrc = '/media/hero/bank-beaters-logo-white.png',
+  title = 'BankBeaters',
+  subtitle = 'Adventure Gear · Curiosity > Fear',
+}) => {
   return (
     <footer
       className={`border-t border-[#3A2E24]/70 bg-[#171310] text-[#DDD0BE]/80 py-12 ${className}`}
@@ -14,11 +22,27 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({ className = '' }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand & Provenance Column */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-black font-mono uppercase tracking-wider text-[#A8472A]">
-                BankBeaters
-              </span>
-              <span className="text-xs font-mono text-[#DDD0BE]/60 uppercase">Adventure Gear</span>
+            <div className="space-y-2">
+              <a
+                href="/"
+                className="inline-block group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded-lg"
+                aria-label="BankBeaters Adventure Gear Home"
+              >
+                {logoSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logoSrc}
+                    alt={title}
+                    className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
+                  />
+                ) : null}
+                <span className={logoSrc ? "sr-only" : "text-2xl font-serif italic text-[#F8F5EE]"}>
+                  {title}
+                </span>
+              </a>
+              <div className="text-xs font-mono uppercase tracking-widest text-[#DDD0BE]/60">
+                {subtitle}
+              </div>
             </div>
             <p className="text-xs sm:text-sm text-[#DDD0BE] leading-relaxed max-w-sm">
               Patagonia-grade technical outerwear, convertible carry rigs, and field accessories
@@ -57,7 +81,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({ className = '' }) => {
                   YouTube ↗
                 </a>
                 <a
-                  href="mailto:chris@chrishop.jacobmiller22.com"
+                  href="mailto:chris@bankbeatersadventuregear.com"
                   className="hover:text-[#A8472A] transition-colors py-2 inline-flex items-center min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded"
                   aria-label="Email Chris at the Leadville Workshop"
                 >
@@ -78,7 +102,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({ className = '' }) => {
                   href="/products"
                   className="hover:text-[#A8472A] transition-colors py-2.5 inline-flex items-center min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded"
                 >
-                  Complete Catalog
+                  Field Gear Catalog
                 </a>
               </li>
               <li>
@@ -86,7 +110,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({ className = '' }) => {
                   href="/drops"
                   className="hover:text-[#A8472A] transition-colors py-2.5 inline-flex items-center min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#A8472A] rounded"
                 >
-                  Scheduled Drops
+                  Drop Schedule
                 </a>
               </li>
               <li>

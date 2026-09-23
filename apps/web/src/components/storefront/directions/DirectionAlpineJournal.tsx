@@ -197,7 +197,8 @@ export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
 
       {/* 3. EDITORIAL STORY DISPATCH: The Maker's Workshop */}
       <section
-        className="border-t pt-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center transition-colors"
+        id="makers-bench"
+        className="border-t pt-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center transition-colors scroll-mt-24"
         style={{ borderColor: 'var(--journal-border)' }}
       >
         <div className="lg:col-span-6 space-y-6">
