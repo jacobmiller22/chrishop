@@ -16,23 +16,35 @@
   font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
 }
 
-/* Direction A: The Alpine Field Journal (Multi-Palette System) */
+/* Direction A: The Alpine Field Journal (Waxed Cedar Baseline) */
 .direction-theme-a {
-  --journal-canvas: #F6F3EC;
-  --journal-surface: #EFECE3;
-  --journal-border: #DDD7C8;
-  --journal-ink: #1A2421;
-  --journal-muted: #5A6660;
-  --journal-accent: #C85A32;
-  --journal-accent-hover: #B04D28;
-  --journal-hero-overlay: #1A2421;
+  --journal-canvas: #F8F5EE;
+  --journal-surface: #EFE8DC;
+  --journal-border: #DDD0BE;
+  --journal-ink: #2B2118;
+  --journal-muted: #685A4E;
+  --journal-accent: #A8472A;
+  --journal-accent-hover: #8C371D;
+  --journal-hero-overlay: #2B2118;
   background-color: var(--journal-canvas) !important;
   color: var(--journal-ink) !important;
 }
 
-/* Palette 1: Sailcloth Ecru & Colorado Clay (Baseline) */
-.direction-theme-a.palette-sailcloth,
+/* Palette 1: Waxed Cedar & Russet Pine (Primary Brand Selection) */
+.direction-theme-a.palette-cedar,
 .direction-theme-a:not([class*="palette-"]) {
+  --journal-canvas: #F8F5EE;
+  --journal-surface: #EFE8DC;
+  --journal-border: #DDD0BE;
+  --journal-ink: #2B2118;
+  --journal-muted: #685A4E;
+  --journal-accent: #A8472A;
+  --journal-accent-hover: #8C371D;
+  --journal-hero-overlay: #2B2118;
+}
+
+/* Palette 2: Sailcloth Ecru & Colorado Clay */
+.direction-theme-a.palette-sailcloth {
   --journal-canvas: #F6F3EC;
   --journal-surface: #EFECE3;
   --journal-border: #DDD7C8;
@@ -43,7 +55,7 @@
   --journal-hero-overlay: #1A2421;
 }
 
-/* Palette 2: Blue Spruce & Glacial Quartz */
+/* Palette 3: Blue Spruce & Glacial Quartz */
 .direction-theme-a.palette-spruce {
   --journal-canvas: #F0F4F4;
   --journal-surface: #E3ECEB;
@@ -53,18 +65,6 @@
   --journal-accent: #D96B27;
   --journal-accent-hover: #BF581A;
   --journal-hero-overlay: #0F2224;
-}
-
-/* Palette 3: Waxed Cedar & Russet Pine */
-.direction-theme-a.palette-cedar {
-  --journal-canvas: #F8F5EE;
-  --journal-surface: #EFE8DC;
-  --journal-border: #DDD0BE;
-  --journal-ink: #2B2118;
-  --journal-muted: #685A4E;
-  --journal-accent: #A8472A;
-  --journal-accent-hover: #8C371D;
-  --journal-hero-overlay: #2B2118;
 }
 
 /* Palette 4: Leadville Granite & Signal Orange */

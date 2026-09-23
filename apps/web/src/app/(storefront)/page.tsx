@@ -53,7 +53,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const activePalette: JournalPalette =
     validPalette(resolvedSearchParams?.palette) ||
     validPalette(cookiePalette) ||
-    'sailcloth';
+    'cedar';
 
   const products = await fetchProducts();
   const featuredProductSlug = products[0]?.slug;

@@ -18,7 +18,7 @@ export interface DirectionAlpineJournalProps {
 export const DirectionAlpineJournal: React.FC<DirectionAlpineJournalProps> = ({
   products,
   featuredProduct: _featuredProduct,
-  initialPalette = 'sailcloth',
+  initialPalette = 'cedar',
 }) => {
   const [activePalette, setActivePalette] = useState<JournalPalette>(initialPalette);
 

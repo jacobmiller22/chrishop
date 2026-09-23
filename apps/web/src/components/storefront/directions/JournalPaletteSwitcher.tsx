@@ -21,6 +21,14 @@ export interface PaletteDef {
 
 export const JOURNAL_PALETTES: PaletteDef[] = [
   {
+    id: 'cedar',
+    name: 'Waxed Cedar',
+    tagline: 'Selected Baseline · Pine & Russet',
+    canvas: '#F8F5EE',
+    ink: '#2B2118',
+    accent: '#A8472A',
+  },
+  {
     id: 'sailcloth',
     name: 'Sailcloth Ecru',
     tagline: 'Warm Cotton & Clay',
@@ -35,14 +43,6 @@ export const JOURNAL_PALETTES: PaletteDef[] = [
     canvas: '#F0F4F4',
     ink: '#0F2224',
     accent: '#D96B27',
-  },
-  {
-    id: 'cedar',
-    name: 'Waxed Cedar',
-    tagline: 'Weathered Pine & Russet',
-    canvas: '#F8F5EE',
-    ink: '#2B2118',
-    accent: '#A8472A',
   },
   {
     id: 'granite',
