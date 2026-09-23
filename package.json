@@ -85,15 +85,15 @@
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
-    "@cloudflare/workers-types": "^4.20240923.0",
+    "@cloudflare/workers-types": "^5.20260919.1",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^20.11.0",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
     "tsx": "^4.23.13",
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.0",
-    "wrangler": "^3.100.0"
+    "turbo": "^2.11.2",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.135.0"
   },
   "pnpm": {
     "overrides": {
