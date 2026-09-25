@@ -1,9 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700;1,900&display=swap');
 @import 'tailwindcss';
 @source '../../../../packages/ui/src';
 
 :root {
-  --background: #020617;
-  --foreground: #f8fafc;
+  --background: #F8F5EE;
+  --foreground: #2B2118;
+  --color-canvas: #F8F5EE;
+  --color-surface: #EFE8DC;
+  --color-border: #DDD0BE;
+  --color-ink: #2B2118;
+  --color-muted: #685A4E;
+  --color-accent: #A8472A;
+  --color-accent-hover: #8C371D;
+
+  /* Aliases for Alpine Journal components */
+  --journal-canvas: #F8F5EE;
+  --journal-surface: #EFE8DC;
+  --journal-border: #DDD0BE;
+  --journal-ink: #2B2118;
+  --journal-muted: #685A4E;
+  --journal-accent: #A8472A;
+  --journal-accent-hover: #8C371D;
+  --journal-hero-overlay: #2B2118;
+}
+
+.font-brand-serif {
+  font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+  font-style: italic;
+}
+
+.font-journal-serif {
+  font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
 }
 
 body {

@@ -50,7 +50,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       data-testid={dataTestId}
       disabled={isDisabled}
       onClick={onClick}
-      className={`w-full font-bold uppercase tracking-wider shadow-lg shadow-orange-950/40 py-3.5 text-base bg-[#E55B24] hover:bg-[#D04A15] text-white border-none min-h-[48px] ${className}`}
+      className={`w-full font-bold uppercase tracking-wider shadow-md shadow-[#2B2118]/10 py-3.5 text-base bg-[#A8472A] hover:bg-[#8C371D] text-white border-none min-h-[48px] ${className}`}
     >
       {buttonLabel}
     </Button>

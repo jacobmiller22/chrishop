@@ -38,10 +38,10 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
   return (
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-stone-200">
+        <label className="text-sm font-semibold text-[#2B2118]">
           Select Batch / Variation ({variations.length})
         </label>
-        <span className="text-xs text-stone-400 font-mono">
+        <span className="text-xs text-[#685A4E] font-mono">
           {selectedVariation?.variationType === 'one_of_one'
             ? '1-of-1 Workshop Prototype'
             : selectedVariation?.variationType === 'micro_batch'
@@ -71,8 +71,8 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
               onClick={() => onSelectVariation(v.id)}
               className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 min-w-0 min-h-[44px] ${
                 isSelected
-                  ? 'border-[#E55B24] bg-[#E55B24]/10 shadow-md shadow-orange-500/10'
-                  : 'border-stone-800 bg-[#15191E]/60 hover:border-stone-700 hover:bg-[#15191E]'
+                  ? 'border-[#A8472A] bg-[#A8472A]/10 shadow-xs'
+                  : 'border-[#DDD0BE] bg-[#EFE8DC]/70 hover:border-[#A8472A]/50 hover:bg-[#EFE8DC]'
               }`}
             >
               <div className="space-y-1 min-w-0 flex-1">
@@ -80,23 +80,23 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
                   <span
                     className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
                       isSelected
-                        ? 'border-[#E55B24] bg-[#E55B24]'
-                        : 'border-stone-500 bg-transparent hover:border-stone-400'
+                        ? 'border-[#A8472A] bg-[#A8472A]'
+                        : 'border-[#DDD0BE] bg-transparent hover:border-[#A8472A]/60'
                     }`}
                   >
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-stone-950" />}
+                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </span>
-                  <span className="text-sm font-semibold text-stone-100 break-words">
+                  <span className="text-sm font-semibold text-[#2B2118] break-words">
                     {v.name}
                   </span>
                   {v.editionBadge && (
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#2C362B] text-emerald-300 border border-[#3F4F3D] px-1.5 py-0.5 rounded shrink-0">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#E8E2D5] text-[#2B2118] border border-[#DDD0BE] px-1.5 py-0.5 rounded shrink-0">
                       {v.editionBadge}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-stone-400 font-mono pl-6 flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-[#685A4E] font-mono pl-6 flex-wrap">
                   {v.sku && <span>{v.sku}</span>}
                   {v.variationType && (
                     <>
@@ -116,11 +116,11 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
               <div className="text-right flex flex-col items-end gap-1 shrink-0">
                 <div className="flex items-baseline gap-1.5">
                   {hasPriceOverride && v.basePrice !== undefined && (
-                    <span className="text-xs line-through text-stone-500 font-mono">
+                    <span className="text-xs line-through text-[#685A4E]/60 font-mono">
                       ${Number(v.basePrice).toFixed(2)}
                     </span>
                   )}
-                  <span className="text-base font-bold text-[#E55B24]">
+                  <span className="text-base font-bold text-[#A8472A]">
                     ${Number(v.price).toFixed(2)}
                   </span>
                 </div>
@@ -134,7 +134,7 @@ export const VariationSelector: React.FC<VariationSelectorProps> = ({
                     Soon
                   </Badge>
                 ) : v.stockQuantity !== undefined ? (
-                  <span className="text-[11px] text-emerald-400 font-mono">
+                  <span className="text-[11px] text-[#A8472A] font-mono font-semibold">
                     {v.stockQuantity} left
                   </span>
                 ) : null}

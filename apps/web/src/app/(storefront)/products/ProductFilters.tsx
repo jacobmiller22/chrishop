@@ -14,23 +14,6 @@ export interface ProductFiltersProps {
   totalCount: number;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  apparel: '🧥',
-  'packs-carry': '🎒',
-  'field-accessories': '🧰',
-  outerwear: '🌧️',
-  'waterproof-storm-shells': '⚡',
-  'storm-shells': '⚡',
-  pants: '👖',
-  'technical-brush-pants': '🪨',
-  'brush-pants': '🪨',
-  'sling-packs': '🎒',
-  'chest-rigs': '🎣',
-  'dry-bags': '🌊',
-  'tool-rolls': '🧵',
-  gloves: '🧤',
-  headwear: '🧢',
-};
 
 const SORT_OPTIONS = [
   { value: 'latest', label: 'Latest Additions' },
@@ -153,8 +136,8 @@ export function ProductFilters({
               href={buildUrl({ category: null })}
               className={`min-h-[44px] inline-flex items-center px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                 !activeCategory
-                  ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                  : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
+                  ? 'bg-[#A8472A] text-white shadow-xs'
+                  : 'bg-[#EFE8DC] text-[#2B2118] border border-[#DDD0BE] hover:border-[#A8472A]/70 hover:text-[#A8472A]'
               }`}
             >
               All Gear ({totalCount})
@@ -162,18 +145,16 @@ export function ProductFilters({
 
             {topCategories.map((cat) => {
               const isSelected = activeCategory === cat.slug;
-              const icon = CATEGORY_ICONS[cat.slug] || '🎒';
               return (
                 <Link
                   key={cat.id}
                   href={buildUrl({ category: isSelected ? null : cat.slug })}
-                  className={`min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
+                  className={`min-h-[44px] inline-flex items-center px-4 py-2 rounded-full text-xs font-mono uppercase font-semibold transition-all ${
                     isSelected
-                      ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                      : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-[#E55B24]/50 hover:text-orange-400'
+                      ? 'bg-[#A8472A] text-white shadow-xs'
+                      : 'bg-[#EFE8DC] text-[#2B2118] border border-[#DDD0BE] hover:border-[#A8472A]/70 hover:text-[#A8472A]'
                   }`}
                 >
-                  <span>{icon}</span>
                   <span>{cat.name}</span>
                 </Link>
               );
@@ -185,10 +166,10 @@ export function ProductFilters({
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open filter and sort drawer"
-            className="md:hidden min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#15191E] border border-stone-800 text-xs font-mono uppercase font-semibold text-stone-200 hover:border-[#E55B24]/60 transition-colors"
+            className="md:hidden min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EFE8DC] border border-[#DDD0BE] text-xs font-mono uppercase font-semibold text-[#2B2118] hover:border-[#A8472A]/60 transition-colors"
           >
             <svg
-              className="w-4 h-4 text-[#E55B24]"
+              className="w-4 h-4 text-[#A8472A]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -202,7 +183,7 @@ export function ProductFilters({
             </svg>
             <span>Filter & Sort</span>
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#E55B24] text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="w-5 h-5 rounded-full bg-[#A8472A] text-white text-[10px] flex items-center justify-center font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -211,9 +192,9 @@ export function ProductFilters({
 
         {/* Subcategory Pills (Level 1 & 2) */}
         {subCategories.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-mono text-stone-500 uppercase mr-1">
-              Sub-Categories:
+          <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1">
+            <span className="text-[11px] font-mono text-[#685A4E] uppercase mr-1 shrink-0">
+              [ SUB-CAT ]:
             </span>
             {subCategories.map((cat) => {
               const isSelected = activeCategory === cat.slug;
@@ -221,10 +202,10 @@ export function ProductFilters({
                 <Link
                   key={cat.id}
                   href={buildUrl({ category: isSelected ? null : cat.slug })}
-                  className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono transition-all ${
+                  className={`min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-mono whitespace-nowrap transition-all ${
                     isSelected
-                      ? 'bg-[#2C362B] text-emerald-300 border border-emerald-700 font-bold'
-                      : 'bg-stone-900/60 text-stone-400 border border-stone-800/80 hover:text-stone-200 hover:border-stone-700'
+                      ? 'bg-[#A8472A] text-white font-bold'
+                      : 'bg-[#EFE8DC] text-[#2B2118] border border-[#DDD0BE] hover:text-[#A8472A] hover:border-[#A8472A]'
                   }`}
                 >
                   {cat.name}
@@ -236,10 +217,10 @@ export function ProductFilters({
       </div>
 
       {/* Desktop Toolbar: Sort & Edition Filter Bar */}
-      <div className="hidden md:flex items-center justify-between gap-4 py-3 px-4 rounded-xl bg-[#101317] border border-stone-800/80">
+      <div className="hidden md:flex items-center justify-between gap-4 py-3 px-4 rounded-xl bg-[#EFE8DC] border border-[#DDD0BE]">
         {/* Edition / Batch Type Toggle */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-stone-400 uppercase mr-1">Batch:</span>
+          <span className="text-xs font-mono text-[#685A4E] uppercase mr-1">Batch:</span>
           {TYPE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -247,8 +228,8 @@ export function ProductFilters({
               onClick={() => handleUpdate({ type: opt.value })}
               className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-mono uppercase font-semibold transition-all ${
                 activeType === opt.value
-                  ? 'bg-stone-800 text-stone-100 border border-stone-700'
-                  : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900/50'
+                  ? 'bg-[#F8F5EE] text-[#2B2118] border border-[#DDD0BE] shadow-xs'
+                  : 'text-[#685A4E] hover:text-[#2B2118] hover:bg-[#F8F5EE]/50'
               }`}
             >
               {opt.label}
@@ -258,7 +239,7 @@ export function ProductFilters({
 
         {/* Sort Select Dropdown */}
         <div className="flex items-center gap-2">
-          <label htmlFor="catalog-sort" className="text-xs font-mono text-stone-400 uppercase">
+          <label htmlFor="catalog-sort" className="text-xs font-mono text-[#685A4E] uppercase">
             Sort:
           </label>
           <select
@@ -266,10 +247,10 @@ export function ProductFilters({
             value={activeSort}
             onChange={(e) => handleUpdate({ sort: e.target.value })}
             aria-label="Sort catalog equipment"
-            className="min-h-[44px] bg-[#15191E] border border-stone-800 rounded-lg px-3 py-2 text-base font-mono text-stone-200 focus:outline-none focus:border-[#E55B24] cursor-pointer"
+            className="min-h-[44px] bg-[#F8F5EE] border border-[#DDD0BE] rounded-lg px-3 py-2 text-base font-mono text-[#2B2118] focus:outline-none focus:border-[#A8472A] cursor-pointer"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-[#15191E] text-stone-200">
+              <option key={opt.value} value={opt.value} className="bg-[#F8F5EE] text-[#2B2118]">
                 {opt.label}
               </option>
             ))}
@@ -280,16 +261,16 @@ export function ProductFilters({
       {/* Active Filter Chips & Reset All */}
       {activeFilterCount > 0 && (
         <div className="flex items-center gap-2 flex-wrap pt-1 text-xs font-mono">
-          <span className="text-stone-500 uppercase">Active Filters:</span>
+          <span className="text-[#685A4E] uppercase">Active Filters:</span>
 
           {activeCategoryObj && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2C362B] text-emerald-300 border border-emerald-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EFE8DC] text-[#2B2118] border border-[#DDD0BE]">
               <span>Category: {activeCategoryObj.name}</span>
               <button
                 type="button"
                 onClick={() => handleUpdate({ category: null })}
                 aria-label={`Remove category filter ${activeCategoryObj.name}`}
-                className="hover:text-emerald-100 font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
+                className="hover:text-[#A8472A] font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
               >
                 ✕
               </button>
@@ -297,13 +278,13 @@ export function ProductFilters({
           )}
 
           {activeType && activeType !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-800">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EFE8DC] text-[#A8472A] border border-[#DDD0BE] font-semibold">
               <span>Type: {TYPE_OPTIONS.find((t) => t.value === activeType)?.label}</span>
               <button
                 type="button"
                 onClick={() => handleUpdate({ type: null })}
                 aria-label="Remove batch type filter"
-                className="hover:text-orange-100 font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
+                className="hover:text-[#8C371D] font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
               >
                 ✕
               </button>
@@ -311,13 +292,13 @@ export function ProductFilters({
           )}
 
           {activeSort && activeSort !== 'latest' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 text-stone-300 border border-stone-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EFE8DC] text-[#2B2118] border border-[#DDD0BE]">
               <span>Sort: {SORT_OPTIONS.find((s) => s.value === activeSort)?.label}</span>
               <button
                 type="button"
                 onClick={() => handleUpdate({ sort: null })}
                 aria-label="Reset sort to default"
-                className="hover:text-stone-100 font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
+                className="hover:text-[#A8472A] font-bold p-1 min-h-[44px] min-w-[24px] inline-flex items-center justify-center"
               >
                 ✕
               </button>
@@ -327,7 +308,7 @@ export function ProductFilters({
           <button
             type="button"
             onClick={clearAllFilters}
-            className="min-h-[44px] px-3 py-1.5 text-stone-400 hover:text-[#E55B24] underline underline-offset-4 transition-colors font-semibold uppercase tracking-wider"
+            className="min-h-[44px] px-3 py-1.5 text-[#685A4E] hover:text-[#A8472A] underline underline-offset-4 transition-colors font-semibold uppercase tracking-wider"
           >
             Clear All
           </button>
@@ -344,19 +325,19 @@ export function ProductFilters({
         >
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-[#171310]/75 backdrop-blur-sm transition-opacity"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
 
           {/* Drawer Sheet */}
-          <div className="relative w-full max-w-sm bg-[#101317] border-l border-stone-800 h-full overflow-y-auto p-6 flex flex-col justify-between z-10">
+          <div className="relative w-full max-w-sm bg-[#1A1613] border-l border-[#3A2E24] h-full overflow-y-auto p-6 flex flex-col justify-between z-10 text-[#EFE8DC]">
             <div className="space-y-6">
               {/* Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-stone-800">
+              <div className="flex items-center justify-between pb-4 border-b border-[#3A2E24]">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🧰</span>
-                  <h2 className="text-lg font-bold text-stone-100 font-mono uppercase">
+                  <span className="text-[#A8472A] font-mono text-xs uppercase font-bold tracking-widest">[ SPEC ]</span>
+                  <h2 className="text-lg font-bold text-[#F8F5EE] font-mono uppercase">
                     Filter Equipment
                   </h2>
                 </div>
@@ -364,7 +345,7 @@ export function ProductFilters({
                   type="button"
                   onClick={() => setDrawerOpen(false)}
                   aria-label="Close filter drawer"
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-100 rounded-lg"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[#DDD0BE]/70 hover:text-white rounded-lg"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -379,7 +360,7 @@ export function ProductFilters({
 
               {/* Sort Section */}
               <div className="space-y-3">
-                <span className="text-xs font-mono text-[#E55B24] uppercase font-bold tracking-wider block">
+                <span className="text-xs font-mono text-[#A8472A] uppercase font-bold tracking-wider block">
                   Sort Order
                 </span>
                 <div className="grid grid-cols-1 gap-2">
@@ -390,8 +371,8 @@ export function ProductFilters({
                       onClick={() => handleUpdate({ sort: opt.value })}
                       className={`min-h-[44px] px-4 py-2.5 rounded-xl text-left text-xs font-mono uppercase font-semibold flex items-center justify-between transition-all ${
                         activeSort === opt.value
-                          ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                          : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-stone-700'
+                          ? 'bg-[#A8472A] text-white shadow-lg shadow-black/40'
+                          : 'bg-[#2A211A] text-[#EFE8DC] border border-[#3A2E24] hover:border-[#A8472A]/50'
                       }`}
                     >
                       <span>{opt.label}</span>
@@ -403,7 +384,7 @@ export function ProductFilters({
 
               {/* Batch Type Section */}
               <div className="space-y-3">
-                <span className="text-xs font-mono text-[#E55B24] uppercase font-bold tracking-wider block">
+                <span className="text-xs font-mono text-[#A8472A] uppercase font-bold tracking-wider block">
                   Production Batch
                 </span>
                 <div className="grid grid-cols-1 gap-2">
@@ -414,8 +395,8 @@ export function ProductFilters({
                       onClick={() => handleUpdate({ type: opt.value })}
                       className={`min-h-[44px] px-4 py-2.5 rounded-xl text-left text-xs font-mono uppercase font-semibold flex items-center justify-between transition-all ${
                         activeType === opt.value
-                          ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                          : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-stone-700'
+                          ? 'bg-[#A8472A] text-white shadow-lg shadow-black/40'
+                          : 'bg-[#2A211A] text-[#EFE8DC] border border-[#3A2E24] hover:border-[#A8472A]/50'
                       }`}
                     >
                       <span>{opt.label}</span>
@@ -427,7 +408,7 @@ export function ProductFilters({
 
               {/* Categories Section */}
               <div className="space-y-3">
-                <span className="text-xs font-mono text-[#E55B24] uppercase font-bold tracking-wider block">
+                <span className="text-xs font-mono text-[#A8472A] uppercase font-bold tracking-wider block">
                   Category Hierarchy
                 </span>
                 <div className="grid grid-cols-1 gap-2">
@@ -436,8 +417,8 @@ export function ProductFilters({
                     onClick={() => handleUpdate({ category: null })}
                     className={`min-h-[44px] px-4 py-2.5 rounded-xl text-left text-xs font-mono uppercase font-semibold flex items-center justify-between transition-all ${
                       !activeCategory
-                        ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                        : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-stone-700'
+                        ? 'bg-[#A8472A] text-white shadow-lg shadow-black/40'
+                        : 'bg-[#2A211A] text-[#EFE8DC] border border-[#3A2E24] hover:border-[#A8472A]/50'
                     }`}
                   >
                     <span>All Equipment</span>
@@ -447,7 +428,6 @@ export function ProductFilters({
                   {categories.map((cat) => {
                     const isSelected = activeCategory === cat.slug;
                     const isSub = Boolean(cat.parent_id);
-                    const icon = CATEGORY_ICONS[cat.slug] || '🎒';
                     return (
                       <button
                         key={cat.id}
@@ -457,13 +437,12 @@ export function ProductFilters({
                           isSub ? 'pl-8' : ''
                         } ${
                           isSelected
-                            ? 'bg-[#E55B24] text-white shadow-lg shadow-orange-950/40'
-                            : 'bg-[#15191E] text-stone-300 border border-stone-800 hover:border-stone-700'
+                            ? 'bg-[#A8472A] text-white shadow-lg shadow-black/40'
+                            : 'bg-[#2A211A] text-[#EFE8DC] border border-[#3A2E24] hover:border-[#A8472A]/50'
                         }`}
                       >
                         <span className="inline-flex items-center gap-2">
-                          {!isSub && <span>{icon}</span>}
-                          {isSub && <span className="text-stone-500">↳</span>}
+                          {isSub && <span className="text-[#DDD0BE]/50 font-mono">↳</span>}
                           <span>{cat.name}</span>
                         </span>
                         {isSelected && <span>✓</span>}
@@ -475,12 +454,12 @@ export function ProductFilters({
             </div>
 
             {/* Drawer Actions Footer */}
-            <div className="pt-6 border-t border-stone-800 space-y-3">
+            <div className="pt-6 border-t border-[#3A2E24] space-y-3">
               {activeFilterCount > 0 && (
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="w-full min-h-[44px] py-2 text-xs font-mono text-stone-400 hover:text-stone-200 uppercase font-semibold text-center block"
+                  className="w-full min-h-[44px] py-2 text-xs font-mono text-[#DDD0BE]/70 hover:text-white uppercase font-semibold text-center block"
                 >
                   Reset All Filters
                 </button>
@@ -488,7 +467,7 @@ export function ProductFilters({
               <Button
                 variant="primary"
                 onClick={() => setDrawerOpen(false)}
-                className="w-full min-h-[44px] font-mono text-xs uppercase font-bold tracking-wider"
+                className="w-full min-h-[44px] font-mono text-xs uppercase font-bold tracking-wider !bg-[#A8472A] hover:!bg-[#8C371D] text-white border-none"
               >
                 Show Results ({totalCount})
               </Button>
