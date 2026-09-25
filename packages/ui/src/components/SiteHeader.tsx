@@ -35,7 +35,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   return (
     <>
       <header
-        className={`sticky top-0 z-30 w-full border-b border-[#3A2E24]/70 bg-[#1E1813]/95 backdrop-blur-md transition-colors ${className}`}
+        className={`sticky top-0 ${isMobileMenuOpen ? 'z-[80]' : 'z-30'} w-full border-b border-[#3A2E24]/70 bg-[#1E1813]/95 backdrop-blur-md transition-colors ${className}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand & Wordmark */}
