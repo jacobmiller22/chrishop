@@ -76,7 +76,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       aria-modal="true"
       aria-label="Mobile Navigation Menu"
       id="mobile-storefront-menu"
-      className="fixed inset-0 z-40 md:hidden"
+      className="fixed inset-0 z-[70] md:hidden"
     >
       {/* Backdrop overlay */}
       <div
@@ -86,7 +86,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       />
 
       {/* Slide-over Drawer Panel */}
-      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-xs bg-[#1A1613] border-l border-[#3A2E24] p-6 pt-20 shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform ease-in-out duration-300">
+      <div className="fixed inset-y-0 right-0 z-[70] w-full max-w-xs bg-[#1A1613] border-l border-[#3A2E24] p-6 pt-20 shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform ease-in-out duration-300">
         <div className="space-y-6">
           {/* Drawer Header with Title and Accessible Close Button */}
           <div className="flex items-center justify-between pb-4 border-b border-[#3A2E24]/80">

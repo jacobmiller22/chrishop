@@ -64,7 +64,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       aria-modal="true"
       aria-label="Gear Roll Cart Drawer"
       data-testid="cart-drawer"
-      className="fixed inset-0 z-50 overflow-hidden flex justify-end"
+      className="fixed inset-0 z-[70] overflow-hidden flex justify-end"
     >
       {/* Backdrop */}
       <div
