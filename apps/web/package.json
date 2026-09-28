@@ -20,7 +20,7 @@
     "@chrishop/types": "workspace:*",
     "@chrishop/ui": "workspace:*",
     "@payloadcms/db-d1-sqlite": "^3.89.0",
-    "@payloadcms/next": "^3.89.0",
+    "@payloadcms/next": "^3.90.2",
     "@payloadcms/richtext-lexical": "^3.89.0",
     "@payloadcms/storage-s3": "^3.89.0",
     "@sentry/nextjs": "^10.75.2",
