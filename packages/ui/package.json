@@ -16,14 +16,14 @@
     "@radix-ui/react-slot": "^1.1.2"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
+    "react": "^19.3.1",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@chrishop/config": "workspace:*",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "react": "^19.0.0",
+    "react": "^19.3.1",
     "react-dom": "^19.0.0",
     "tsx": "^4.23.13",
     "typescript": "^5.7.2"
