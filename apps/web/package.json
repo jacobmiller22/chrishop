@@ -32,18 +32,18 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@img/sharp-darwin-arm64": "^0.35.4",
-    "@next/env": "16.3.3",
-    "@opennextjs/cloudflare": "^1.20.6",
-    "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^22.10.0",
+    "@img/sharp-darwin-arm64": "^0.35.5",
+    "@next/env": "16.4.5",
+    "@opennextjs/cloudflare": "^1.20.16",
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.3",
-    "postcss": "^8.5.23",
-    "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.13",
-    "typescript": "^5.7.2"
+    "eslint": "^10.14.0",
+    "eslint-config-next": "16.4.5",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
